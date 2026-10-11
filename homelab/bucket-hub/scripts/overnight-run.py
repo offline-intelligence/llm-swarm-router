@@ -16,6 +16,19 @@ from pathlib import Path
 from typing import Any
 from zoneinfo import ZoneInfo
 
+_HUB_ROOT = Path(__file__).resolve().parents[1]
+if str(_HUB_ROOT) not in sys.path:
+    sys.path.insert(0, str(_HUB_ROOT))
+
+from overnight_report import (  # noqa: E402
+    evaluate_machine_wake,
+    evaluate_mount_check,
+    heartbeat_fresh,
+    machine_wake_poll,
+    queue_drain_counts,
+    run_file_for,
+)
+
 HUB_BASE = os.environ.get("HUB_BASE", "http://127.0.0.1:3020").rstrip("/")
 JOBS_DIR = Path(os.environ.get("JOBS_DIR", os.path.expanduser("~/homelab/data/hub-jobs")))
 SCHEDULE_FILE = JOBS_DIR / "overnight-schedule.json"
@@ -47,10 +60,25 @@ def hub_json(method: str, path: str, body: dict | None = None, timeout: float = 
         return json.loads(resp.read().decode())
 
 
-def append_run(entry: dict) -> None:
+def _worker_heartbeat_at() -> str | None:
+    try:
+        st = hub_json("GET", "/api/status", timeout=30.0)
+    except Exception:
+        return None
+    w = st.get("worker") or {}
+    return w.get("heartbeat_at") or st.get("heartbeat_at")
+
+
+def write_latest(run_id: str) -> None:
     RUNS_DIR.mkdir(parents=True, exist_ok=True)
-    day = datetime.now(TZ).strftime("%Y-%m-%d")
-    path = RUNS_DIR / f"{day}.jsonl"
+    (RUNS_DIR / "latest.json").write_text(
+        json.dumps({"run_id": run_id}) + "\n", encoding="utf-8"
+    )
+
+
+def append_run(entry: dict, run_id: str) -> None:
+    RUNS_DIR.mkdir(parents=True, exist_ok=True)
+    path = run_file_for(RUNS_DIR, run_id)
     with path.open("a", encoding="utf-8") as fh:
         fh.write(json.dumps(entry) + "\n")
 
@@ -230,15 +258,87 @@ def run_step_poll(step: dict, deadline: float) -> dict:
     return {"ok": True}
 
 
-def run_step(step: dict, dry_run: bool) -> dict:
+def _finish_step_entry(
+    step: dict,
+    step_started: str,
+    result: dict,
+    *,
+    ok: bool,
+    result_text: str,
+) -> dict[str, Any]:
+    finished = datetime.now(timezone.utc).isoformat()
+    out = {
+        "ok": ok,
+        "result_text": result_text,
+        "step_started_at": step_started,
+        "step_finished_at": finished,
+        "result": result,
+        "timed_out": bool(result.get("timed_out")),
+    }
+    if step.get("type") == "queue_drain":
+        try:
+            jobs_data = hub_json("GET", "/api/jobs?limit=200", timeout=60.0)
+            all_jobs = jobs_data if isinstance(jobs_data, list) else jobs_data.get("jobs") or []
+            counts = queue_drain_counts(all_jobs, step_started, finished)
+            out["result"] = {**result, **counts}
+            out["result_text"] = (
+                f"{counts['finished']} finished, {counts['failed']} failed"
+                f"{', ' + str(counts['still_queued']) + ' still queued' if counts['still_queued'] else ''}"
+            )
+        except Exception:
+            pass
+    return out
+
+
+def run_step(step: dict, dry_run: bool, step_started: str) -> dict:
     label = step.get("label") or step.get("type")
     timeout_s = step_timeout_min(step) * 60
     log(f"{'[dry-run] ' if dry_run else ''}{label} (≤{step_timeout_min(step)}m, advance when done or timeout)")
     if dry_run:
-        return {"ok": True, "dry_run": True, "timeout_min": step_timeout_min(step)}
+        return {
+            "ok": True,
+            "dry_run": True,
+            "timeout_min": step_timeout_min(step),
+            "result_text": "Dry run",
+            "step_started_at": step_started,
+            "step_finished_at": datetime.now(timezone.utc).isoformat(),
+        }
 
     deadline = time.time() + timeout_s
     t0 = time.time()
+    stype = step.get("type") or ""
+
+    if stype == "machine_wake":
+        target = str(step.get("target") or "ubuntu").lower()
+        try:
+            run_step_body(step)
+        except Exception as exc:
+            raise
+        if target in ("ubuntu", "ai-server"):
+            ok_poll, hb = machine_wake_poll(
+                deadline,
+                5.0,
+                _worker_heartbeat_at,
+                step_started,
+            )
+            ok, text = evaluate_machine_wake(step, step_started, hb)
+            return _finish_step_entry(
+                step,
+                step_started,
+                {"heartbeat_at": hb, "timed_out": not ok_poll},
+                ok=ok,
+                result_text=text,
+            )
+        ok_ping = True
+        ok, text = evaluate_machine_wake(step, step_started, None, ping_ok=ok_ping)
+        return _finish_step_entry(
+            step,
+            step_started,
+            {"ping_ok": ok_ping},
+            ok=ok,
+            result_text=text,
+        )
+
     result_holder: dict[str, Any] = {}
     error_holder: list[Exception] = []
 
@@ -268,15 +368,35 @@ def run_step(step: dict, dry_run: bool) -> dict:
 
     elapsed = round(time.time() - t0, 1)
     base = result_holder.get("result") or {"ok": True}
-    stype = step.get("type") or ""
+    if stype == "mount_check":
+        hb = _worker_heartbeat_at()
+        ok, text = evaluate_mount_check(step_started, hb)
+        if not ok:
+            raise RuntimeError(text)
+        return _finish_step_entry(step, step_started, {"heartbeat_at": hb}, ok=True, result_text=text)
     if stype in ("dsh_research", "research_synthesis", "dsh_log_review", "log_review", "queue_drain"):
         poll_result = run_step_poll(step, deadline)
         poll_result["elapsed_s"] = elapsed
         poll_result["advance_reason"] = "timeout" if poll_result.get("timed_out") else "complete"
-        return poll_result
+        ok = bool(poll_result.get("ok", True))
+        text = (
+            f"Stopped after {step_timeout_min(step)} m limit"
+            if poll_result.get("timed_out")
+            else "Complete"
+        )
+        merged = _finish_step_entry(step, step_started, poll_result, ok=ok, result_text=text)
+        merged["elapsed_s"] = elapsed
+        merged["advance_reason"] = poll_result.get("advance_reason")
+        return merged
     base["elapsed_s"] = elapsed
     base["advance_reason"] = "complete"
-    return base
+    return _finish_step_entry(
+        step,
+        step_started,
+        base,
+        ok=True,
+        result_text="OK",
+    )
 
 
 def main() -> int:
@@ -286,6 +406,7 @@ def main() -> int:
     schedule = load_schedule()
     steps = [s for s in schedule.get("steps") or [] if s.get("enabled", True)]
     run_id = datetime.now(TZ).strftime("%Y%m%d-%H%M%S")
+    write_latest(run_id)
     write_state(
         {
             "run_id": run_id,
@@ -312,27 +433,39 @@ def main() -> int:
             }
         )
         t0 = time.time()
+        step_started = datetime.now(timezone.utc).isoformat()
         entry = {
             "run_id": run_id,
-            "at": datetime.now(timezone.utc).isoformat(),
+            "at": step_started,
             "step_id": step.get("id"),
             "type": step.get("type"),
             "label": step.get("label"),
+            "target": step.get("target"),
+            "critical": bool(step.get("critical")),
             "timeout_min": step_timeout_min(step),
         }
         try:
-            result = run_step(step, args.dry_run)
-            entry["ok"] = True
-            entry["result"] = result
+            result = run_step(step, args.dry_run, step_started)
+            entry["ok"] = bool(result.get("ok", True))
+            entry["result"] = result.get("result") or result
+            entry["result_text"] = result.get("result_text")
+            entry["step_started_at"] = result.get("step_started_at", step_started)
+            entry["step_finished_at"] = result.get("step_finished_at")
             entry["duration_s"] = round(time.time() - t0, 1)
+            entry["took_s"] = entry["duration_s"]
+            entry["timed_out"] = bool(result.get("timed_out"))
             entry["advance_reason"] = result.get("advance_reason", "complete")
-            append_run(entry)
+            append_run(entry, run_id)
             log(f"OK {step.get('label')} ({entry['duration_s']}s, {entry['advance_reason']})")
         except Exception as exc:
             entry["ok"] = False
             entry["error"] = str(exc)
+            entry["result_text"] = str(exc)
+            entry["step_started_at"] = step_started
+            entry["step_finished_at"] = datetime.now(timezone.utc).isoformat()
             entry["duration_s"] = round(time.time() - t0, 1)
-            append_run(entry)
+            entry["took_s"] = entry["duration_s"]
+            append_run(entry, run_id)
             log(f"FAIL {step.get('label')}: {exc}")
             write_state(
                 {

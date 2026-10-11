@@ -25,6 +25,13 @@ import machines_ctl
 from download_destinations import aria2_destination_catalog, validate_aria2_destination
 from index_writer import append_entry, entry_from_job
 from job_kinds import is_aria2_job
+from overnight_report import (
+    build_last_night,
+    list_run_summaries,
+    load_latest_run_id,
+    read_run_lines,
+    run_file_for,
+)
 from torrent_indexer_catalog import normalize_hub_category
 from torrent_indexer_urls import (
     attach_candidates_to_indexers,
@@ -3841,104 +3848,47 @@ def overnight_run_status() -> dict[str, Any]:
     return {"status": "idle"}
 
 
+def _worker_state_label() -> str:
+    try:
+        if WORKER_STATUS_FILE.is_file():
+            ws = json.loads(WORKER_STATUS_FILE.read_text(encoding="utf-8"))
+            age = ws.get("heartbeat_age_s")
+            if age is not None and float(age) < 120:
+                return "ai-server awake"
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return "ai-server asleep"
+
+
+@app.get("/api/overnight/runs")
+def overnight_runs_list(limit: int = 7) -> dict[str, Any]:
+    _ensure_dirs()
+    lim = max(1, min(30, int(limit)))
+    return {"runs": list_run_summaries(OVERNIGHT_RUNS_DIR, lim)}
+
+
 @app.get("/api/overnight/last-night")
 def overnight_last_night() -> dict[str, Any]:
-    """Combined nightly review: overnight run results + prior day job summary."""
+    """Run-scoped overnight report (AP-2)."""
     _ensure_dirs()
-
-    # 1. Overnight run results (from JSONL log)
-    run_steps: list[dict[str, Any]] = []
-    run_meta: dict[str, Any] = {"status": "idle"}
-    tz = ZoneInfo("Australia/Brisbane")
-    yesterday = (datetime.now(tz) - timedelta(days=1)).strftime("%Y-%m-%d")
-    today = datetime.now(tz).strftime("%Y-%m-%d")
-    run_file = None
-    for day in (today, yesterday):
-        candidate = OVERNIGHT_RUNS_DIR / f"{day}.jsonl"
-        if candidate.is_file():
-            run_file = candidate
-            break
-    if run_file and run_file.is_file():
-        try:
-            for line in run_file.read_text(encoding="utf-8").splitlines():
-                if line.strip():
-                    entry = json.loads(line)
-                    run_steps.append({
-                        "step_id": entry.get("step_id"),
-                        "label": entry.get("label"),
-                        "type": entry.get("type"),
-                        "ok": entry.get("ok"),
-                        "duration_s": entry.get("duration_s"),
-                        "error": entry.get("error"),
-                        "advance_reason": entry.get("advance_reason") or (entry.get("result") or {}).get("advance_reason"),
-                        "timed_out": (entry.get("result") or {}).get("timed_out", False),
-                        "at": entry.get("at"),
-                    })
-        except Exception:
-            pass
-    if run_steps:
-        first = run_steps[0].get("at") or ""
-        last = run_steps[-1].get("at") or ""
-        all_ok = all(s.get("ok") for s in run_steps)
-        run_meta = {
-            "status": "done" if all_ok else "failed",
-            "started_at": first,
-            "finished_at": last,
-            "steps_total": len(run_steps),
-            "steps_ok": sum(1 for s in run_steps if s.get("ok")),
-            "steps_failed": sum(1 for s in run_steps if not s.get("ok")),
-            "date": run_file.stem if run_file else yesterday,
-        }
-
-    # 2. Prior day job summary (reuse existing logic)
-    start, end, label = _prior_local_day_bounds()
-    matched = [j for j in _load_all_jobs() if _job_on_prior_day(j, start, end)]
-    matched.sort(
-        key=lambda j: j.get("finished_at") or j.get("started_at") or j.get("created_at") or "",
-        reverse=True,
+    run_id = load_latest_run_id(OVERNIGHT_RUNS_DIR)
+    lines: list[dict[str, Any]] = []
+    if run_id:
+        lines = read_run_lines(run_file_for(OVERNIGHT_RUNS_DIR, run_id))
+    schedule = _load_overnight_schedule()
+    payload = build_last_night(
+        lines,
+        _load_all_jobs(),
+        schedule,
+        datetime.now(HUB_TZ),
+        run_id=run_id,
+        worker_state=_worker_state_label(),
+        tz=HUB_TZ,
     )
-    job_counts = dict(Counter(j.get("status", "?") for j in matched))
-    job_slim = [
-        {
-            "id": j.get("id"),
-            "title": j.get("title") or j.get("kind"),
-            "kind": j.get("kind"),
-            "status": j.get("status"),
-            "error": _human_error(j.get("error")),
-            "finished_at": j.get("finished_at"),
-        }
-        for j in matched[:10]
-    ]
-
-    # 3. Machine events from run steps
-    machine_events = [
-        s for s in run_steps
-        if s.get("type") in ("machine_wake", "machine_sleep")
-    ]
-
-    # 4. Dev-ops warnings from worker heartbeat
-    warnings: list[str] = []
-    try:
-        if WORKER_STATUS_FILE.exists():
-            ws = json.loads(WORKER_STATUS_FILE.read_text(encoding="utf-8"))
-            stale = ws.get("stale_mounts") or []
-            if stale:
-                warnings.append(f"Stale mounts detected: {', '.join(stale)}")
-            if not ws.get("vpn_ok"):
-                warnings.append("VPN was down during last heartbeat")
-            tail = ws.get("dev_ops_tail") or []
-            warn_lines = [ln for ln in tail if "[WARN]" in ln or "[ERROR]" in ln]
-            warnings.extend(warn_lines[-5:])
-    except Exception:
-        pass
-
-    return {
-        "run": run_meta,
-        "steps": run_steps,
-        "jobs": {"counts": job_counts, "items": job_slim, "date": label},
-        "machine_events": machine_events,
-        "warnings": warnings,
-    }
+    if not lines:
+        payload["run_id"] = None
+        payload["message"] = "No run recorded last night"
+    return payload
 
 
 @app.get("/{slug}")
