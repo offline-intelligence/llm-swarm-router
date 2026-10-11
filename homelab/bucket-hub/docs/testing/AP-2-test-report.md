@@ -49,7 +49,7 @@ Date: 2026-10-12.
 
 | Step | Command / action | Result |
 |------|------------------|--------|
-| 1 | `python3 scripts/overnight-run.py --dry-run` on Pi; check new `overnight-runs/<run_id>.jsonl` and Hub Last night card (four lines) | |
+| 1 | `python3 scripts/overnight-run.py --dry-run` on Pi; check new `overnight-runs/<run_id>.jsonl` and Hub Last night card (four lines) | **Done 2026-10-12** — run `20261012-015311`, jsonl + `latest.json` on Pi; card not yet verified in Glance |
 | 2 | Open `/overnight`: Last run table, plan, disabled collapsed, strip + limits line, Save only after edit | |
 | 3 | Glance Dev bookmarks: no `/status/last-night*.html` | |
 | 4 | Next morning: card matches jsonl + queue counts | |

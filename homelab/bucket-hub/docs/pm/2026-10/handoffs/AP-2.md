@@ -23,13 +23,18 @@
 
 **Open questions:** None.
 
-Deploy (Finn):
+**Post-handoff (2026-10-12 deploy):** Pi + worker rsync done; worker `verify-deploy-parity.sh` exit 0; Pi 22/22 (Tailscale `100.85.42.0`). Commit `9310d1b`: Pi-safe overnight log text + `ssh -n` in parity script. Glance restart not confirmed.
+
+**Tests added (follow-up):** N/A — deploy-only; suite still 124 passed.
+
+Deploy (Finn — mostly done):
 
 ```bash
 cd homelab/bucket-hub
-scripts/verify-deploy-parity.sh pi
-# rsync Pi manifest (incl. overnight_report.py, scripts/overnight-run.py) to stackrise-pi:~/homelab/hub-form/
-# restart hub-form + Glance; bump ?v= on hub iframe URLs in glance.yml
-scripts/verify-deploy-parity.sh pi
-python3 ~/homelab/hub-form/scripts/overnight-run.py --dry-run
+HUB_PI_SSH=bucket@100.85.42.0  # until ~/.ssh/config HostName fixed
+./scripts/verify-deploy-parity.sh worker   # expect exit 0
+# Pi parity: use Tailscale IP + id_ed25519_pi; script uses ssh -n as of 9310d1b
+ssh -i ~/.ssh/id_ed25519_pi bucket@100.85.42.0 'systemctl --user restart hub-form.service'
+# Reload Glance after glance.yml deploy
+JOBS_DIR=~/homelab/data/hub-jobs HUB_BASE=http://127.0.0.1:3020 python3 ~/homelab/hub-form/scripts/overnight-run.py --dry-run
 ```
