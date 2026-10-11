@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-1 in progress on cursor/ap-1)
+**Last updated:** 2026-10-12 (AP-2 in progress on cursor/ap-2)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -45,8 +45,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ## Backlog (ordered)
 
-- [ ] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. In progress with Cursor.
-- [ ] AP-2 (P1) Overnight run-scoped report.
+- [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); deploy pending manifest rsync on Pi and ai-server.
+- [ ] AP-2 (P1) Overnight run-scoped report. In progress with Cursor.
 - [ ] Repo archive (P1, after AP-2): AP-3 repo lane + `github_repo`, AP-4 `huggingface_repo`, AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -95,6 +95,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-11 | AP-1 accepted (54→110 tests, 0 fail). GO for AP-2. Deploy pending: verify-deploy-parity → manifest rsync → restart services → parity check both hosts. GitHub not yet connected to PM session; review via handoff file until then. |
 | 2026-10-11 | PM issued Cursor prompts: audit AP-1/AP-2 with test plan and test reports; GitHub + HF repo archive spec (segmented lane, stars-to-queue, searchable index). |
 | 2026-10-12 | Audit handoff pack: AUDIT-BRIEF-2026 + docs 08–14; live probes; dismiss UX on Pi. |
 | 2026-10-11 | Claude PM workflow defined; PROJECT-STATE created; user uses Tailscale Hub. |
