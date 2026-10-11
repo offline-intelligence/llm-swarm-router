@@ -9,6 +9,7 @@ job_health.py
 download_destinations.py
 index_writer.py
 job_kinds.py
+overnight_report.py
 torrent_indexer_catalog.py
 torrent_indexer_urls.py
 llm_ctl.py
@@ -23,6 +24,7 @@ chat.html
 storage.html
 capture.html
 indexers.html
+scripts/overnight-run.py
 
 [worker]
 # Destination: ~/homelab/scripts/
