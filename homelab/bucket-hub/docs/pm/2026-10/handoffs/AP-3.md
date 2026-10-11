@@ -93,3 +93,63 @@ exit:1
 - Merge order: rebase AP-3 onto `main` after AP-1/AP-2 land, or squash-merge stack?
 - Finn: rsync worker manifest, `docker build -t bucket-hub-repo-archiver:1 docker/repo-archiver`, set `HUB_REPO_ARCHIVE_ROOT` / `REPO_ARCHIVER_IMAGE` in `hub-worker.env`, confirm TNAS mount — then re-run parity and §T6 live smokes.
 - Worker was `activating` during smoke; confirm `active` before enqueueing first `github_repo` job.
+
+---
+
+## Post-merge deploy (2026-10-12, Cursor)
+
+**Merges:** offline-intelligence PR #1 (AP-1) and #2 (AP-2) merged into `hub/audit-handoff-2026-10`. `cursor/ap-3` rebased onto that branch and force-pushed (`591d49a`).
+
+**Pytest (after rebase):**
+
+```text
+146 passed, 67 warnings in 3.06s
+```
+
+**hub-worker service:**
+
+```text
+$ ssh ai-server-ts 'systemctl --user is-active hub-worker'
+activating   # before deploy wait loop
+try 4: active   # after ~12s
+$ ssh ai-server-ts 'systemctl --user restart hub-worker && systemctl --user is-active hub-worker'
+active
+```
+
+**HUB_GITHUB_TOKEN:** not present in `~/homelab/scripts/hub-worker.env` (no `GITHUB_TOKEN` / `HUB_GITHUB_TOKEN` lines). Add before live clone smokes.
+
+**Parity — worker BEFORE rsync:**
+
+```text
+MISMATCH hub-worker.py ...
+MISSING_REMOTE hub_worker.py ...
+MISMATCH index_writer.py ...
+MISMATCH job_kinds.py ...
+MISSING_REMOTE repo_archive_paths.py ...
+MISSING_REMOTE repo_archive_github.py ...
+MISSING_REMOTE repo_runner.py ...
+parity failed for worker (exit 1)
+```
+
+**Parity — worker AFTER rsync + restart:**
+
+```text
+OK hub-worker.py
+OK hub_worker.py
+OK job_health.py
+OK download_destinations.py
+OK index_writer.py
+OK job_kinds.py
+OK repo_archive_paths.py
+OK repo_archive_github.py
+OK repo_runner.py
+OK hub_torrent_parse.py
+OK media_pipeline.py
+OK torrent_indexer_catalog.py
+OK torrent-indexers-catalog.json
+parity ok worker (exit 0)
+```
+
+**§T6 (steps 1–5):** see `docs/testing/AP-3-test-report.md` table. Pi API live (`GET /api/repo-lane`); enqueue `github_repo` ok; worker could not claim (Pi heartbeat timeouts in log). TNAS unmounted; archiver image not built.
+
+**Finn follow-up:** fix `~/.ssh/config` `Host stackrise-pi` → `100.85.42.0`; add `HUB_GITHUB_TOKEN`; mount TNAS; `docker build -t bucket-hub-repo-archiver:1` on ai-server; restore Pi↔worker connectivity; re-run §T6 steps 2–5.
