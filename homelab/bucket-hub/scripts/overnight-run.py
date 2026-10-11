@@ -293,7 +293,10 @@ def _finish_step_entry(
 def run_step(step: dict, dry_run: bool, step_started: str) -> dict:
     label = step.get("label") or step.get("type")
     timeout_s = step_timeout_min(step) * 60
-    log(f"{'[dry-run] ' if dry_run else ''}{label} (≤{step_timeout_min(step)}m, advance when done or timeout)")
+    log(
+        f"{'[dry-run] ' if dry_run else ''}{label} "
+        f"(max {step_timeout_min(step)} m, advance when done or timeout)"
+    )
     if dry_run:
         return {
             "ok": True,
