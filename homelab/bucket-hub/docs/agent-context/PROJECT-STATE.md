@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (audit handoff pack)
+**Last updated:** 2026-10-12 (AP-3 on cursor/ap-3, draft PR; AP-1+2 deployed; AP-3 worker not deployed yet)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -9,9 +9,17 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ## Current decisions
 
+- **TV folder model:** Hub stops creating `torrents/<Show>/Season NN`. `torrents/` is the aria2 inbox (`torrents/<release folder>/`); `tv/<Show>/Season N` is the Sonarr-owned library. (Audit 2026-10, C1/C2.)
+- **Deploy parity is mandatory:** every packet's deploy runs `scripts/verify-deploy-parity.sh` for Pi and worker, driven by `scripts/deploy-manifest.txt`.
+- **Job-kind routing:** a job is aria2 only when `worker == "aria2"`, or no worker and `kind` in {http, magnet}. Shared rule in `job_kinds.py`.
+- **Repo archive is segmented from media:** GitHub and HuggingFace downloads get their own job kinds, claim lane and destination roots (spec: `cursor-github-hf-downloader.md`, after AP-1 and AP-2).
+- **Testing evidence:** each packet ships `docs/testing/AP-n-test-report.md`.
+- **Download index is the top priority:** shared `index_writer.py` (schema v1); every finished job of every kind appends to `$JOBS_DIR/download-index.jsonl` (rich entry for torrents from AP-1, minimal fallback for other kinds until AP-5).
+- **Review loop:** Cursor opens a draft PR per packet (`cursor/ap-N`) and posts a "Handoff to PM" comment (also saved to `docs/pm/2026-10/handoffs/AP-N.md`); the PM replies go or no-go before the next packet.
+
 | Topic | Decision |
 |-------|----------|
-| TV torrents | **Season-by-season** preferred; **discourage** full-series complete packs (size, aria2, Sonarr). |
+| TV torrents | **Season-by-season** preferred; **discourage** full-series complete packs (size, aria2, Sonarr). Flat `torrents/` inbox. |
 | Breaking Bad S01 | Shipped via **season pack** + manual Sonarr scan; Jellyfin **TV Shows (Sonarr)**. |
 | Training Day / metadata | Magnet-only dead swarms → use Jackett **`.torrent` URL**; metadata stall = `metadata_stuck` in `job_health.py`. |
 | Resume vs Retry | After aria2 restart, **Retry** (clears dead `aria2_gid`); Resume keeps stale gid. |
@@ -28,7 +36,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Master brief:** [AUDIT-BRIEF-2026.md](AUDIT-BRIEF-2026.md) — live probe snapshot, technology rationale, Claude first message.
 - **Deep dives:** `08`–`14` in this folder; index in [00-README.md](00-README.md).
 - **pytest (compile):** 54 passed, 2 failed — see [12-FAILURES-LIMITATIONS-TESTS.md](12-FAILURES-LIMITATIONS-TESTS.md).
-- **Pi deploy parity:** `app.py`, `form.html`, `job_health.py` byte-matched git on 2026-10-12; confirm `hub-worker.py` on ai-server separately.
+- **Pi deploy parity:** 2026-10-12 manifest rsync — **22/22** Pi files + **worker parity ok** (`verify-deploy-parity.sh worker`). Use `bucket@100.85.42.0` until `stackrise-pi` SSH HostName fixed.
 - **Awaiting Claude auditor:** findings + first Action Packet. Extra required topics: **overnight UI** (`overnight.html`) and **TV folder auto-creation** (`ensureTorrentShowFolder`).
 - **Claude is not self-sufficient:** no MCP writes the Mac repo. See [15-CLAUDE-AUDITOR-WORKFLOW.md](15-CLAUDE-AUDITOR-WORKFLOW.md). Cursor still merges CONTEXT UPDATE and SSH-deploys via [SSH-PASTE.txt](SSH-PASTE.txt).
 - **Recommended auditor model:** Sonnet 4.6 (not Opus for the full read).
@@ -37,11 +45,15 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ## Backlog (ordered)
 
+- [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
+- [ ] AP-2 (P1) Overnight run-scoped report. **Ready for PM review** (PR offline-intelligence #2); Pi deploy largely done.
+- [ ] Repo archive (P1): **AP-3** repo lane + `github_repo` — **ready for PM review** (`cursor/ap-3`, 146 pytest); worker deploy pending. AP-4 `huggingface_repo`, AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
+
 ### P0 — TV season-first UX
 
 - [ ] Show-only TV search → Sonarr lookup → **clickable season pips** → Jackett query `{Show} season N}` only.
 - [ ] **Hide or demote** `release_kind: full_show` on TV chip (optional “Advanced” override).
-- [ ] One season = one queue job; Expansion HDD `torrents/<Show>/Season NN`.
+- [ ] One season = one queue job; Expansion HDD `torrents/<release>/` (not Show/Season folders).
 - [ ] Verify `SONARR_URL=http://127.0.0.1:8989` in `hub-worker.env` (Gluetun network).
 
 ### P1 — Automation
@@ -83,6 +95,9 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | Live deploy: Pi + worker manifest rsync; parity worker OK, Pi 22/22; overnight dry-run OK; follow-up commit `9310d1b` (encoding + `ssh -n` in parity script). PM paste: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12.md`. |
+| 2026-10-11 | AP-1 accepted (54→110 tests, 0 fail). GO for AP-2. GitHub review via offline-intelligence fork PRs / handoff files. |
+| 2026-10-11 | PM issued Cursor prompts: audit AP-1/AP-2 with test plan and test reports; GitHub + HF repo archive spec (segmented lane, stars-to-queue, searchable index). |
 | 2026-10-12 | Audit handoff pack: AUDIT-BRIEF-2026 + docs 08–14; live probes; dismiss UX on Pi. |
 | 2026-10-11 | Claude PM workflow defined; PROJECT-STATE created; user uses Tailscale Hub. |
 

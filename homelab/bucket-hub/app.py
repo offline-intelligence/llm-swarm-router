@@ -23,6 +23,15 @@ from pydantic import BaseModel, Field, field_validator
 import llm_ctl
 import machines_ctl
 from download_destinations import aria2_destination_catalog, validate_aria2_destination
+from index_writer import append_entry, entry_from_job
+from job_kinds import is_aria2_job, is_repo_download_kind, is_repo_meta_kind
+from overnight_report import (
+    build_last_night,
+    list_run_summaries,
+    load_latest_run_id,
+    read_run_lines,
+    run_file_for,
+)
 from torrent_indexer_catalog import normalize_hub_category
 from torrent_indexer_urls import (
     attach_candidates_to_indexers,
@@ -59,6 +68,8 @@ CHAT_PATH = Path(__file__).with_name("chat.html")
 OVERNIGHT_PATH = Path(__file__).with_name("overnight.html")
 OVERNIGHT_JS_PATH = Path(__file__).with_name("hub-overnight.js")
 HUB_DESIGN_CSS_PATH = Path(__file__).with_name("hub-design.css")
+HUB_ESCAPE_JS_PATH = Path(__file__).with_name("static") / "hub-escape.js"
+DOWNLOAD_INDEX_FILE = JOBS_DIR / "download-index.jsonl"
 DEFAULT_OVERNIGHT_SCHEDULE = Path(__file__).with_name("overnight-schedule.default.json")
 OVERNIGHT_SCHEDULE_FILE = JOBS_DIR / "overnight-schedule.json"
 OVERNIGHT_STATE_FILE = JOBS_DIR / "overnight-run-state.json"
@@ -75,6 +86,11 @@ HUB_MAX_CONCURRENT_ARIA2 = max(
 )
 HUB_SLOT_VIDEO = max(0, int(os.environ.get("HUB_SLOT_VIDEO", "1")))
 HUB_SLOT_ARCHIVE = max(0, int(os.environ.get("HUB_SLOT_ARCHIVE", "0")))
+HUB_SLOT_REPO = max(0, int(os.environ.get("HUB_SLOT_REPO", "1")))
+HUB_SLOT_REPO_META = max(0, int(os.environ.get("HUB_SLOT_REPO_META", "1")))
+HUB_REPO_ARCHIVE_ROOT = os.environ.get(
+    "HUB_REPO_ARCHIVE_ROOT", "/mnt/tnas/repo-archive"
+)
 # Firefox capture: static token and/or minted tokens under hub-jobs
 HUB_CAPTURE_TOKEN = os.environ.get("HUB_CAPTURE_TOKEN", "").strip()
 CAPTURE_TOKENS_FILE = JOBS_DIR / "capture-tokens.json"
@@ -1946,8 +1962,9 @@ class JobCreate(BaseModel):
     url: str = Field(min_length=3)
     title: str = ""
     kind: str = "auto"  # auto | video | http | magnet | github | hf | website_archive
-    drive_id: str
-    folder_id: str
+    drive_id: str = ""
+    folder_id: str = ""
+    options: dict[str, Any] = Field(default_factory=dict)
     tags: list[str] = Field(default_factory=list)
     high_priority: bool = False
     notify_on_complete: bool = False
@@ -1977,7 +1994,9 @@ def _detect_kind(url: str, source: str) -> str:
     if u.startswith("magnet:"):
         return "magnet"
     if "github.com" in u:
-        return "github"
+        if "/releases/" in u:
+            return "github_release"
+        return "github_repo"
     if "huggingface.co" in u:
         return "hf"
     if any(x in u for x in ("youtube.com", "youtu.be", "vimeo.com", "tiktok.com")):
@@ -2093,6 +2112,31 @@ def jobs_summary_last_night() -> dict[str, Any]:
 
 @app.post("/api/jobs")
 async def create_job(body: JobCreate) -> JSONResponse:
+    kind = body.kind if body.kind != "auto" else _detect_kind(body.url, body.source)
+    if is_repo_download_kind(kind) or is_repo_meta_kind(kind):
+        worker = "repo" if is_repo_download_kind(kind) else "repo"
+        clean_tags: list[str] = []
+        for t in body.tags:
+            t = t.strip().lstrip("#").lower()
+            if t:
+                clean_tags.append(t)
+        job: dict[str, Any] = {
+            "url": body.url.strip(),
+            "title": body.title.strip() or body.url.strip(),
+            "kind": kind,
+            "source": body.source or kind,
+            "worker": worker,
+            "tags": clean_tags,
+            "options": {**body.options},
+            "notes": body.notes.strip(),
+        }
+        if body.high_priority:
+            job["options"]["high_priority"] = True
+        if body.notify_on_complete:
+            job["options"]["notify_on_complete"] = True
+        job = _enqueue_job(job)
+        return JSONResponse({"ok": True, "job": job})
+
     lib = _load_library()
     drive = lib.get("drives", {}).get(body.drive_id)
     if not drive:
@@ -2133,7 +2177,13 @@ async def create_job(body: JobCreate) -> JSONResponse:
 
     if kind == "video":
         worker = "metube"
-    elif kind in ("github", "hf"):
+    elif kind in (
+        "github",
+        "hf",
+        "github_repo",
+        "huggingface_repo",
+        "github_release",
+    ):
         worker = "repo"
     elif kind == "website_archive":
         worker = "httrack"
@@ -2165,6 +2215,7 @@ async def create_job(body: JobCreate) -> JSONResponse:
             "sensitive": True,
             "high_priority": body.high_priority,
             "notify_on_complete": body.notify_on_complete,
+            **body.options,
         },
         "hf": {
             "repo_id": body.hf_repo_id,
@@ -2338,6 +2389,8 @@ class JobUpdate(BaseModel):
     aria2_gid: str | None = None
     media_pipeline: dict[str, Any] | None = None
     agent_review: dict[str, Any] | None = None
+    download_dir: str | None = None
+    index_entry: dict[str, Any] | None = None
 
 
 @app.patch("/api/jobs/{job_id}")
@@ -2374,11 +2427,27 @@ def patch_job(
         job["aria2_gid"] = body.aria2_gid
     if body.media_pipeline is not None:
         job["media_pipeline"] = body.media_pipeline
+    if body.download_dir is not None:
+        job["download_dir"] = body.download_dir
+    if body.index_entry is not None:
+        job["index_entry"] = body.index_entry
     if "agent_review" in body.model_fields_set:
         if body.agent_review is None:
             job.pop("agent_review", None)
         else:
             job["agent_review"] = body.agent_review
+    if job.get("status") in ("done", "error") and prev_status not in ("done", "error"):
+        entry = job.get("index_entry")
+        if not isinstance(entry, dict):
+            entry = entry_from_job(job)
+        if job.get("status") == "error":
+            entry = dict(entry)
+            entry["status"] = "failed"
+        try:
+            append_entry(DOWNLOAD_INDEX_FILE, entry)
+            job["index_entry"] = entry
+        except Exception as exc:  # noqa: BLE001
+            print(f"download index append failed: {exc}", flush=True)
     _write_job(job)
     try:
         from notify import maybe_notify_job
@@ -2390,16 +2459,17 @@ def patch_job(
 
 
 def _is_aria2_job(job: dict[str, Any]) -> bool:
-    if job.get("worker") == "aria2":
-        return True
-    kind = (job.get("kind") or "http").lower()
-    return kind in ("http", "magnet")
+    return is_aria2_job(job)
 
 
 def _job_kind_bucket(job: dict[str, Any]) -> str:
-    kind = (job.get("kind") or "http").lower()
-    if _is_aria2_job(job):
+    kind = str(job.get("kind") or "").strip().lower()
+    if is_aria2_job(job):
         return "aria2"
+    if is_repo_meta_kind(kind):
+        return "repo_meta"
+    if is_repo_download_kind(kind) or kind in ("github", "hf"):
+        return "repo"
     if kind == "video":
         return "video"
     if kind == "website_archive":
@@ -2410,7 +2480,15 @@ def _job_kind_bucket(job: dict[str, Any]) -> str:
 
 
 def _active_work_counts() -> dict[str, int]:
-    counts = {"aria2": 0, "video": 0, "archive": 0, "exclusive": 0, "other": 0}
+    counts = {
+        "aria2": 0,
+        "video": 0,
+        "archive": 0,
+        "exclusive": 0,
+        "other": 0,
+        "repo": 0,
+        "repo_meta": 0,
+    }
     for job in _load_all_jobs():
         if job.get("status") not in ("running", "claimed"):
             continue
@@ -2431,12 +2509,20 @@ def _job_claim_allowed(job: dict[str, Any], counts: dict[str, int]) -> bool:
         if HUB_SLOT_ARCHIVE <= 0:
             return counts["archive"] < 1 and counts["exclusive"] == 0
         return counts["archive"] < HUB_SLOT_ARCHIVE
+    if bucket == "repo":
+        if counts["exclusive"] > 0:
+            return False
+        return counts["repo"] < HUB_SLOT_REPO
+    if bucket == "repo_meta":
+        return counts["repo_meta"] < HUB_SLOT_REPO_META
     if bucket == "exclusive":
         return (
             counts["aria2"] == 0
             and counts["video"] == 0
             and counts["archive"] == 0
             and counts["exclusive"] == 0
+            and counts["repo"] == 0
+            and counts["repo_meta"] == 0
         )
     return counts["aria2"] == 0 and counts["exclusive"] == 0
 
@@ -2761,6 +2847,35 @@ def hub_status() -> dict[str, Any]:
     }
 
 
+@app.get("/api/repo-lane")
+def repo_lane_status() -> dict[str, Any]:
+    """Repo archive lane capacity (separate from aria2 torrent slots)."""
+    counts = _active_work_counts()
+    return {
+        "archive_root": HUB_REPO_ARCHIVE_ROOT,
+        "slot_repo": HUB_SLOT_REPO,
+        "active_repo": counts.get("repo", 0),
+        "slot_repo_meta": HUB_SLOT_REPO_META,
+        "active_repo_meta": counts.get("repo_meta", 0),
+        "kinds_repo": sorted(
+            {
+                "github_repo",
+                "huggingface_repo",
+                "github_release",
+                "github",
+                "hf",
+            }
+        ),
+        "kinds_repo_meta": sorted(
+            {
+                "github_stars_sync",
+                "huggingface_likes_sync",
+                "github_releases_sync",
+            }
+        ),
+    }
+
+
 @app.post("/api/jobs/claim")
 def claim_job(x_worker_token: str | None = Header(default=None)) -> dict[str, Any]:
     """Atomically claim the next queued job (priority, queue_rank, slot limits)."""
@@ -2862,6 +2977,17 @@ def hub_design_css() -> FileResponse:
     return FileResponse(
         HUB_DESIGN_CSS_PATH,
         media_type="text/css; charset=utf-8",
+        headers={"Cache-Control": "public, max-age=3600"},
+    )
+
+
+@app.get("/assets/hub-escape.js")
+def hub_escape_js() -> FileResponse:
+    if not HUB_ESCAPE_JS_PATH.is_file():
+        raise HTTPException(404, "hub-escape.js missing")
+    return FileResponse(
+        HUB_ESCAPE_JS_PATH,
+        media_type="application/javascript; charset=utf-8",
         headers={"Cache-Control": "public, max-age=3600"},
     )
 
@@ -3811,104 +3937,47 @@ def overnight_run_status() -> dict[str, Any]:
     return {"status": "idle"}
 
 
+def _worker_state_label() -> str:
+    try:
+        if WORKER_STATUS_FILE.is_file():
+            ws = json.loads(WORKER_STATUS_FILE.read_text(encoding="utf-8"))
+            age = ws.get("heartbeat_age_s")
+            if age is not None and float(age) < 120:
+                return "ai-server awake"
+    except (OSError, json.JSONDecodeError, TypeError, ValueError):
+        pass
+    return "ai-server asleep"
+
+
+@app.get("/api/overnight/runs")
+def overnight_runs_list(limit: int = 7) -> dict[str, Any]:
+    _ensure_dirs()
+    lim = max(1, min(30, int(limit)))
+    return {"runs": list_run_summaries(OVERNIGHT_RUNS_DIR, lim)}
+
+
 @app.get("/api/overnight/last-night")
 def overnight_last_night() -> dict[str, Any]:
-    """Combined nightly review: overnight run results + prior day job summary."""
+    """Run-scoped overnight report (AP-2)."""
     _ensure_dirs()
-
-    # 1. Overnight run results (from JSONL log)
-    run_steps: list[dict[str, Any]] = []
-    run_meta: dict[str, Any] = {"status": "idle"}
-    tz = ZoneInfo("Australia/Brisbane")
-    yesterday = (datetime.now(tz) - timedelta(days=1)).strftime("%Y-%m-%d")
-    today = datetime.now(tz).strftime("%Y-%m-%d")
-    run_file = None
-    for day in (today, yesterday):
-        candidate = OVERNIGHT_RUNS_DIR / f"{day}.jsonl"
-        if candidate.is_file():
-            run_file = candidate
-            break
-    if run_file and run_file.is_file():
-        try:
-            for line in run_file.read_text(encoding="utf-8").splitlines():
-                if line.strip():
-                    entry = json.loads(line)
-                    run_steps.append({
-                        "step_id": entry.get("step_id"),
-                        "label": entry.get("label"),
-                        "type": entry.get("type"),
-                        "ok": entry.get("ok"),
-                        "duration_s": entry.get("duration_s"),
-                        "error": entry.get("error"),
-                        "advance_reason": entry.get("advance_reason") or (entry.get("result") or {}).get("advance_reason"),
-                        "timed_out": (entry.get("result") or {}).get("timed_out", False),
-                        "at": entry.get("at"),
-                    })
-        except Exception:
-            pass
-    if run_steps:
-        first = run_steps[0].get("at") or ""
-        last = run_steps[-1].get("at") or ""
-        all_ok = all(s.get("ok") for s in run_steps)
-        run_meta = {
-            "status": "done" if all_ok else "failed",
-            "started_at": first,
-            "finished_at": last,
-            "steps_total": len(run_steps),
-            "steps_ok": sum(1 for s in run_steps if s.get("ok")),
-            "steps_failed": sum(1 for s in run_steps if not s.get("ok")),
-            "date": run_file.stem if run_file else yesterday,
-        }
-
-    # 2. Prior day job summary (reuse existing logic)
-    start, end, label = _prior_local_day_bounds()
-    matched = [j for j in _load_all_jobs() if _job_on_prior_day(j, start, end)]
-    matched.sort(
-        key=lambda j: j.get("finished_at") or j.get("started_at") or j.get("created_at") or "",
-        reverse=True,
+    run_id = load_latest_run_id(OVERNIGHT_RUNS_DIR)
+    lines: list[dict[str, Any]] = []
+    if run_id:
+        lines = read_run_lines(run_file_for(OVERNIGHT_RUNS_DIR, run_id))
+    schedule = _load_overnight_schedule()
+    payload = build_last_night(
+        lines,
+        _load_all_jobs(),
+        schedule,
+        datetime.now(HUB_TZ),
+        run_id=run_id,
+        worker_state=_worker_state_label(),
+        tz=HUB_TZ,
     )
-    job_counts = dict(Counter(j.get("status", "?") for j in matched))
-    job_slim = [
-        {
-            "id": j.get("id"),
-            "title": j.get("title") or j.get("kind"),
-            "kind": j.get("kind"),
-            "status": j.get("status"),
-            "error": _human_error(j.get("error")),
-            "finished_at": j.get("finished_at"),
-        }
-        for j in matched[:10]
-    ]
-
-    # 3. Machine events from run steps
-    machine_events = [
-        s for s in run_steps
-        if s.get("type") in ("machine_wake", "machine_sleep")
-    ]
-
-    # 4. Dev-ops warnings from worker heartbeat
-    warnings: list[str] = []
-    try:
-        if WORKER_STATUS_FILE.exists():
-            ws = json.loads(WORKER_STATUS_FILE.read_text(encoding="utf-8"))
-            stale = ws.get("stale_mounts") or []
-            if stale:
-                warnings.append(f"Stale mounts detected: {', '.join(stale)}")
-            if not ws.get("vpn_ok"):
-                warnings.append("VPN was down during last heartbeat")
-            tail = ws.get("dev_ops_tail") or []
-            warn_lines = [ln for ln in tail if "[WARN]" in ln or "[ERROR]" in ln]
-            warnings.extend(warn_lines[-5:])
-    except Exception:
-        pass
-
-    return {
-        "run": run_meta,
-        "steps": run_steps,
-        "jobs": {"counts": job_counts, "items": job_slim, "date": label},
-        "machine_events": machine_events,
-        "warnings": warnings,
-    }
+    if not lines:
+        payload["run_id"] = None
+        payload["message"] = "No run recorded last night"
+    return payload
 
 
 @app.get("/{slug}")

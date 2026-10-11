@@ -1,146 +1,141 @@
 <!DOCTYPE html>
-<html lang="en">
+<html lang="en-GB">
 <head>
   <meta charset="utf-8" />
   <meta name="viewport" content="width=device-width, initial-scale=1" />
   <title>Overnight plan — Bucket-HUB</title>
+  <link rel="stylesheet" href="/assets/hub-design.css?v=20261012" />
   <style>
-    :root {
-      --bg: hsl(240 10% 8%);
-      --panel: hsl(240 12% 11%);
-      --border: hsl(240 8% 22%);
-      --text: hsl(40 20% 92%);
-      --muted: hsl(240 5% 62%);
-      --accent: hsl(40 70% 55%);
-      --ok: hsl(145 40% 50%);
-      --warn: hsl(35 80% 55%);
-      --danger: hsl(0 72% 52%);
-      --lane-h: 2.6rem;
-    }
-    * { box-sizing: border-box; }
     body {
       margin: 0;
-      font-family: "IBM Plex Sans", "Segoe UI", system-ui, sans-serif;
-      background: radial-gradient(1200px 600px at 20% -10%, hsl(240 18% 14%), var(--bg));
-      color: var(--text);
+      font-family: var(--hub-font);
+      background: var(--hub-bg);
+      color: var(--hub-text);
       min-height: 100vh;
     }
     header {
-      display: flex; flex-wrap: wrap; align-items: center; gap: 0.75rem 1rem;
-      padding: 0.85rem 1.25rem; border-bottom: 1px solid var(--border);
-      background: hsl(240 12% 9% / 0.92); position: sticky; top: 0; z-index: 30;
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--hub-space-2) var(--hub-space-4);
+      padding: var(--hub-space-3) var(--hub-space-4);
+      border-bottom: 1px solid var(--hub-border);
+      background: var(--hub-raised);
     }
-    header h1 { margin: 0; font-size: 1.15rem; }
-    header a.back { color: var(--muted); text-decoration: none; font-size: 0.9rem; }
-    .toolbar { margin-left: auto; display: flex; gap: 0.5rem; flex-wrap: wrap; align-items: center; }
+    header h1 { margin: 0; font-size: 1.1rem; }
+    header a.back { color: var(--hub-muted); text-decoration: none; font-size: 0.88rem; }
+    .toolbar { margin-left: auto; display: flex; gap: var(--hub-space-2); flex-wrap: wrap; align-items: center; }
     .btn {
-      border: 1px solid var(--border); background: var(--panel); color: var(--text);
-      padding: 0.4rem 0.85rem; border-radius: 8px; cursor: pointer; font-size: 0.85rem;
+      border: 1px solid var(--hub-border);
+      background: var(--hub-raised-2);
+      color: var(--hub-text);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--hub-radius-sm);
+      cursor: pointer;
+      font-size: 0.85rem;
     }
-    .btn.primary { border-color: var(--accent); color: var(--accent); }
-    .mode-pill {
-      font-size: 0.72rem; text-transform: uppercase; letter-spacing: 0.05em;
-      padding: 0.25rem 0.55rem; border-radius: 999px; border: 1px solid hsl(145 40% 40%);
-      color: var(--ok);
-    }
-    main { max-width: 1400px; margin: 0 auto; padding: 1rem 1.25rem 2rem; }
-    .gantt-panel {
-      background: hsl(240 12% 10% / 0.9); border: 1px solid var(--border);
-      border-radius: 14px; padding: 1rem; margin-bottom: 1rem;
-      box-shadow: 0 8px 32px hsl(240 20% 4% / 0.35);
-    }
-    .gantt-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 0.75rem; flex-wrap: wrap; gap: 0.5rem; }
-    .gantt-head h2 { margin: 0; font-size: 0.85rem; text-transform: uppercase; letter-spacing: 0.06em; color: var(--muted); }
-    .gantt-head .window-label { color: var(--accent); font-variant-numeric: tabular-nums; font-size: 0.9rem; }
-    .gantt-wrap { overflow-x: auto; padding-bottom: 0.25rem; }
-    .gantt-grid {
-      position: relative; min-width: 720px;
-      background: repeating-linear-gradient(
-        90deg,
-        hsl(240 10% 14%) 0,
-        hsl(240 10% 14%) calc(100% / 8 - 1px),
-        hsl(240 8% 18%) calc(100% / 8 - 1px),
-        hsl(240 8% 18%) calc(100% / 8)
-      );
-      border: 1px solid var(--border); border-radius: 10px;
-    }
-    .gantt-hours {
-      display: grid; grid-template-columns: repeat(8, 1fr);
-      font-size: 0.68rem; color: var(--muted); padding: 0.35rem 0.5rem 0;
-      font-variant-numeric: tabular-nums;
-    }
-    .gantt-hours span { text-align: center; }
-    .gantt-lanes { position: relative; min-height: 3rem; padding: 0.35rem 0 0.5rem; }
-    .gantt-bar {
-      position: absolute; height: calc(var(--lane-h) - 0.35rem); top: 0.2rem;
-      border-radius: 8px; border: 1px solid hsl(0 0% 100% / 0.08);
-      display: flex; align-items: center; padding: 0 0.5rem;
-      font-size: 0.72rem; font-weight: 600; white-space: nowrap; overflow: hidden;
-      text-overflow: ellipsis; cursor: grab; transition: box-shadow 0.15s, transform 0.15s;
-      box-shadow: 0 2px 8px hsl(0 0% 0% / 0.25);
-    }
-    .gantt-bar:hover { transform: translateY(-1px); box-shadow: 0 4px 14px hsl(0 0% 0% / 0.35); z-index: 5; }
-    .gantt-bar .cap { opacity: 0.75; font-weight: 400; margin-left: 0.35rem; font-size: 0.65rem; }
-    .gantt-bar.type-machine_wake { background: linear-gradient(135deg, hsl(210 55% 38%), hsl(210 45% 28%)); }
-    .gantt-bar.type-mount_check { background: linear-gradient(135deg, hsl(200 40% 35%), hsl(200 35% 25%)); }
-    .gantt-bar.type-llm_start, .gantt-bar.type-llm_stop { background: linear-gradient(135deg, hsl(145 45% 32%), hsl(145 40% 22%)); }
-    .gantt-bar.type-dsh_research, .gantt-bar.type-research_synthesis { background: linear-gradient(135deg, hsl(270 45% 38%), hsl(270 40% 28%)); }
-    .gantt-bar.type-dsh_log_review, .gantt-bar.type-log_review { background: linear-gradient(135deg, hsl(320 40% 36%), hsl(320 35% 26%)); }
-    .gantt-bar.type-sync_job { background: linear-gradient(135deg, hsl(35 50% 38%), hsl(35 45% 28%)); }
-    .gantt-bar.type-queue_drain, .gantt-bar.type-storage_scan { background: linear-gradient(135deg, hsl(240 25% 35%), hsl(240 20% 25%)); }
-    .gantt-bar.type-machine_sleep { background: linear-gradient(135deg, hsl(240 15% 32%), hsl(240 12% 22%)); }
-    .gantt-bar.disabled { opacity: 0.35; filter: grayscale(0.6); }
-    .gantt-legend { display: flex; flex-wrap: wrap; gap: 0.75rem 1.25rem; margin-top: 0.75rem; font-size: 0.75rem; color: var(--muted); }
-    .gantt-legend span { display: inline-flex; align-items: center; gap: 0.35rem; }
-    .gantt-legend i { width: 10px; height: 10px; border-radius: 3px; display: inline-block; }
-    .run-status {
-      margin-top: 0.75rem; padding: 0.55rem 0.75rem; border-radius: 8px;
-      border: 1px solid var(--border); font-size: 0.82rem; display: none;
-    }
-    .run-status.show { display: block; }
-    .run-status.running { border-color: var(--accent); color: var(--accent); }
-    .run-status.done { border-color: var(--ok); color: var(--ok); }
-    .layout { display: grid; grid-template-columns: 200px 1fr; gap: 1rem; }
-    @media (max-width: 900px) { .layout { grid-template-columns: 1fr; } }
+    .btn.primary { border-color: var(--hub-accent); color: var(--hub-accent); }
+    .btn[hidden] { display: none; }
+    .mode-note { font-size: 0.75rem; color: var(--hub-muted); }
+    main { max-width: 1100px; margin: 0 auto; padding: var(--hub-space-4); }
     .panel {
-      background: hsl(240 12% 10% / 0.85); border: 1px solid var(--border);
-      border-radius: 12px; padding: 0.85rem;
+      background: var(--hub-raised);
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius);
+      padding: var(--hub-space-4);
+      margin-bottom: var(--hub-space-4);
     }
     .panel h2 {
-      margin: 0 0 0.75rem; font-size: 0.78rem; text-transform: uppercase;
-      letter-spacing: 0.06em; color: var(--muted);
+      margin: 0 0 var(--hub-space-3);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--hub-muted);
     }
+    .hint { font-size: 0.8rem; color: var(--hub-muted); margin: 0 0 var(--hub-space-3); line-height: 1.45; }
+    .strip {
+      display: flex;
+      height: 1.25rem;
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      overflow: hidden;
+      margin-bottom: var(--hub-space-2);
+    }
+    .strip-seg {
+      min-width: 2px;
+      background: var(--hub-accent-dim);
+      border-right: 1px solid var(--hub-border);
+      font-size: 0;
+    }
+    .strip-seg:last-child { border-right: none; }
+    .strip-caption { font-size: 0.78rem; color: var(--hub-muted); }
+    table.last-run {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    table.last-run th, table.last-run td {
+      text-align: left;
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--hub-border);
+    }
+    table.last-run th { color: var(--hub-muted); font-weight: 500; }
+    .result-fail { color: var(--hub-fail); }
+    .result-ok { color: var(--hub-ok); }
+    .layout { display: grid; grid-template-columns: 180px 1fr; gap: var(--hub-space-4); }
+    @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
     .palette-item {
-      border: 1px solid var(--border); border-radius: 10px; padding: 0.5rem 0.65rem;
-      margin-bottom: 0.45rem; background: var(--panel); cursor: pointer; font-size: 0.85rem;
-      display: flex; align-items: center; gap: 0.45rem;
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      padding: 0.45rem 0.6rem;
+      margin-bottom: 0.4rem;
+      background: var(--hub-raised-2);
+      cursor: pointer;
+      font-size: 0.82rem;
     }
-    .palette-item:hover { border-color: var(--accent); }
-    .palette-item .dot { width: 8px; height: 8px; border-radius: 50%; flex-shrink: 0; }
-    .step-card {
-      border: 1px solid var(--border); border-radius: 12px; padding: 0.65rem 0.75rem;
-      margin-bottom: 0.55rem; background: var(--panel); cursor: grab;
-      border-left: 4px solid var(--accent);
+    .palette-item:hover { border-color: var(--hub-accent); }
+    .step-row {
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      padding: 0.55rem 0.65rem;
+      margin-bottom: 0.45rem;
+      background: var(--hub-raised-2);
+      cursor: grab;
+      font-size: 0.85rem;
     }
-    .step-card.disabled { opacity: 0.45; }
-    .step-card .top { display: flex; justify-content: space-between; gap: 0.5rem; align-items: flex-start; }
-    .step-card strong { font-size: 0.92rem; }
-    .step-card .badge {
-      font-size: 0.68rem; padding: 0.12rem 0.45rem; border-radius: 999px;
-      border: 1px solid var(--border); color: var(--muted); white-space: nowrap;
+    .step-row.disabled { opacity: 0.5; }
+    .step-row .meta { font-size: 0.75rem; color: var(--hub-muted); margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .step-row input[type="number"] {
+      width: 3rem;
+      background: var(--hub-input);
+      border: 1px solid var(--hub-border);
+      color: var(--hub-text);
+      border-radius: 6px;
+      padding: 0.1rem 0.3rem;
     }
-    .step-card .meta { font-size: 0.78rem; color: var(--muted); margin-top: 0.35rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
-    .step-card input[type="number"] {
-      width: 3.2rem; background: var(--bg); border: 1px solid var(--border);
-      color: var(--text); border-radius: 6px; padding: 0.15rem 0.35rem; font-size: 0.8rem;
-    }
+    details.not-scheduled summary { cursor: pointer; color: var(--hub-muted); font-size: 0.82rem; margin-bottom: 0.5rem; }
     .warn-banner {
-      margin: 0 0 1rem; padding: 0.65rem 0.85rem; border-radius: 8px;
-      border: 1px solid var(--warn); color: var(--warn); font-size: 0.85rem; display: none;
+      margin: 0 0 var(--hub-space-4);
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--hub-radius-sm);
+      border: 1px solid var(--hub-warn);
+      color: var(--hub-warn);
+      font-size: 0.85rem;
+      display: none;
     }
     .warn-banner.show { display: block; }
+    .run-status {
+      margin-top: var(--hub-space-3);
+      padding: 0.5rem 0.65rem;
+      border-radius: var(--hub-radius-sm);
+      border: 1px solid var(--hub-border);
+      font-size: 0.82rem;
+      display: none;
+    }
+    .run-status.show { display: block; }
+    .run-status.running { border-color: var(--hub-accent); color: var(--hub-accent); }
+    .run-status.done { border-color: var(--hub-ok); color: var(--hub-ok); }
     .sortable-ghost { opacity: 0.35; }
-    .hint { font-size: 0.78rem; color: var(--muted); margin: 0 0 0.75rem; line-height: 1.45; }
   </style>
   <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
 </head>
@@ -148,33 +143,30 @@
   <header>
     <a class="back" href="/">← Hub</a>
     <h1>Overnight plan</h1>
-    <span class="mode-pill">Done or timeout → next</span>
+    <span class="mode-note">Done or timeout → next step</span>
     <div class="toolbar">
-      <button type="button" class="btn" id="btnSave">Save</button>
-      <button type="button" class="btn primary" id="btnRun">Run now</button>
+      <button type="button" class="btn" id="btnSave" hidden>Save changes</button>
+      <div>
+        <button type="button" class="btn primary" id="btnRun">Run now</button>
+        <div class="mode-note">Runs the saved plan</div>
+      </div>
     </div>
   </header>
   <main>
     <div id="warnBanner" class="warn-banner"></div>
-    <section class="gantt-panel">
-      <div class="gantt-head">
-        <h2>Night window</h2>
-        <span class="window-label" id="windowLabel">22:00 → 06:00</span>
-      </div>
-      <p class="hint">Each block is a <strong>time budget</strong> (max). The runner moves on as soon as the step finishes <em>or</em> when the budget expires — so fast steps never bottleneck the queue.</p>
-      <div class="gantt-wrap">
-        <div class="gantt-grid" id="ganttGrid">
-          <div class="gantt-hours" id="ganttHours"></div>
-          <div class="gantt-lanes" id="ganttLanes"></div>
-        </div>
-      </div>
-      <div class="gantt-legend">
-        <span><i style="background:hsl(145 45% 40%)"></i> LLM</span>
-        <span><i style="background:hsl(270 45% 45%)"></i> DeepSeek research</span>
-        <span><i style="background:hsl(320 40% 42%)"></i> DeepSeek log review</span>
-        <span><i style="background:hsl(210 55% 42%)"></i> Machines / mounts</span>
-      </div>
-      <div id="runStatus" class="run-status"></div>
+    <section class="panel">
+      <h2>Last run</h2>
+      <p class="hint" id="lastRunMeta">Loading…</p>
+      <table class="last-run" id="lastRunTable">
+        <thead><tr><th>Time</th><th>Step</th><th>Result</th><th>Took</th></tr></thead>
+        <tbody id="lastRunBody"></tbody>
+      </table>
+    </section>
+    <section class="panel">
+      <h2>Night window</h2>
+      <p class="strip-caption" id="windowLabel">22:00 → 06:00</p>
+      <div class="strip" id="budgetStrip" aria-hidden="true"></div>
+      <p class="strip-caption" id="limitsLine">Limits total — of a — window</p>
     </section>
     <div class="layout">
       <section class="panel">
@@ -182,11 +174,16 @@
         <div id="palette"></div>
       </section>
       <section class="panel">
-        <h2>Run order (drag to reorder)</h2>
-        <div id="stepList"></div>
+        <h2>Plan</h2>
+        <div id="enabledSteps"></div>
+        <details class="not-scheduled" id="disabledWrap" hidden>
+          <summary id="notScheduledSummary">Not scheduled (0)</summary>
+          <div id="disabledSteps"></div>
+        </details>
       </section>
     </div>
+    <div id="runStatus" class="run-status"></div>
   </main>
-  <script src="/assets/hub-overnight.js?v=20260826d" defer></script>
+  <script src="/assets/hub-overnight.js?v=20261012" defer></script>
 </body>
 </html>
