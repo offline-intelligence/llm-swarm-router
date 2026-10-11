@@ -23,6 +23,10 @@
 
 **Open questions:** None.
 
+**hub-design.css:** no changes needed (only touched in audit handoff commit `0b89c7e`; AP-2 uses existing tokens via `/assets/hub-design.css`, already in `deploy-manifest.txt`).
+
+**Rebase onto `hub/audit-handoff-2026-10` pending AP-1 merge — not done yet.**
+
 **Post-handoff (2026-10-12 deploy):** Pi + worker rsync done; worker `verify-deploy-parity.sh` exit 0; Pi 22/22 (Tailscale `100.85.42.0`). Commit `9310d1b`: Pi-safe overnight log text + `ssh -n` in parity script. Glance restart not confirmed.
 
 **Tests added (follow-up):** N/A — deploy-only; suite still 124 passed.

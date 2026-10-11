@@ -50,18 +50,18 @@ Date: 2026-10-12.
 | Step | Command / action | Result |
 |------|------------------|--------|
 | 1 | `python3 scripts/overnight-run.py --dry-run` on Pi; check new `overnight-runs/<run_id>.jsonl` and Hub Last night card (four lines) | **Done 2026-10-12** — run `20261012-015311`, jsonl + `latest.json` on Pi; card not yet verified in Glance |
-| 2 | Open `/overnight`: Last run table, plan, disabled collapsed, strip + limits line, Save only after edit | |
-| 3 | Glance Dev bookmarks: no `/status/last-night*.html` | |
-| 4 | Next morning: card matches jsonl + queue counts | |
+| 2 | Open `/overnight`: Last run table, plan, disabled collapsed, strip + limits line, Save only after edit | **N/A in Cursor** — browser/Glance not automated; Pi deploy includes `overnight.html` + `hub-overnight.js` (verify manually in Glance) |
+| 3 | Glance Dev bookmarks: no `/status/last-night*.html` | **Done 2026-10-12** — `glance.yml` rsynced to Pi; Glance process reload not confirmed |
+| 4 | Next morning: card matches jsonl + queue counts | **Pending** — wait for next scheduled run |
 
 Deploy (Pi):
 
 ```bash
 cd homelab/bucket-hub
-scripts/verify-deploy-parity.sh pi   # before/after
-# rsync manifest pi files to stackrise-pi:~/homelab/hub-form/
-# restart hub-form + Glance; bump ?v= in glance.yml iframe URLs
-scripts/verify-deploy-parity.sh pi
+HUB_PI_SSH=bucket@100.85.42.0 ./scripts/verify-deploy-parity.sh pi   # before/after
+# rsync every [pi] path in scripts/deploy-manifest.txt to bucket@100.85.42.0:~/homelab/hub-form/
+# systemctl --user restart hub-form.service; reload Glance; bump ?v= in glance.yml iframe URLs
+HUB_PI_SSH=bucket@100.85.42.0 ./scripts/verify-deploy-parity.sh pi
 ```
 
 ## 5. Not tested and why
