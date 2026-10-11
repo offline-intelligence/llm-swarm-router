@@ -1,0 +1,9 @@
+{
+  "full_name": "karpathy/nanoGPT",
+  "size": 1200,
+  "stargazers_count": 42000,
+  "topics": ["gpt", "pytorch"],
+  "default_branch": "master",
+  "pushed_at": "2026-01-01T00:00:00Z",
+  "license": {"spdx_id": "MIT"}
+}
