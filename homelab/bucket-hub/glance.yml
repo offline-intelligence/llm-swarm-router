@@ -112,12 +112,6 @@ pages:
                   - title: Hub logs
                     url: /status/
                     icon: mdi:text-box-outline
-                  - title: Overnight summary
-                    url: /status/last-night.html
-                    icon: mdi:moon-waning-crescent
-                  - title: Drain archive
-                    url: /status/last-night-archive.html
-                    icon: mdi:archive-outline
                   - title: Hub form (full)
                     url: /hub-form/
                     icon: mdi:download
@@ -288,7 +282,3 @@ pages:
             source: /status/
             height: 720
 
-          - type: iframe
-            title: Drain archive
-            source: /status/last-night-archive.html
-            height: 360

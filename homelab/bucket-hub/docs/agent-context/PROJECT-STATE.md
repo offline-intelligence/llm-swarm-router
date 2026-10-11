@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-1 in progress on cursor/ap-1)
+**Last updated:** 2026-10-12 (AP-2 on cursor/ap-2; AP-1+2 deployed to Pi and worker)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -36,7 +36,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Master brief:** [AUDIT-BRIEF-2026.md](AUDIT-BRIEF-2026.md) — live probe snapshot, technology rationale, Claude first message.
 - **Deep dives:** `08`–`14` in this folder; index in [00-README.md](00-README.md).
 - **pytest (compile):** 54 passed, 2 failed — see [12-FAILURES-LIMITATIONS-TESTS.md](12-FAILURES-LIMITATIONS-TESTS.md).
-- **Pi deploy parity:** `app.py`, `form.html`, `job_health.py` byte-matched git on 2026-10-12; confirm `hub-worker.py` on ai-server separately.
+- **Pi deploy parity:** 2026-10-12 manifest rsync — **22/22** Pi files + **worker parity ok** (`verify-deploy-parity.sh worker`). Use `bucket@100.85.42.0` until `stackrise-pi` SSH HostName fixed.
 - **Awaiting Claude auditor:** findings + first Action Packet. Extra required topics: **overnight UI** (`overnight.html`) and **TV folder auto-creation** (`ensureTorrentShowFolder`).
 - **Claude is not self-sufficient:** no MCP writes the Mac repo. See [15-CLAUDE-AUDITOR-WORKFLOW.md](15-CLAUDE-AUDITOR-WORKFLOW.md). Cursor still merges CONTEXT UPDATE and SSH-deploys via [SSH-PASTE.txt](SSH-PASTE.txt).
 - **Recommended auditor model:** Sonnet 4.6 (not Opus for the full read).
@@ -45,8 +45,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ## Backlog (ordered)
 
-- [ ] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. In progress with Cursor.
-- [ ] AP-2 (P1) Overnight run-scoped report.
+- [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
+- [ ] AP-2 (P1) Overnight run-scoped report. **Ready for PM review** (PR offline-intelligence #2); Pi deploy largely done.
 - [ ] Repo archive (P1, after AP-2): AP-3 repo lane + `github_repo`, AP-4 `huggingface_repo`, AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -95,6 +95,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | Live deploy: Pi + worker manifest rsync; parity worker OK, Pi 22/22; overnight dry-run OK; follow-up commit `9310d1b` (encoding + `ssh -n` in parity script). PM paste: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12.md`. |
+| 2026-10-11 | AP-1 accepted (54→110 tests, 0 fail). GO for AP-2. GitHub review via offline-intelligence fork PRs / handoff files. |
 | 2026-10-11 | PM issued Cursor prompts: audit AP-1/AP-2 with test plan and test reports; GitHub + HF repo archive spec (segmented lane, stars-to-queue, searchable index). |
 | 2026-10-12 | Audit handoff pack: AUDIT-BRIEF-2026 + docs 08–14; live probes; dismiss UX on Pi. |
 | 2026-10-11 | Claude PM workflow defined; PROJECT-STATE created; user uses Tailscale Hub. |

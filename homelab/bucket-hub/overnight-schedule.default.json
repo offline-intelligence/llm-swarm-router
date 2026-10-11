@@ -24,7 +24,7 @@
     {
       "id": "mount-check",
       "type": "mount_check",
-      "label": "Mount check (worker)",
+      "label": "Check drives",
       "timeout_min": 3,
       "enabled": true,
       "critical": true
@@ -32,7 +32,7 @@
     {
       "id": "queue-drain",
       "type": "queue_drain",
-      "label": "Drain download queue",
+      "label": "Download queue",
       "timeout_min": 120,
       "enabled": true,
       "critical": false

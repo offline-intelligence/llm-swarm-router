@@ -1516,17 +1516,16 @@
     </div>
     <details class="hub-fold" id="overnightFold" open>
       <summary>Last night</summary>
-    <h2 class="section-title" id="overnightTitle">Last night <span id="lastNightBadge" class="badge" style="margin-left:0.35rem"></span></h2>
+    <h2 class="section-title" id="overnightTitle">Last night</h2>
     <p class="sub" style="margin-bottom:0.45rem"><span id="lastNightDate"></span> · <a href="/overnight" target="_top">Plan</a></p>
-    <div id="lastNightCard" class="night-summary panel" style="font-size:0.82rem">
-      <div id="lastNightSteps" style="margin-bottom:0.5rem"></div>
-      <div id="lastNightJobs" style="margin-bottom:0.5rem"></div>
-      <div id="lastNightWarnings"></div>
+    <div id="lastNightCard" class="night-summary panel" style="font-size:0.82rem;line-height:1.45">
+      <div id="lastNightLines"></div>
+      <div id="lastNightWarnings" class="sub" style="margin-top:0.35rem"></div>
     </div>
+    </details>
     <details class="jobs-drop" id="recentJobsDrop">
       <summary>Recent jobs <span id="recentJobsBadge" class="badge"></span></summary>
       <div id="jobs"><p class="sub">Loading…</p></div>
-    </details>
     </details>
   </section>
   <section class="section" id="machinesPanel" aria-labelledby="machinesPanelTitle">
@@ -3713,83 +3712,42 @@ function ensureHubFolds() {
 }
 
 async function loadNightSummary() {
-  const stepsEl = document.getElementById('lastNightSteps');
-  const jobsEl = document.getElementById('lastNightJobs');
+  const linesEl = document.getElementById('lastNightLines');
   const warnEl = document.getElementById('lastNightWarnings');
-  const badge = document.getElementById('lastNightBadge');
   const dateEl = document.getElementById('lastNightDate');
-  if (!stepsEl) return;
+  if (!linesEl) return;
 
   try {
     const r = await fetch(hubUrl('/api/overnight/last-night'));
     const d = await r.json();
-    const run = d.run || {};
-    const steps = d.steps || [];
-    const jobs = d.jobs || {};
     const warnings = d.warnings || [];
+    const outcome = d.outcome || 'ok';
+    const cardLines = Array.isArray(d.card_lines) ? d.card_lines : [];
 
-    if (dateEl) dateEl.textContent = run.date || jobs.date || 'Prior night';
-
-    if (badge) {
-      if (run.status === 'done') {
-        badge.textContent = 'OK';
-        badge.style.background = 'hsl(145 40% 25%)'; badge.style.color = 'hsl(145 40% 65%)';
-      } else if (run.status === 'failed') {
-        badge.textContent = 'FAILED';
-        badge.style.background = 'hsl(0 50% 25%)'; badge.style.color = 'hsl(0 60% 70%)';
-      } else {
-        badge.textContent = 'idle';
-        badge.style.background = 'var(--border)'; badge.style.color = 'var(--text-sub)';
-      }
+    if (dateEl) {
+      dateEl.textContent = (d.run_id && cardLines[0])
+        ? cardLines[0]
+        : (d.message || 'No run recorded last night');
     }
 
-    if (steps.length > 0) {
-      stepsEl.innerHTML = '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-sub);margin-bottom:0.3rem">Run steps</div>' +
-        steps.map(s => {
-          const dot = s.ok ? '🟢' : '🔴';
-          const dur = s.duration_s != null ? `${Math.round(s.duration_s)}s` : '';
-          const errHtml = s.error ? `<div style="color:var(--red);font-size:0.7rem;padding-left:1.4rem">${escHtml(s.error)}</div>` : '';
-          const timeout = s.timed_out ? ' (timed out)' : '';
-          return `<div style="display:flex;align-items:center;gap:0.4rem;padding:0.15rem 0;font-size:0.78rem">
-            <span>${dot}</span>
-            <span style="flex:1">${escHtml(s.label || s.type || '?')}</span>
-            <span style="color:var(--text-sub);font-size:0.7rem">${dur}${timeout}</span>
-          </div>${errHtml}`;
-        }).join('');
+    if (!d.run_id) {
+      linesEl.innerHTML = `<p class="sub">${escHtml(d.message || 'No run recorded last night')}</p>`;
     } else {
-      stepsEl.innerHTML = '<p class="sub">No overnight run recorded.</p>';
-    }
-
-    const items = jobs.items || [];
-    const counts = jobs.counts || {};
-    const doneN = counts.done || 0;
-    const errorN = counts.error || 0;
-    const totalN = Object.values(counts).reduce((a, b) => a + b, 0);
-    if (totalN > 0) {
-      let jobHead = `<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--text-sub);margin-bottom:0.3rem">Jobs processed</div>`;
-      jobHead += `<div style="font-size:0.82rem;margin-bottom:0.25rem">${doneN} done`;
-      if (errorN) jobHead += `, <span style="color:var(--red)">${errorN} failed</span>`;
-      if (totalN > doneN + errorN) jobHead += `, ${totalN - doneN - errorN} other`;
-      jobHead += `</div>`;
-      const topJobs = items.slice(0, 3).map(j => {
-        const st = j.status === 'done' ? '✓' : (j.status === 'error' ? '✗' : '·');
-        const stColor = j.status === 'done' ? 'var(--green,#4caf50)' : (j.status === 'error' ? 'var(--red,#d93025)' : 'var(--text-sub)');
-        return `<div style="display:flex;gap:0.35rem;font-size:0.78rem;padding:0.1rem 0"><span style="color:${stColor}">${st}</span><span style="flex:1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap">${escHtml(j.title || j.kind || '?')}</span></div>`;
+      const cls = outcome === 'failed' ? 'style="color:var(--fail,var(--danger,#d93025))"'
+        : (outcome === 'attention' ? 'style="color:var(--muted)"' : '');
+      linesEl.innerHTML = cardLines.map((line, i) => {
+        const tone = i === 1 && outcome !== 'ok' ? cls : '';
+        return `<div ${tone}>${escHtml(line)}</div>`;
       }).join('');
-      jobsEl.innerHTML = jobHead + topJobs;
-    } else {
-      jobsEl.innerHTML = '<p class="sub">No jobs recorded for prior day.</p>';
     }
 
     if (warnings.length > 0) {
-      warnEl.innerHTML = '<div style="font-size:0.72rem;text-transform:uppercase;letter-spacing:0.04em;color:var(--amber,#e6a817);margin-bottom:0.2rem">Warnings</div>' +
-        warnings.map(w => `<div style="font-size:0.75rem;color:var(--amber,#e6a817);padding:0.1rem 0">⚠ ${escHtml(w)}</div>`).join('');
-    } else {
+      warnEl.innerHTML = warnings.map(w => `<div>${escHtml(w)}</div>`).join('');
+    } else if (warnEl) {
       warnEl.innerHTML = '';
     }
   } catch (e) {
-    stepsEl.innerHTML = '<p class="sub">Could not load last night summary.</p>';
-    if (jobsEl) jobsEl.innerHTML = '';
+    linesEl.innerHTML = '<p class="sub">Could not load last night summary.</p>';
     if (warnEl) warnEl.innerHTML = '';
   }
 }

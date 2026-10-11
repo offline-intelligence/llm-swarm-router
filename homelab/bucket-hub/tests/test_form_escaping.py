@@ -42,6 +42,9 @@ SAFE_EXPR = (
     "running ? ' is-running' : ''",
     "j.status === 'queued' ? ' data-queue-draggable=\"1\"' : ''",
     "queueJobActionButtons(j)",
+    "tone",
+    "cls",
+    "i === 1 && outcome !== 'ok' ? cls : ''",
 )
 
 

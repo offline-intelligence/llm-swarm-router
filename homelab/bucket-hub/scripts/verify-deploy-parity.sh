@@ -46,7 +46,7 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
   local_hash="$(sha256sum "$local_path" | awk '{print $1}')"
   remote_file="$REMOTE_ROOT/$line"
-  remote_out="$(ssh -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "if [ -f $remote_file ]; then sha256sum $remote_file; else echo MISSING; fi" 2>&1)" || {
+  remote_out="$(ssh -n -o BatchMode=yes -o ConnectTimeout=8 "$HOST" "if [ -f $remote_file ]; then sha256sum $remote_file; else echo MISSING; fi" 2>&1)" || {
     echo "SSH_FAIL $HOST $line: $remote_out"
     fail=1
     continue
