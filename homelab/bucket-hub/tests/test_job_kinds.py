@@ -30,7 +30,7 @@ def test_repo_worker_never_aria2():
 @pytest.mark.parametrize("kind", ["github", "hf", "github_repo", "huggingface_repo"])
 def test_future_repo_kinds_never_aria2(kind):
     assert is_aria2_job({"kind": kind}) is False
-    assert dispatch_route({"kind": kind}) != "aria2"
+    assert dispatch_route({"kind": kind}) == "repo"
 
 
 def test_kindless_dispatch_never_aria2():

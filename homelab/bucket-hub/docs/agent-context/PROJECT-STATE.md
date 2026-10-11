@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-2 on cursor/ap-2; AP-1+2 deployed to Pi and worker)
+**Last updated:** 2026-10-12 (AP-3 on cursor/ap-3, draft PR; AP-1+2 deployed; AP-3 worker not deployed yet)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -47,7 +47,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 - [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
 - [ ] AP-2 (P1) Overnight run-scoped report. **Ready for PM review** (PR offline-intelligence #2); Pi deploy largely done.
-- [ ] Repo archive (P1, after AP-2): AP-3 repo lane + `github_repo`, AP-4 `huggingface_repo`, AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
+- [ ] Repo archive (P1): **AP-3** repo lane + `github_repo` — **ready for PM review** (`cursor/ap-3`, 146 pytest); worker deploy pending. AP-4 `huggingface_repo`, AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
 

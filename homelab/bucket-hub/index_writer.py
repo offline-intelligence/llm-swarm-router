@@ -39,6 +39,16 @@ CORE_FIELDS = (
 )
 
 KIND_FIELDS: dict[str, tuple[str, ...]] = {
+    "github_repo": (
+        "full_name",
+        "default_branch",
+        "commit_sha",
+        "stars",
+        "topics",
+        "license_spdx",
+        "readme_excerpt",
+        "archive_layout",
+    ),
     "torrent": (
         "release_name",
         "media_type",
@@ -250,6 +260,47 @@ def build_torrent_entry(
         library_path=library_path,
         media_pipeline=media_pipeline,
         size_bytes=job.get("size_bytes"),
+    )
+
+
+def build_github_entry(
+    job: dict[str, Any],
+    *,
+    full_name: str,
+    meta: dict[str, Any],
+    status: str,
+    rel_path: str,
+    readme_excerpt: str,
+    commit_sha: str = "",
+    size_bytes: int | None = None,
+) -> dict[str, Any]:
+    """Build a provenance/index record for a ``github_repo`` archive."""
+    license_info = meta.get("license") or {}
+    topics = list(meta.get("topics") or [])
+    notes = job.get("notes") or ""
+    who = job.get("requested_by") or ""
+    context_bits = [p for p in (notes, who) if p]
+    return build_entry(
+        "github_repo",
+        source_id=full_name,
+        hub_job_id=str(job.get("id") or ""),
+        status=status,
+        source=str(job.get("source") or "manual"),
+        title=job.get("title") or full_name,
+        hub_tags=list(job.get("tags") or []),
+        rel_path=rel_path,
+        local_path=None,
+        source_url=job.get("url"),
+        context=" · ".join(context_bits) if context_bits else None,
+        size_bytes=size_bytes,
+        full_name=full_name,
+        default_branch=meta.get("default_branch"),
+        commit_sha=commit_sha or None,
+        stars=meta.get("stargazers_count"),
+        topics=topics,
+        license_spdx=license_info.get("spdx_id"),
+        readme_excerpt=readme_excerpt[:2000] if readme_excerpt else None,
+        archive_layout="mirror",
     )
 
 

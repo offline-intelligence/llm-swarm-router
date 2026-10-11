@@ -31,7 +31,10 @@ from download_destinations import (
     validate_aria2_destination,
 )
 from index_writer import build_torrent_entry
-from job_kinds import dispatch_route, is_aria2_job
+from job_kinds import REPO_META_KINDS, dispatch_route, is_aria2_job
+from repo_archive_github import configure as configure_repo_archive
+from repo_archive_github import run_github_repo_job
+from repo_archive_paths import validate_archive_root
 from hub_torrent_parse import (
     classify_release_kind,
     season_numbers_from_title,
@@ -105,6 +108,10 @@ HUB_ARIA2_BOOTSTRAP_SLOTS = max(
 )
 HUB_SLOT_VIDEO = max(0, int(os.environ.get("HUB_SLOT_VIDEO", "1")))
 HUB_SLOT_ARCHIVE = max(0, int(os.environ.get("HUB_SLOT_ARCHIVE", "0")))
+HUB_SLOT_REPO = max(0, int(os.environ.get("HUB_SLOT_REPO", "1")))
+HUB_REPO_ARCHIVE_ROOT = os.environ.get(
+    "HUB_REPO_ARCHIVE_ROOT", "/mnt/tnas/repo-archive"
+)
 # Per-download BitTorrent options (leech-only; global aria2.conf should match).
 ARIA2_LEECH_OPTS: dict[str, str] = {
     "seed-ratio": "0",
@@ -117,6 +124,8 @@ _supervisor_last_search = 0.0
 _supervisor_last_heartbeat = 0.0
 _video_executor: ThreadPoolExecutor | None = None
 _video_running: set[str] = set()
+_repo_executor: ThreadPoolExecutor | None = None
+_repo_running: set[str] = set()
 _search_service_lock = threading.Lock()
 VPN_CHECK_URL = os.environ.get("VPN_CHECK_URL", "https://ifconfig.me/ip")
 HOME_IP_PREFIXES = [
@@ -925,6 +934,13 @@ def gluetun_http_json(url: str, timeout: int = 25) -> Any:
     cmd.append(url)
     out = subprocess.check_output(cmd, text=True, timeout=timeout + 10)
     return json.loads(out) if out else {}
+
+
+def _github_metadata_fetch(full_name: str) -> Any:
+    return gluetun_http_json(f"https://api.github.com/repos/{full_name}")
+
+
+configure_repo_archive(fetch_metadata=_github_metadata_fetch)
 
 
 def jackett_http_json(path_and_query: str, timeout: int = 40) -> Any:
@@ -3350,6 +3366,51 @@ def _video_pool() -> ThreadPoolExecutor:
     return _video_executor
 
 
+def _repo_pool() -> ThreadPoolExecutor:
+    global _repo_executor
+    if _repo_executor is None:
+        workers = max(1, HUB_SLOT_REPO) if HUB_SLOT_REPO else 1
+        _repo_executor = ThreadPoolExecutor(max_workers=workers)
+    return _repo_executor
+
+
+def _submit_repo_job(job: dict[str, Any]) -> None:
+    jid = str(job["id"])
+    kind = str(job.get("kind") or "").strip().lower()
+
+    def _run() -> None:
+        try:
+            if kind == "github_repo":
+                run_github_repo_job(
+                    job,
+                    archive_root=HUB_REPO_ARCHIVE_ROOT,
+                    path_ready=path_ready,
+                    update_job=update_job,
+                )
+            elif kind == "github":
+                run_github_job(job)
+                if hub_get_job(jid).get("status") not in ("queued", "error"):
+                    update_job(jid, status="done", error=None)
+            elif kind == "hf":
+                run_hf_job(job)
+                update_job(jid, status="done", error=None)
+            elif kind in REPO_META_KINDS:
+                process(job)
+            else:
+                raise RuntimeError(f"unsupported repo lane kind: {kind}")
+        except Exception as exc:  # noqa: BLE001
+            print(f"repo error {jid}: {exc}", flush=True)
+            try:
+                update_job(jid, status="error", error=str(exc))
+            except Exception as upd:  # noqa: BLE001
+                print(f"failed to mark repo error: {upd}", flush=True)
+        finally:
+            _repo_running.discard(jid)
+
+    _repo_running.add(jid)
+    _repo_pool().submit(_run)
+
+
 def _submit_video_job(job: dict[str, Any]) -> None:
     jid = str(job["id"])
 
@@ -3424,6 +3485,13 @@ def _dispatch_claimed_job(job: dict[str, Any], vpn: tuple[bool, str]) -> None:
             update_job(jid, status="queued", error=None)
             return
         _submit_video_job(job)
+        return
+    route = dispatch_route(job)
+    if route in ("repo", "repo_meta") and HUB_SLOT_REPO > 0:
+        if not vpn[0] and kind not in ("sync", "storage_delete"):
+            update_job(jid, status="queued", error=None)
+            return
+        _submit_repo_job(job)
         return
     if not vpn[0] and kind not in ("sync", "storage_delete"):
         update_job(jid, status="queued", error=None)
@@ -4898,10 +4966,15 @@ def process(job: dict[str, Any]) -> None:
 def main() -> None:
     if not WORKER_TOKEN:
         raise SystemExit("HUB_WORKER_TOKEN is required")
+    try:
+        validate_archive_root(HUB_REPO_ARCHIVE_ROOT)
+        print(f"repo archive root ok: {HUB_REPO_ARCHIVE_ROOT}", flush=True)
+    except Exception as exc:  # noqa: BLE001
+        print(f"repo lane guard: {exc}", flush=True)
     print(
         f"hub-worker v2.2 starting; hubs={hub_urls()} poll={POLL_S}s "
         f"aria2_max={HUB_ARIA2_MAX_ACTIVE} aria2_target_mbps={HUB_ARIA2_TARGET_MBPS} "
-        f"video_slots={HUB_SLOT_VIDEO}",
+        f"video_slots={HUB_SLOT_VIDEO} repo_slots={HUB_SLOT_REPO}",
         flush=True,
     )
     while True:
@@ -4993,7 +5066,27 @@ def main() -> None:
                     _dispatch_claimed_job(video_job, vpn)
                 elif video_job:
                     update_job(video_job["id"], status="queued", error=None)
-            if ARIA2_TRACKS or _video_running:
+            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+                repo_job = claim_next()
+                if repo_job and dispatch_route(repo_job) == "repo":
+                    print(
+                        f"claimed {repo_job['id']} {repo_job.get('kind')} -> repo lane",
+                        flush=True,
+                    )
+                    _dispatch_claimed_job(repo_job, vpn)
+                elif repo_job:
+                    update_job(repo_job["id"], status="queued", error=None)
+            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+                meta_job = claim_next()
+                if meta_job and dispatch_route(meta_job) == "repo_meta":
+                    print(
+                        f"claimed {meta_job['id']} {meta_job.get('kind')} -> repo_meta",
+                        flush=True,
+                    )
+                    _dispatch_claimed_job(meta_job, vpn)
+                elif meta_job:
+                    update_job(meta_job["id"], status="queued", error=None)
+            if ARIA2_TRACKS or _video_running or _repo_running:
                 time.sleep(4)
                 continue
             job = claim_next()
