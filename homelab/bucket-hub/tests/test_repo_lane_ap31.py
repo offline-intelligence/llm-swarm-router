@@ -369,3 +369,109 @@ def test_stale_mount_kept_while_stat_hangs(monkeypatch):
     w._recover_stale_mounts()
     assert "/mnt/tnas" in w._STALE_MOUNTS
     w._STALE_MOUNTS.clear()
+
+
+# --- QC r3b F1: a stale aria2 gid must not starve the repo lane -----------------
+
+
+class _FakeResp:
+    def __init__(self, body: bytes):
+        self._body = body
+
+    def read(self) -> bytes:
+        return self._body
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, *a):
+        return False
+
+
+def _aria2_http_400(monkeypatch, w):
+    import io
+    import urllib.error
+
+    body = b'{"id":"hub-worker","jsonrpc":"2.0","error":{"code":1,"message":"Active Download not found for GID#85365f42082a8ffe"}}'
+
+    def boom(req, timeout=None):
+        raise urllib.error.HTTPError(req.full_url, 400, "Bad Request", {}, io.BytesIO(body))
+
+    monkeypatch.setattr(w.urllib.request, "urlopen", boom)
+
+
+def test_aria2_rpc_http_400_is_runtime_error(monkeypatch):
+    import pytest
+
+    w = _worker_mod()
+    _aria2_http_400(monkeypatch, w)
+    with pytest.raises(RuntimeError, match="Active Download not found"):
+        w.aria2("aria2.tellStatus", ["85365f42082a8ffe", ["status"]])
+
+
+def test_aria2_rpc_ok_unchanged(monkeypatch):
+    w = _worker_mod()
+    monkeypatch.setattr(
+        w.urllib.request, "urlopen",
+        lambda req, timeout=None: _FakeResp(b'{"result":{"status":"active"}}'),
+    )
+    assert w.aria2("aria2.tellStatus", ["g", ["status"]]) == {"status": "active"}
+
+
+def test_find_resumable_skips_stale_gid(monkeypatch):
+    w = _worker_mod()
+    _aria2_http_400(monkeypatch, w)
+    monkeypatch.setattr(
+        w, "hub_call",
+        lambda *_a, **_k: {"jobs": [{"id": "t1", "worker": "aria2", "aria2_gid": "85365f42082a8ffe"}]},
+    )
+    assert w.find_resumable_aria2_job() is None
+
+
+class _StopLoop(Exception):
+    pass
+
+
+def test_main_loop_claims_repo_when_aria2_housekeeping_fails(monkeypatch):
+    """r3b: every tick died in aria2 housekeeping, so Spoon-Knife/Hello-World stayed queued."""
+    import pytest
+
+    w = _worker_mod()
+    lanes: list[str | None] = []
+    monkeypatch.setattr(w, "WORKER_TOKEN", "t")
+    monkeypatch.setattr(w, "validate_archive_root", lambda _p: None)
+    monkeypatch.setattr(w, "recover_orphaned_repo_jobs", lambda: [])
+    monkeypatch.setattr(w, "ensure_mounts", lambda: None)
+    monkeypatch.setattr(w, "vpn_ok", lambda: (True, "vpn"))
+    monkeypatch.setattr(w, "try_run_pending_search", lambda *a, **k: False)
+    for name in (
+        "consume_research_request", "consume_hf_files_request", "consume_indexers_scan_request",
+        "consume_indexers_candidates_check_request", "consume_archive_probe_request",
+        "consume_storage_scan_request", "consume_scan_request", "consume_purge_request",
+    ):
+        monkeypatch.setattr(w, name, lambda: None)
+    monkeypatch.setattr(w, "hub_call", lambda *a, **k: {"pending": False})
+    monkeypatch.setattr(w, "send_heartbeat", lambda *a, **k: [])
+
+    def stale_gid(_vpn):
+        raise RuntimeError("Active Download not found for GID#85365f42082a8ffe")
+
+    monkeypatch.setattr(w, "_recover_claimed_aria2_jobs", stale_gid)
+    monkeypatch.setattr(w, "_aria2_can_dispatch_more", lambda: False)
+    monkeypatch.setattr(w, "HUB_SLOT_VIDEO", 0)
+    monkeypatch.setattr(w, "HUB_SLOT_REPO", 1)
+    w._repo_running.clear()
+
+    def claim(lane=None):
+        lanes.append(lane)
+        return None
+
+    monkeypatch.setattr(w, "claim_next", claim)
+
+    def stop(_s):
+        raise _StopLoop
+
+    monkeypatch.setattr(w.time, "sleep", stop)
+    with pytest.raises(_StopLoop):
+        w.main()
+    assert "repo" in lanes and "repo_meta" in lanes

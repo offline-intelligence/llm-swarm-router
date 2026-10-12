@@ -383,8 +383,19 @@ def aria2(method: str, params: list[Any] | None = None) -> Any:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # aria2 answers a JSON-RPC error (e.g. "Active Download not found for GID#…")
+        # with HTTP 400. Raise it as the RuntimeError callers already handle, not as an
+        # HTTPError the main loop would mistake for a Hub failure (AP-3.1 QC r3b F1).
+        try:
+            data = json.loads(exc.read().decode("utf-8", errors="replace"))
+        except Exception:  # noqa: BLE001
+            raise RuntimeError(f"aria2 rpc http {exc.code}") from exc
+        if "error" not in data:
+            raise RuntimeError(f"aria2 rpc http {exc.code}") from exc
     if "error" in data:
         err = data["error"]
         if isinstance(err, dict):
@@ -5148,11 +5159,16 @@ def main() -> None:
                 except Exception as exc:  # noqa: BLE001
                     print(f"purge failed {purge_job.get('id')}: {exc}", flush=True)
                 continue
-            _recover_claimed_aria2_jobs(vpn)
-            _aria2_supervisor_tick(vpn)
-            resume = find_resumable_aria2_job()
-            if resume and str(resume.get("id") or "") not in ARIA2_TRACKS:
-                _attach_resumable_aria2_to_supervisor(resume)
+            # aria2 housekeeping must not abort the tick: an error here used to skip
+            # the video and repo claims below on every loop (AP-3.1 QC r3b F1).
+            try:
+                _recover_claimed_aria2_jobs(vpn)
+                _aria2_supervisor_tick(vpn)
+                resume = find_resumable_aria2_job()
+                if resume and str(resume.get("id") or "") not in ARIA2_TRACKS:
+                    _attach_resumable_aria2_to_supervisor(resume)
+            except Exception as exc:  # noqa: BLE001
+                print(f"aria2 housekeeping error: {exc}", flush=True)
             while _aria2_can_dispatch_more():
                 slot_job = claim_next("aria2")
                 if not slot_job:
