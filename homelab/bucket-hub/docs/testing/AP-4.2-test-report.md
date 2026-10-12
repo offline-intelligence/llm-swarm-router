@@ -24,6 +24,7 @@
 | Check | Result |
 |-------|--------|
 | Schedule smokes S1–S3 (live) | **pass** (`meta-llama/Llama-3.1-8B`, job `fa36d19c247a`) |
-| Finn gate copy (C5) | **blocked** — `ui.gate_copy` awaiting verbatim |
+| Gate card copy (C5) | **pass** — Approval needed + Next automatic check in N min |
+| Queue licence bar (`?panel=hub`) | **pass** — Waiting for Hugging Face access (1); job `fb34c9d1cd51` |
 
-QC: `docs/pm/2026-10/qc/AP-4.2-r1.json` (**overall blocked**).
+QC: `docs/pm/2026-10/qc/AP-4.2-r1.json` (**overall pass**).

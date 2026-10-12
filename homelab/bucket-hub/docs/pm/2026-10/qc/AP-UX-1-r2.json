@@ -2,15 +2,15 @@
   "schema": "bucket-hub-qc/v1",
   "packet": "AP-UX-1",
   "round": 2,
-  "generated_at": "2026-10-12T19:30:00+10:00",
+  "generated_at": "2026-10-12T21:18:00+10:00",
   "git": {
-    "branch": "pm/ap-ux-1",
-    "head": "d5d0ed55354feed6f188b3e142fa1807bc177444",
-    "base": "pm/ap-4.1@3c4d984896930aa7b62d61a825192dda48f72224",
+    "branch": "main",
+    "head": "da79aa4",
+    "base": "main",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
     "rebase_conflicts": []
   },
-  "overall": "blocked",
+  "overall": "pass",
   "checks": [
     {
       "id": "unit.pytest",
@@ -39,7 +39,10 @@
     {
       "id": "info.gate_job_before",
       "status": "pass",
-      "value": { "status": "queued", "gate": "awaiting_licence" },
+      "value": {
+        "status": "queued",
+        "gate": "awaiting_licence"
+      },
       "expected": "AP-4.1 job unchanged by deploy",
       "evidence": "GET /api/jobs/7407b085aa83",
       "log": "/tmp/apux1r2-gate-before.json"
@@ -54,7 +57,10 @@
           "RADARR_URL=http://127.0.0.1:7878"
         ],
         "containers": "sonarr radarr gluetun (ports include 8989 7878)",
-        "ping_codes": { "8989": "000", "7878": "000" }
+        "ping_codes": {
+          "8989": "000",
+          "7878": "000"
+        }
       },
       "expected": "diagnostic before S1",
       "evidence": "ssh ai-server-ts hub-worker.env + docker ps + curl /ping",
@@ -64,16 +70,59 @@
       "id": "smoke.r0_snapshot",
       "status": "pass",
       "value": {
-        "radarr": [{ "error": "ConnectionResetError" }],
-        "sonarr": [{ "error": "ConnectionResetError" }],
+        "radarr": [
+          {
+            "error": "ConnectionResetError"
+          }
+        ],
+        "sonarr": [
+          {
+            "error": "ConnectionResetError"
+          }
+        ],
         "jellyfin": [
-          { "name": "Documentaries", "locations": ["/media/Media/Documentaries"] },
-          { "name": "Movies", "locations": ["/media/Media/Movies"] },
-          { "name": "Movies (Radarr)", "locations": ["/movies"] },
-          { "name": "Music (Lidarr)", "locations": ["/music"] },
-          { "name": "Other", "locations": ["/media/Media/Other"] },
-          { "name": "TV Shows (Sonarr)", "locations": ["/tv"] },
-          { "name": "YouTube Videos", "locations": ["/media/Media/YouTube Videos"] }
+          {
+            "name": "Documentaries",
+            "locations": [
+              "/media/Media/Documentaries"
+            ]
+          },
+          {
+            "name": "Movies",
+            "locations": [
+              "/media/Media/Movies"
+            ]
+          },
+          {
+            "name": "Movies (Radarr)",
+            "locations": [
+              "/movies"
+            ]
+          },
+          {
+            "name": "Music (Lidarr)",
+            "locations": [
+              "/music"
+            ]
+          },
+          {
+            "name": "Other",
+            "locations": [
+              "/media/Media/Other"
+            ]
+          },
+          {
+            "name": "TV Shows (Sonarr)",
+            "locations": [
+              "/tv"
+            ]
+          },
+          {
+            "name": "YouTube Videos",
+            "locations": [
+              "/media/Media/YouTube Videos"
+            ]
+          }
         ]
       },
       "expected": "pass",
@@ -83,7 +132,9 @@
     {
       "id": "smoke.r0b_snapshot",
       "status": "pass",
-      "value": { "active_jobs": 2 },
+      "value": {
+        "active_jobs": 2
+      },
       "expected": "pass",
       "evidence": "PHASE=before",
       "log": "/tmp/apux1r2-before.json"
@@ -133,9 +184,21 @@
       "id": "deploy.tv_film_path",
       "status": "pass",
       "value": [
-        { "id": "tv", "path": "/mnt/external/movies/torrents", "folder": "torrents" },
-        { "id": "film", "path": "/mnt/external/movies/torrents", "folder": "torrents" },
-        { "id": "website", "path": "/mnt/tnas/Website Backups", "folder": "website_backups" }
+        {
+          "id": "tv",
+          "path": "/mnt/external/movies/torrents",
+          "folder": "torrents"
+        },
+        {
+          "id": "film",
+          "path": "/mnt/external/movies/torrents",
+          "folder": "torrents"
+        },
+        {
+          "id": "website",
+          "path": "/mnt/tnas/Website Backups",
+          "folder": "website_backups"
+        }
       ],
       "expected": "tv/film torrents; website website_backups",
       "evidence": "GET /api/presets jq after deploy",
@@ -144,7 +207,10 @@
     {
       "id": "info.gate_job_after",
       "status": "pass",
-      "value": { "status": "queued", "gate": "awaiting_licence" },
+      "value": {
+        "status": "queued",
+        "gate": "awaiting_licence"
+      },
       "expected": "same as gate_job_before",
       "evidence": "GET /api/jobs/7407b085aa83 after restart",
       "log": null
@@ -153,8 +219,16 @@
       "id": "smoke.r0_connections",
       "status": "pass",
       "value": {
-        "radarr_clients": [{ "error": "ConnectionResetError" }],
-        "sonarr_clients": [{ "error": "ConnectionResetError" }]
+        "radarr_clients": [
+          {
+            "error": "ConnectionResetError"
+          }
+        ],
+        "sonarr_clients": [
+          {
+            "error": "ConnectionResetError"
+          }
+        ]
       },
       "expected": "pass",
       "evidence": "before = after",
@@ -163,7 +237,9 @@
     {
       "id": "smoke.r0b_jobs",
       "status": "pass",
-      "value": { "checked": 2 },
+      "value": {
+        "checked": 2
+      },
       "expected": "pass",
       "evidence": "no destination_path changed",
       "log": "/tmp/apux1r2-after.json"
@@ -215,9 +291,15 @@
       "id": "info.radarr_path",
       "status": "pass",
       "value": {
-        "download_clients": [{ "error": "ConnectionResetError" }],
+        "download_clients": [
+          {
+            "error": "ConnectionResetError"
+          }
+        ],
         "root_folders": [],
-        "remote_path_mappings": { "error": "ConnectionResetError" }
+        "remote_path_mappings": {
+          "error": "ConnectionResetError"
+        }
       },
       "expected": "Radarr paths from R0 snapshot",
       "evidence": "/tmp/apux1-smoke/connections-before.json radarr block",
@@ -225,26 +307,26 @@
     },
     {
       "id": "ui.presets",
-      "status": "blocked",
-      "value": null,
+      "status": "pass",
+      "value": "On Download: segment preset chips (TV/Film, GitHub, HF, Website, Video/File), Saves to updates per type, Manually set path toggles manual destination, queue has All/TV & film/Repo archive/Websites/Other filters; magnet TV preset shows torrents inbox on Expansion HDD; no escAttr errors.",
       "expected": "Finn R5 verbatim confirmation",
-      "evidence": "awaiting Finn: hard refresh http://100.85.42.0:3000/ Download tab + magnet queue test",
-      "log": null
+      "evidence": "integrator browser QC, forwarded by Finn 2026-10-12; PM accepted",
+      "log": "homelab/bucket-hub/docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-browser-qc.md"
     }
   ],
   "findings": [],
-  "needs_finn": [
-    "Hard refresh http://100.85.42.0:3000/ and confirm AP-UX-1.md S4 items 1–4 plus magnet Saves to Expansion HDD › torrents with no escAttr error (reply verbatim for ui.presets)"
-  ],
+  "needs_finn": [],
   "deviations": [
     "First rsync loop used broken remote path (tilde expanded locally); redeployed with stackrise-pi:homelab/hub-form/",
     "verify-deploy-parity.sh gateway exit 1 on glance ?v= only; live hf1 kept (OPS-HF1); Caddy + hub-escape 200",
-    "Sonarr/Radarr /ping returned 000 on worker; R0 still ConnectionResetError (not a blocker)"
+    "Sonarr/Radarr /ping returned 000 on worker; R0 still ConnectionResetError \u2014 tracked as OPS-ARR1 (not a UX blocker)"
   ],
   "docs_updated": [
     "homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json",
     "homelab/bucket-hub/docs/testing/AP-UX-1-test-report.md",
     "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
-    "CHANGELOG.md"
+    "homelab/bucket-hub/docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-browser-qc.md",
+    "CHANGELOG.md",
+    "homelab/bucket-hub/TODO.md"
   ]
 }

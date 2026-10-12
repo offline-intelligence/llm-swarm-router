@@ -8,7 +8,7 @@
 
 Progressive gate gaps (1, 5, 30 min, then hourly), `granted` state while downloading, Licence vs Approval copy. Branch `pm/ap-4.2` on `pm/ap-ux-1`.
 
-Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.2-r1.json`): worker/Pi/gateway deploy + schedule smokes pass; Finn `ui.gate_copy` pending.
+QC r1 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.2-r1.json`): worker/Pi/gateway deploy + schedule smokes pass; gate card + queue licence bar verified (`?panel=hub`).
 
 ## 2026-10-12 — AP-UX-1 download presets and segments (PM)
 
@@ -26,7 +26,7 @@ Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-U
 
 Round 2 (PM): QC r1 R4 was a PM bug. The shipped `capture-folders.json` `magnet` → `nas/inbox` key overrode the TV preset; TV and film are now fixed to Expansion HDD `torrents/`, legacy `magnet`/`website` keys dropped, smoke R1 pins the paths. Tests 277 → 279. Cursor prompt `homelab/bucket-hub/docs/pm/2026-10/handoffs/AP-UX-1-r2.md`.
 
-QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): Pi deploy + smoke R0–R4 pass; gateway Caddy + hub-escape 200; Finn R5 pending.
+QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): Pi deploy + smoke R0–R4 pass; integrator browser QC (Finn forwarded, PM accepted).
 
 ## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
 

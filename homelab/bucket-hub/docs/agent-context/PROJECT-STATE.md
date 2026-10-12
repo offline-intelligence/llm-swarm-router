@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (Finn UI blocker `escAttr`; PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`; Tailscale review URLs)
+**Last updated:** 2026-10-12 (AP-UX-1 r2 + AP-4.2 r1 QC pass; `handoffs/PM-PASTE-2026-10-12-browser-qc.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -28,6 +28,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **`HUB_GITHUB_TOKEN` (2026-10-12):** set on ai-server `hub-worker.env` (fine-grained, public read); worker restarted. Still optional for single public clones; needed before AP-6/AP-7 volume for metadata rate limits.
 - **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
 - **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
+- **UI sign-off (2026-10-12):** integrator browser QC that Finn forwards to the PM counts as Finn's sign-off for ui.* checks; PM states acceptance in the next handoff.
+- **Merge rule (2026-10-12):** Cursor merges a PR only after its QC overall = pass and the PM handoff names the merge.
 - **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
 - **Worker restart recovery (2026-10-12, AP-3.1 r2):** at startup the worker re-queues every repo/repo_meta job the Pi shows as `running`/`claimed` (no repo thread survives a restart) and removes its archiver container `hub-repo-partial-<id>`; repo claims wait until this has run. Single-worker assumption: a second worker would need ownership tracking first.
 - **Repo archive content (2026-10-12, AP-3.1 r3):** `repo.git` is a bare repo with branches and tags only (`+refs/heads/*`, `+refs/tags/*`), `HEAD` = remote default branch. No `refs/pull/*`: `clone --mirror` pulled every PR head (fork commits the API `size` ignores) and blew the cap on `octocat/Spoon-Knife`. Image `bucket-hub-repo-archiver:3`.
@@ -136,8 +138,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
 - [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
-- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r1 fail → **r2 fix** on `pm/ap-ux-1` (279 tests), PR #8; Cursor r2 `docs/pm/2026-10/handoffs/AP-UX-1-r2.md`, then Finn R5. Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
-- [ ] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — **code done** on `pm/ap-4.2` (286 tests); Cursor `docs/pm/2026-10/handoffs/AP-4.2.md` Part C after AP-4.1 r3 finishes. Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
+- [x] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r2 **pass** `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
+- [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (`/ping` 000), so AP-UX-1 R0 compared Jellyfin only. Ops investigation.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
 - [ ] AP-5a/5b/5c per-download index (person + machine record; updated on finish, on delete, after nightly sync) — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` §Per-download record; after AP-UX-1.
@@ -192,6 +194,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM closed AP-UX-1 r2 and AP-4.2 r1 on integrator browser QC forwarded by Finn (`PM-PASTE-2026-10-12-browser-qc.md`). #queueLicenceBar "hidden" was the test view: the queue panel only renders with `?panel=hub` or `?panel=queue`. PRs #7, #8, #9 merged to main; #9 merged before its QC passed (rule restated: merge only after overall = pass). Next PM build: AP-5a per-download index. |
 | 2026-10-12 | Finn accepted the Gemma and Llama-3.2-1B licences; Gemma job was picked up by the 10-min re-check. Finn asked for re-checks at 1, 5, 30 min then hourly. PM built **AP-4.2** on `pm/ap-4.2` (schedule, `granted` state fixes "awaiting_licence while running", Licence needed / Approval needed copy, next-check line); 286 tests. Decisions: resume AP-4.1 r3 phase 2 now; close AP-UX-1 r2 on Finn's one-line R5; *arr R0 split to OPS-ARR1. Cursor prompt `handoffs/AP-4.2.md`. |
 | 2026-10-12 | **Finn UI validation (Tailscale):** queue GitHub URL → **`escAttr is not defined`**; queue panel **Could not load queue**; `:3000/assets/hub-escape.js` **404** (OPS-HF1). Tried `:3020/hub-form` without slash → 404 JSON; use **`/hub-form/`**. PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`. |
 | 2026-10-12 | **AP-4.2 QC r1** (`docs/pm/2026-10/qc/AP-4.2-r1.json`): **blocked** — progressive HF gate schedule deployed; schedule smokes pass; Finn gate UI copy pending. |

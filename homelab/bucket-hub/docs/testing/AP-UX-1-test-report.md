@@ -80,6 +80,6 @@ QC: `docs/pm/2026-10/qc/AP-UX-1-r1.json` (**overall fail**: gateway Caddy parity
 | R2 | **pass** (5/5) |
 | R3 | **pass** (`7d639ca70123` hf_repo done) |
 | R4 | **pass** (manual tv → `torrents/`) |
-| R5 (Finn) | **blocked** — awaiting Download tab sign-off |
+| R5 (Finn) | **pass** — integrator browser QC forwarded by Finn; PM accepted 2026-10-12 |
 
-QC: `docs/pm/2026-10/qc/AP-UX-1-r2.json` (**overall blocked** on `ui.presets`).
+QC: `docs/pm/2026-10/qc/AP-UX-1-r2.json` (**overall pass**).

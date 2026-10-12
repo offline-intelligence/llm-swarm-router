@@ -2,15 +2,15 @@
   "schema": "bucket-hub-qc/v1",
   "packet": "AP-4.2",
   "round": 1,
-  "generated_at": "2026-10-12T20:25:00+10:00",
+  "generated_at": "2026-10-12T21:18:00+10:00",
   "git": {
-    "branch": "pm/ap-4.2",
-    "head": "a49977d",
-    "base": "pm/ap-ux-1@45bffe3",
+    "branch": "main",
+    "head": "da79aa4",
+    "base": "main",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/9",
     "rebase_conflicts": []
   },
-  "overall": "blocked",
+  "overall": "pass",
   "checks": [
     {
       "id": "unit.pytest",
@@ -39,7 +39,10 @@
     {
       "id": "info.gate_env",
       "status": "pass",
-      "value": { "recheck_lines": 0, "schedule_lines": 0 },
+      "value": {
+        "recheck_lines": 0,
+        "schedule_lines": 0
+      },
       "expected": "recheck_lines 0 for new schedule",
       "evidence": "ssh ai-server-ts grep -c HF_GATE_* hub-worker.env",
       "log": null
@@ -71,7 +74,10 @@
     {
       "id": "deploy.worker_service",
       "status": "pass",
-      "value": { "active": true, "errors_first_2min": 0 },
+      "value": {
+        "active": true,
+        "errors_first_2min": 0
+      },
       "expected": "active, 0 errors",
       "evidence": "systemctl + journalctl since 2 min",
       "log": null
@@ -98,7 +104,10 @@
     {
       "id": "smoke.s_schedule",
       "status": "pass",
-      "value": { "repo": "meta-llama/Llama-3.1-8B", "job": "fa36d19c247a" },
+      "value": {
+        "repo": "meta-llama/Llama-3.1-8B",
+        "job": "fa36d19c247a"
+      },
       "expected": "gated job parks with 403",
       "evidence": "HEAD 403; job queued awaiting_licence",
       "log": "/tmp/ap42-head-probe.log"
@@ -106,31 +115,44 @@
     {
       "id": "smoke.s_first_gap",
       "status": "pass",
-      "value": { "checks": 1, "delta_s": 60 },
-      "expected": "checks 1, next_check - since ≈ 60s ±15",
+      "value": {
+        "checks": 1,
+        "delta_s": 60
+      },
+      "expected": "checks 1, next_check - since \u2248 60s \u00b115",
       "evidence": "~30s poll job fa36d19c247a",
       "log": null
     },
     {
       "id": "smoke.s_second_gap",
       "status": "pass",
-      "value": { "checks": 2, "delta_s": 369 },
-      "expected": "checks 2, next gap ≈ +300s from check 1",
+      "value": {
+        "checks": 2,
+        "delta_s": 369
+      },
+      "expected": "checks 2, next gap \u2248 +300s from check 1",
       "evidence": "~190s poll",
       "log": null
     },
     {
       "id": "smoke.s_check_now",
       "status": "pass",
-      "value": { "checks_after": 3, "gap_after_manual_s": 1800 },
-      "expected": "checks 3, next gap ≈ 1800s",
+      "value": {
+        "checks_after": 3,
+        "gap_after_manual_s": 1800
+      },
+      "expected": "checks 3, next gap \u2248 1800s",
       "evidence": "POST gate-check + 30s poll",
       "log": null
     },
     {
       "id": "info.llama_after",
       "status": "pass",
-      "value": { "id": "038317edec3d", "status": "done", "gate": null },
+      "value": {
+        "id": "038317edec3d",
+        "status": "done",
+        "gate": null
+      },
       "expected": "running/done if accept worked",
       "evidence": "gate-check + GET job",
       "log": null
@@ -145,26 +167,34 @@
     },
     {
       "id": "ui.gate_copy",
-      "status": "blocked",
-      "value": null,
+      "status": "pass",
+      "value": "Approval needed. Request access on Hugging Face; the model owner approves requests by hand, which can take days. Next automatic check in 5 min.",
       "expected": "Finn verbatim gate UI copy",
-      "evidence": "C3 job dismissed before Finn C5; re-queue if needed",
+      "evidence": "integrator browser QC, forwarded by Finn 2026-10-12; PM accepted",
+      "log": "homelab/bucket-hub/docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-browser-qc.md"
+    },
+    {
+      "id": "ui.licence_bar",
+      "status": "pass",
+      "value": "Waiting for Hugging Face access (1); row ap42-bar-check; Request access; Next automatic check in 5 min.; Check now",
+      "expected": "text starts Waiting for Hugging Face access (1), row has Request access, Check now and Next automatic check in",
+      "evidence": "http://100.85.42.0:3000/hub-form/?panel=hub #queueLicenceBar; job fb34c9d1cd51 then cancelled",
       "log": null
     }
   ],
   "findings": [],
-  "needs_finn": [
-    "Hard refresh http://100.85.42.0:3000/ during a waiting gated HF job: confirm Approval/Licence needed + Next automatic check in N min + Waiting for Hugging Face access bar (verbatim ui.gate_copy)"
-  ],
+  "needs_finn": [],
   "deviations": [
     "Schedule test job fa36d19c247a dismissed after C3; 405B/8B too-large skips used wrong repos first.",
     "unit.pytest 284 not 286 (2 hf tests skipped locally).",
-    "C5 not run before dismiss — PM may want integrator re-enqueue for Finn UI check."
+    "PR #9 (AP-4.2) merged before QC overall pass; no harm found \u2014 merge only after overall pass (restated 2026-10-12)."
   ],
   "docs_updated": [
     "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.2-r1.json",
     "homelab/bucket-hub/docs/testing/AP-4.2-test-report.md",
     "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
-    "CHANGELOG.md"
+    "homelab/bucket-hub/docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-browser-qc.md",
+    "CHANGELOG.md",
+    "homelab/bucket-hub/TODO.md"
   ]
 }
