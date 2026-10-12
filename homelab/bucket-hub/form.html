@@ -3031,18 +3031,36 @@ function renderMachineStrip(machines) {
 }
 
 // AP-4.1: gated Hugging Face repos wait for a one-click licence accept.
-function gateBlock(j) {
+// AP-4.2: the worker re-checks after 1, 5 and 30 min, then hourly; "manual" gates say approval.
+function gateWaiting(j) {
   const g = j && j.gate;
-  if (!g || j.status !== 'queued') return '';
+  return !!g && j.status === 'queued' && (g.state === 'awaiting_licence' || g.state === 'needs_token');
+}
+
+function gateNextCheck(g) {
+  const t = g && g.next_check ? Date.parse(g.next_check) : NaN;
+  if (!Number.isFinite(t)) return '';
+  const mins = Math.round((t - Date.now()) / 60000);
+  if (mins <= 0) return 'Checking again now.';
+  if (mins < 60) return `Next automatic check in ${mins} min.`;
+  return `Next automatic check in ${Math.round(mins / 60)} h.`;
+}
+
+function gateBlock(j) {
+  if (!gateWaiting(j)) return '';
+  const g = j.gate;
+  const next = gateNextCheck(g);
   if (g.state === 'needs_token') {
     return `<div class="gate-block"><div class="url">Gated model: add HF_TOKEN to hub-worker.env on ai-server, then Check now.</div>
       <div class="row-actions"><button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
   }
-  const how = g.gated === 'manual'
-    ? 'The model owner approves requests by hand; this can take days.'
-    : 'Access is instant once you accept; the download then starts by itself.';
-  return `<div class="gate-block"><div class="url">Licence needed. ${escHtml(how)}</div>
-    <div class="row-actions"><a class="btn secondary" href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">Accept licence</a>
+  const manual = g.gated === 'manual';
+  const how = manual
+    ? 'Approval needed. Request access on Hugging Face; the model owner approves requests by hand, which can take days.'
+    : 'Licence needed. Accept the licence on Hugging Face; the download starts by itself once access is granted.';
+  const label = manual ? 'Request access' : 'Accept licence';
+  return `<div class="gate-block"><div class="url">${escHtml(how)} ${escHtml(next)}</div>
+    <div class="row-actions"><a class="btn secondary" href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">${escHtml(label)}</a>
     <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
 }
 
@@ -3066,7 +3084,7 @@ document.addEventListener('click', (ev) => {
 function renderLicenceBar(jobs) {
   const el = document.getElementById('queueLicenceBar');
   if (!el) return;
-  const waiting = (jobs || []).filter(j => j.gate && j.status === 'queued');
+  const waiting = (jobs || []).filter(gateWaiting);
   if (!waiting.length) {
     el.classList.add('hidden');
     el.innerHTML = '';
@@ -3074,15 +3092,16 @@ function renderLicenceBar(jobs) {
   }
   el.classList.remove('hidden');
   const rows = waiting.map(licenceBarRow).join('');
-  el.innerHTML = `<div class="sub"><strong>Waiting for a licence (${escHtml(String(waiting.length))})</strong></div>${rows}`;
+  el.innerHTML = `<div class="sub"><strong>Waiting for Hugging Face access (${escHtml(String(waiting.length))})</strong></div>${rows}`;
 }
 
 function licenceBarRow(j) {
   const g = j.gate || {};
+  const label = g.gated === 'manual' ? 'Request access' : 'Accept licence';
   const link = g.state === 'needs_token'
     ? '<span class="sub">needs HF_TOKEN</span>'
-    : `<a href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">Accept licence</a>`;
-  return `<div class="licence-row"><span>${escHtml(j.title || j.url || j.id)}</span> ${link}
+    : `<a href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">${escHtml(label)}</a>`;
+  return `<div class="licence-row"><span>${escHtml(j.title || j.url || j.id)}</span> ${link} <span class="sub">${escHtml(gateNextCheck(g))}</span>
     <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div>`;
 }
 
@@ -4355,7 +4374,10 @@ function statusLabel(st, j) {
     if (j) return stageShortLabel(j);
     return 'Downloading';
   }
-  if (st === 'queued' && j && j.gate) return j.gate.state === 'needs_token' ? 'Needs HF token' : 'Licence needed';
+  if (st === 'queued' && gateWaiting(j)) {
+    if (j.gate.state === 'needs_token') return 'Needs HF token';
+    return j.gate.gated === 'manual' ? 'Approval needed' : 'Licence needed';
+  }
   if (st === 'queued') return 'Queued';
   if (st === 'paused') return 'Paused';
   if (st === 'purging') return 'Removing…';

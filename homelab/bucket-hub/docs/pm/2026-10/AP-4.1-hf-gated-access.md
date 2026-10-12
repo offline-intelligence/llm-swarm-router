@@ -35,7 +35,7 @@ A gated job without access stays alive:
 | field | value |
 |-------|-------|
 | `status` | `queued` |
-| `not_before` | now + `HF_GATE_RECHECK_S` (default 600) |
+| `not_before` | now + next gap of the AP-4.2 schedule (60, 300, 1800, then 3600 s; was a fixed `HF_GATE_RECHECK_S` = 600) |
 | `progress.note` | `Waiting for licence: accept at https://huggingface.co/<id>` (or `Needs HF_TOKEN on the worker` for `needs_token`) |
 | `gate` (new job field) | `{state: "awaiting_licence"\|"needs_token", gated: "auto"\|"manual", url, since, checks}` |
 

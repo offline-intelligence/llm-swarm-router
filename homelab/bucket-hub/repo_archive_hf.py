@@ -15,6 +15,7 @@ source or today's final folder exists (unless ``options.refresh``).
 Gated repos (AP-4.1): a gated repo the token cannot read yet does not fail. The job goes
 back to ``queued`` with a ``gate`` record and ``not_before``, and each re-claim only
 re-probes access (one HEAD) until Finn accepts the licence on huggingface.co.
+Re-checks follow ``HF_GATE_SCHEDULE_S`` (AP-4.2): gaps of 1, 5 and 30 min, then hourly.
 """
 from __future__ import annotations
 
@@ -89,8 +90,31 @@ def configure(
         _probe_access = probe_access
 
 
-def gate_recheck_seconds() -> int:
-    return max(30, int(os.environ.get("HF_GATE_RECHECK_S", "600") or 600))
+DEFAULT_GATE_SCHEDULE_S = (60, 300, 1800, 3600)
+
+
+def gate_schedule() -> tuple[int, ...]:
+    """Gaps between access checks; the last gap repeats until access or timeout.
+
+    ``HF_GATE_SCHEDULE_S`` (comma list) wins; a lone legacy ``HF_GATE_RECHECK_S`` means
+    a fixed gap. Each gap is at least 30 s.
+    """
+    raw = os.environ.get("HF_GATE_SCHEDULE_S", "").strip()
+    if not raw and os.environ.get("HF_GATE_RECHECK_S", "").strip():
+        raw = os.environ["HF_GATE_RECHECK_S"]
+    gaps: list[int] = []
+    for part in raw.split(","):
+        try:
+            gaps.append(max(30, int(float(part))))
+        except ValueError:
+            continue
+    return tuple(gaps) or DEFAULT_GATE_SCHEDULE_S
+
+
+def gate_recheck_seconds(checks: int = 1) -> int:
+    """Gap after the ``checks``-th failed check (1-based)."""
+    sched = gate_schedule()
+    return sched[min(max(checks, 1), len(sched)) - 1]
 
 
 def gate_max_wait_hours() -> float:
@@ -433,6 +457,22 @@ def run_huggingface_repo_job(
             _wait_for_gate(job, update_job, state, meta, repo_type, repo_id, now)
             return
         gate_wait_s = _gate_wait_seconds(job, now)
+        prev_gate = job.get("gate") if isinstance(job.get("gate"), dict) else None
+        if prev_gate:
+            # Access exists now: say so while the download runs (cleared on done).
+            update_job(
+                jid,
+                status="running",  # with error_display None the Hub drops the licence note
+                gate={
+                    **prev_gate,
+                    "state": "granted",
+                    "granted_at": now.isoformat(),
+                    "checks": int(prev_gate.get("checks") or 0) + 1,
+                    "next_check": None,
+                },
+                error_display=None,
+                progress={"phase": "checking", "note": "Access granted, starting download"},
+            )
 
     names = [r["rfilename"] for r in siblings(meta)]
     allow, ignore = resolve_patterns(
@@ -645,7 +685,8 @@ def _wait_for_gate(
         )
         return
     note = gate_note(state, gated, url)
-    retry_at = now + timedelta(seconds=gate_recheck_seconds())
+    checks = int(prev.get("checks") or 0) + 1
+    retry_at = now + timedelta(seconds=gate_recheck_seconds(checks))
     update_job(
         jid,
         status="queued",
@@ -656,7 +697,7 @@ def _wait_for_gate(
             "gated": gated if gated in ("auto", "manual") else "auto",
             "url": url,
             "since": since.isoformat(),
-            "checks": int(prev.get("checks") or 0) + 1,
+            "checks": checks,
             "next_check": retry_at.isoformat(),
         },
         progress={"phase": "checking", "note": note},

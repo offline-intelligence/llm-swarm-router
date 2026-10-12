@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-12 — AP-4.2 Hugging Face access re-check schedule (PM)
+
+**Why:** Finn wanted the Hub to re-check a gated model soon after he accepts, not every 10 min. **What changed:** re-checks after 1, 5 and 30 min, then hourly (`HF_GATE_SCHEDULE_S`); Check now kept and does not reset the schedule; `gate.state = granted` while the download runs; manual gates say "Approval needed" / "Request access"; cards and the queue bar show "Next automatic check in N min". Tests 279 → 286. Spec `homelab/bucket-hub/docs/pm/2026-10/AP-4.2-gate-schedule.md`.
+
 ## 2026-10-12 — AP-UX-1 download presets and segments (PM)
 
 **Why:** Finn wants separate download segments with pre-defined paths. The Download tab asked for a drive and folder for every type, even where the server ignored them, and the same magnet landed in different places from the form (`torrents/`) and from Firefox (`nas/inbox`).
