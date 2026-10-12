@@ -1,14 +1,16 @@
 ---
-description: Claude PM handoff — merge CONTEXT UPDATE into PROJECT-STATE.md; implement Action Packets for homelab/bucket-hub
+description: Bucket-HUB — Claude PM writes code; Cursor integrates, deploys, tests and returns a machine-readable QC report
 alwaysApply: true
 ---
 
-# Homelab PM ↔ Cursor implementer
+# Homelab PM ↔ Cursor integrator (from 2026-10-12)
 
-When the user pastes output from the **Homelab integration assistant** Claude Project (Action Packet, `## CONTEXT UPDATE`, or both):
+Protocol: `homelab/bucket-hub/docs/pm/PM-CURSOR-PROTOCOL.md` (schema `bucket-hub-qc/v1`). Read it before acting on any paste from the **Homelab integration assistant** Claude Project.
 
-1. **CONTEXT UPDATE** — Merge into `homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md` yourself. Do not only tell the user to edit the file unless the update is ambiguous or conflicts with the repo; then ask one clarifying question.
-2. **Action Packet** — Implement in `homelab/bucket-hub/` per the packet; update `PROJECT-STATE.md` backlog when work ships (same session if possible).
-3. **No secrets** in `PROJECT-STATE.md` or agent-context docs.
+- **PM (Claude)** writes application code, tests and smoke scripts on a local branch `pm/<packet>` and a handoff in `homelab/bucket-hub/docs/pm/<yyyy-mm>/handoffs/<packet>.md`.
+- **You (Cursor)** integrate (fetch, rebase, test, push, draft PR), deploy, run smokes, and return a **QC report JSON** at `homelab/bucket-hub/docs/pm/<yyyy-mm>/qc/<packet>-r<round>.json`, pasted as the first block of your reply.
+- **Do not edit application code, tests or `scripts/smoke-*.sh`.** On a failing check: record a finding with a `repro` command, stop dependent steps, return the report. The PM fixes it in the next round.
+- You may edit only the docs listed in the handoff's DOCUMENTS TO UPDATE, `CHANGELOG.md`, and `PROJECT-STATE.md` ticks / session log. Merge a pasted `## CONTEXT UPDATE` into `homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md` yourself.
+- **No secrets** in any file, commit, log excerpt or reply. Redact `ghp_`, `github_pat_`, `hf_`, `Bearer `.
 
-Reference: `homelab/bucket-hub/docs/agent-context/PROJECT-MANAGER-BRIEF.md`, `PROJECT-STATE.md`, and `00-README.md`.
+Reference: `homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md`, `05-OPERATIONS-SSH-DEPLOY.md`, `SSH-PASTE.txt`.

@@ -4,25 +4,48 @@
 #
 # Run from the Mac after AP-3.1 is deployed to both hosts. Needs curl + jq.
 #   TORRENT_URL  magnet: or https://…/.torrent of a small, well-seeded legal torrent
-#   DRIVE_ID     Hub drive id for the torrent (e.g. the Expansion HDD id from GET /api/library)
+#   DRIVE_ID     Hub drive id for the torrent (from GET /api/library)
 #   FOLDER_ID    Hub folder id under that drive (the torrents/ inbox)
-# Optional: HUB (default http://100.85.42.0:3000), LONG_REPO (default git/git), WATCH_S (default 180)
-set -euo pipefail
+# Optional: HUB (default http://100.85.42.0:3000), LONG_REPO (default git/git),
+#           WATCH_S (default 180), QC_OUT (default /tmp/ap31-smoke-qc.json)
+#
+# Machine output (docs/pm/PM-CURSOR-PROTOCOL.md): one line per check on stdout,
+#   QC {"id":"smoke.<check>","status":"pass|fail|skip","value":…,"evidence":"…"}
+# and a JSON array of the same objects in $QC_OUT. Exit 0 only if every check passed.
+set -uo pipefail
 
 HUB="${HUB:-http://100.85.42.0:3000}"
 LONG_REPO="${LONG_REPO:-git/git}"
 WATCH_S="${WATCH_S:-180}"
+QC_OUT="${QC_OUT:-/tmp/ap31-smoke-qc.json}"
 : "${TORRENT_URL:?set TORRENT_URL}" "${DRIVE_ID:?set DRIVE_ID}" "${FOLDER_ID:?set FOLDER_ID}"
+command -v jq >/dev/null || { echo "jq required" >&2; exit 2; }
 
-post_job() { curl -fsS -X POST "$HUB/api/jobs" -H 'Content-Type: application/json' -d "$1" | jq -r '.job.id'; }
-job() { curl -fsS "$HUB/api/jobs/$1"; }
+CHECKS=(precheck r1_running torrent_claimed_60s torrent_bytes_rise repos_drain readme_excerpt)
+echo '[]' > "$QC_OUT"
+qc() {  # qc <check> <pass|fail|skip> <value-json> <evidence>
+  local obj
+  obj="$(jq -nc --arg id "smoke.$1" --arg s "$2" --argjson v "$3" --arg e "$4" \
+    '{id:$id, status:$s, value:$v, evidence:$e}')"
+  echo "QC $obj"
+  jq --argjson o "$obj" '. + [$o]' "$QC_OUT" > "$QC_OUT.tmp" && mv "$QC_OUT.tmp" "$QC_OUT"
+}
+finish() {  # mark every check not yet reported as skip, print summary, exit
+  local id
+  for id in "${CHECKS[@]}"; do
+    jq -e --arg id "smoke.$id" 'any(.[]; .id == $id)' "$QC_OUT" >/dev/null \
+      || qc "$id" skip null "not reached"
+  done
+  local failed
+  failed="$(jq '[.[] | select(.status != "pass")] | length' "$QC_OUT")"
+  echo "QC_SUMMARY $(jq -c --arg f "$QC_OUT" \
+    '{total: length, pass: ([.[]|select(.status=="pass")]|length), fail: ([.[]|select(.status=="fail")]|length), skip: ([.[]|select(.status=="skip")]|length), file: $f}' "$QC_OUT")"
+  [[ "$failed" == 0 ]] && exit 0 || exit 1
+}
+api() { curl -fsS --max-time 15 "$@"; }
+post_job() { api -X POST "$HUB/api/jobs" -H 'Content-Type: application/json' -d "$1" | jq -r '.job.id // empty'; }
+job() { api "$HUB/api/jobs/$1"; }
 field() { job "$1" | jq -r "$2"; }
-fail() { echo "FAIL: $*" >&2; exit 1; }
-
-echo "== precheck"
-lane="$(curl -fsS "$HUB/api/repo-lane")"
-echo "$lane" | jq -c '{slot_repo, active_repo, archive_root}'
-[[ "$(echo "$lane" | jq -r .active_repo)" == "0" ]] || fail "repo lane busy; dismiss running repo jobs first"
 
 repo_body() {
   jq -nc --arg r "$1" --argjson mb "$2" \
@@ -30,56 +53,86 @@ repo_body() {
       tags:["github","ap31-smoke"], options:{refresh:true, max_size_mb:$mb}}'
 }
 
-echo "== 1. long clone to hold the repo slot: $LONG_REPO"
+# 1. precheck: repo lane idle
+lane="$(api "$HUB/api/repo-lane")" || { qc precheck fail null "GET /api/repo-lane failed"; finish; }
+active="$(echo "$lane" | jq -r .active_repo)"
+if [[ "$active" != "0" ]]; then
+  qc precheck fail "$active" "active_repo must be 0; dismiss running repo jobs first"; finish
+fi
+qc precheck pass "$(echo "$lane" | jq -c '{slot_repo, active_repo}')" "repo lane idle"
+
+# 2. long clone holds the repo slot
 R1="$(post_job "$(repo_body "$LONG_REPO" 1024)")"
+[[ -n "$R1" ]] || { qc r1_running fail null "enqueue $LONG_REPO failed"; finish; }
+st=""
 for _ in $(seq 1 30); do
-  st="$(field "$R1" .status)"; [[ "$st" == "running" ]] && break
-  [[ "$st" == "done" || "$st" == "error" ]] && fail "R1 finished before the test could start ($st); pick a bigger LONG_REPO"
+  st="$(field "$R1" .status)"
+  [[ "$st" == "running" || "$st" == "done" || "$st" == "error" ]] && break
   sleep 2
 done
-[[ "$(field "$R1" .status)" == "running" ]] || fail "R1 never started"
+if [[ "$st" != "running" ]]; then
+  qc r1_running fail "$(jq -nc --arg s "$st" --arg j "$R1" '{job:$j, status:$s}')" \
+    "R1 not running after 60s (done = repo too small, pick a bigger LONG_REPO)"; finish
+fi
+qc r1_running pass "$(jq -nc --arg j "$R1" --arg r "$LONG_REPO" '{job:$j, repo:$r}')" "R1 running"
 
-echo "== 2. two repo jobs queued AHEAD of the torrent"
+# 3. two repo jobs queued AHEAD of the torrent, then the torrent
 R2="$(post_job "$(repo_body octocat/Spoon-Knife 64)")"
 R3="$(post_job "$(repo_body octocat/Hello-World 64)")"
-echo "== 3. torrent queued last"
 T1="$(post_job "$(jq -nc --arg u "$TORRENT_URL" --arg d "$DRIVE_ID" --arg f "$FOLDER_ID" \
   '{url:$u, title:"ap31-smoke torrent", drive_id:$d, folder_id:$f, tags:["ap31-smoke"]}')")"
-echo "R1=$R1 R2=$R2 R3=$R3 T1=$T1"
+echo "JOBS $(jq -nc --arg r1 "$R1" --arg r2 "$R2" --arg r3 "$R3" --arg t1 "$T1" '{R1:$r1,R2:$r2,R3:$r3,T1:$t1}')"
+[[ -n "$R2" && -n "$R3" && -n "$T1" ]] || { qc torrent_claimed_60s fail null "enqueue failed"; finish; }
 
-echo "== 4. watch ${WATCH_S}s (pass: torrent claimed <60s and bytes rise while R1 runs)"
-printf '%-6s %-9s %-9s %-9s %-9s %s\n' t R1 R2 R3 T1 t1_bytes
-start=$(date +%s); claimed_at=""; first_bytes=""; last_bytes=0; rose_during_r1=0
+# 4. watch: torrent claimed <= 60s and bytes rise while R1 is still running
+start=$(date +%s); claimed_at=""; last_bytes=0; rose_during_r1=0; t_status=""
 while (( $(date +%s) - start < WATCH_S )); do
   now=$(( $(date +%s) - start ))
   s1="$(field "$R1" .status)"; s2="$(field "$R2" .status)"; s3="$(field "$R3" .status)"
-  tj="$(job "$T1")"; st="$(echo "$tj" | jq -r .status)"
+  tj="$(job "$T1")"; t_status="$(echo "$tj" | jq -r .status)"
   b="$(echo "$tj" | jq -r '(.progress.completed // 0) | tonumber? // 0')"
-  printf '%-6s %-9s %-9s %-9s %-9s %s\n' "${now}s" "$s1" "$s2" "$s3" "$st" "$b"
-  [[ "$st" == "error" ]] && fail "torrent errored: $(echo "$tj" | jq -r .error_display) (bad TORRENT_URL? re-run with another)"
-  [[ -z "$claimed_at" && "$st" != "queued" ]] && claimed_at="$now"
-  [[ -z "$first_bytes" && "$b" -gt 0 ]] && first_bytes="$b"
+  echo "TICK $(jq -nc --argjson t "$now" --arg r1 "$s1" --arg r2 "$s2" --arg r3 "$s3" --arg t1 "$t_status" --argjson b "$b" \
+    '{t:$t, R1:$r1, R2:$r2, R3:$r3, T1:$t1, t1_bytes:$b}')"
+  if [[ "$t_status" == "error" ]]; then
+    qc torrent_claimed_60s fail "$(echo "$tj" | jq -c '{status, error_display}')" \
+      "torrent errored; likely bad TORRENT_URL, not an AP-3.1 failure: re-run with another"; finish
+  fi
+  [[ -z "$claimed_at" && "$t_status" != "queued" ]] && claimed_at="$now"
   if [[ "$s1" == "running" && "$b" -gt "$last_bytes" && "$last_bytes" -gt 0 ]]; then rose_during_r1=1; fi
   last_bytes="$b"
   sleep 10
 done
+if [[ -n "$claimed_at" && "$claimed_at" -le 60 ]]; then
+  qc torrent_claimed_60s pass "$claimed_at" "torrent left queued at ${claimed_at}s"
+else
+  qc torrent_claimed_60s fail "$(jq -nc --arg c "${claimed_at:-never}" '$c')" "lane-blind claim still live?"
+fi
+if [[ "$rose_during_r1" == 1 || "$t_status" == "done" ]]; then
+  qc torrent_bytes_rise pass "$last_bytes" "completed bytes rose while R1 running"
+else
+  qc torrent_bytes_rise fail "$last_bytes" "bytes flat while R1 running"
+fi
 
-[[ -n "$claimed_at" && "$claimed_at" -le 60 ]] || fail "torrent not claimed within 60s (claimed_at=${claimed_at:-never}): lane-blind claim still live?"
-[[ "$rose_during_r1" == 1 || "$(field "$T1" .status)" == "done" ]] \
-  || fail "torrent bytes did not rise while the clone ran"
-echo "PASS torrent: claimed at ${claimed_at}s, bytes rose while repo slot was busy"
-
-echo "== 5. let repo jobs drain, then check README.md on Hello-World"
+# 5. repo jobs drain; Hello-World has a README excerpt
 for _ in $(seq 1 90); do
-  done_n=0
-  for j in "$R1" "$R2" "$R3"; do s="$(field "$j" .status)"; [[ "$s" == "done" || "$s" == "error" ]] && done_n=$((done_n+1)); done
-  (( done_n == 3 )) && break
+  n=0
+  for j in "$R1" "$R2" "$R3"; do s="$(field "$j" .status)"; [[ "$s" == "done" || "$s" == "error" ]] && n=$((n+1)); done
+  (( n == 3 )) && break
   sleep 10
 done
-for j in "$R1" "$R2" "$R3"; do echo "$j $(job "$j" | jq -c '{title, status, note: .progress.note, download_dir, err: .error_display}')"; done
-[[ "$(field "$R3" .status)" == "done" ]] || fail "Hello-World job not done"
+repos="$(for j in "$R1" "$R2" "$R3"; do job "$j" | jq -c '{id, title, status, note: .progress.note, download_dir, error_display}'; done | jq -sc .)"
+if [[ "$(echo "$repos" | jq '[.[] | select(.status == "done")] | length')" == 3 ]]; then
+  qc repos_drain pass "$repos" "R1-R3 done"
+else
+  qc repos_drain fail "$repos" "not all repo jobs done"
+fi
 excerpt="$(field "$R3" '.index_entry.readme_excerpt // ""')"
-[[ -n "$excerpt" ]] || fail "Hello-World readme_excerpt empty (archiver image still :1?)"
-echo "PASS Hello-World readme_excerpt: ${excerpt:0:40}"
-echo "Now on ai-server: ls -la /mnt/tnas/repo-archive/$(field "$R3" .download_dir)/  (expect README.md, repo.git/, both sidecars)"
-echo "Cancel or dismiss the smoke torrent $T1 in the Hub UI when you are done."
+dl="$(field "$R3" '.download_dir // ""')"
+if [[ -n "$excerpt" ]]; then
+  qc readme_excerpt pass "$(jq -nc --arg e "${excerpt:0:60}" --arg d "$dl" '{excerpt:$e, download_dir:$d}')" "Hello-World readme_excerpt non-empty"
+else
+  qc readme_excerpt fail "$(jq -nc --arg d "$dl" '{download_dir:$d}')" "empty readme_excerpt (archiver image still :1?)"
+fi
+echo "NEXT ssh ai-server-ts 'ls -la /mnt/tnas/repo-archive/$dl/'   # tnas_readme_file check"
+echo "NEXT cancel or dismiss torrent $T1 in the Hub UI"
+finish

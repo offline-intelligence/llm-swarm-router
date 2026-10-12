@@ -27,6 +27,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **AP-3.1 before AP-4 (2026-10-12):** the lane-blind claim is a live production bug now that the repo lane works: while a repo job occupies `HUB_SLOT_REPO`, any queued repo job sorted ahead of torrents is claimed by the aria2 loop, re-queued, and the loop `break`s, so torrents stall for the whole clone (up to 4 h). AP-4 adds more long repo jobs and would make it worse. AP-4 starts after AP-3.1 passes §T6 step 2.
 - **`HUB_GITHUB_TOKEN` (2026-10-12):** set on ai-server `hub-worker.env` (fine-grained, public read); worker restarted. Still optional for single public clones; needed before AP-6/AP-7 volume for metadata rate limits.
 - **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
+- **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
 - **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
 - **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
@@ -37,7 +38,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Breaking Bad S01 | Shipped via **season pack** + manual Sonarr scan; Jellyfin **TV Shows (Sonarr)**. |
 | Training Day / metadata | Magnet-only dead swarms → use Jackett **`.torrent` URL**; metadata stall = `metadata_stuck` in `job_health.py`. |
 | Resume vs Retry | After aria2 restart, **Retry** (clears dead `aria2_gid`); Resume keeps stale gid. |
-| Implementer | PM Claude writes code via folder thread (from 2026-10-12); Cursor deploys + SSH smoke tests. Deploy Pi `~/homelab/hub-form/`, ai-server `~/homelab/scripts/hub-worker.py`. |
+| Implementer | PM Claude writes code via folder thread (from 2026-10-12); Cursor integrates, deploys, tests and returns QC JSON (`PM-CURSOR-PROTOCOL.md`). Deploy Pi `~/homelab/hub-form/`, ai-server `~/homelab/scripts/hub-worker.py`. |
 | Claude PM | ~~Specs and Action Packets only~~ (superseded 2026-10-12: also writes code); no secrets in docs. |
 | Job UI cleanup | **Dismiss** `error`/`done` jobs; `dismiss-queue` clears failed strip; cancel+purge removes disk, not JSON until dismiss. |
 | TNAS power | WoL from Pi **best-effort**; hard-off NAS needs physical power or TOS WoL enabled. |
@@ -63,7 +64,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-1 (#1) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [x] AP-2 (#2) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [ ] AP-3 (#3) — **merged**, deployed. §T6 2026-10-12: 1 pass (worker), 3 partial (no `README.md`), 4 pass, 5 pass, **2 not run**. Done when AP-3.1 makes 2 and 3 pass. Evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md` §T6 success.
-- [ ] AP-3.1 fast-follow — **code done** on local branch `pm/ap-3.1` (PM, 2026-10-12; 177 passed). Cursor: push, draft PR, deploy, run smoke per `docs/pm/2026-10/handoffs/AP-3.1.md`. Sub-items below are implemented, pending live acceptance:
+- [ ] AP-3.1 fast-follow — **code done** on local branch `pm/ap-3.1` (PM, 2026-10-12; 177 passed). Cursor: round 1 per `docs/pm/2026-10/handoffs/AP-3.1.md`, returns `docs/pm/2026-10/qc/AP-3.1-r1.json`. Sub-items below are implemented, pending live acceptance:
   - [x] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
   - [x] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
   - [x] Deferred §T2 tests: mirror argv and `--network container:gluetun`.

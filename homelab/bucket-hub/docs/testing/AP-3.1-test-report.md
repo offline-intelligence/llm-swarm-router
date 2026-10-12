@@ -41,7 +41,7 @@ cd homelab/bucket-hub && PYTHONPATH=. uv run --with pytest pytest tests/ -q
 
 ## Manual acceptance (§T6 step 2, adversarial order)
 
-Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy; see `docs/pm/2026-10/handoffs/AP-3.1.md`. Record the printed table here.
+Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy (emits `QC {json}` lines + `QC_OUT` file); results go into `docs/pm/2026-10/qc/AP-3.1-r1.json` per `docs/pm/PM-CURSOR-PROTOCOL.md`, then summarised below.
 
 | Step | Result |
 |------|--------|
