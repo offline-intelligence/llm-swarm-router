@@ -61,7 +61,8 @@ Enqueue smoke: `POST http://100.85.42.0:3000/api/jobs` with `kind: github_repo`,
 |------|-----------------|---------------|-------|
 | **Step 1 — parity** | `./scripts/verify-deploy-parity.sh pi` (before deploy: mismatch `machines_ctl.py`, `glance.yml`) | after rsync + `hub-form` restart: **0** | **pass** |
 | **Step 1 — worker** | `./scripts/verify-deploy-parity.sh worker` | **0** (before and after) | **pass** |
-| **Step 2 — parallel** | Torrent `cc680fcf5170` (Debian netinst `.torrent`) then `github_repo` Spoon-Knife `56c7cccc2833` | Torrent → **error** (aria2, 0 bytes); repo stayed **queued** 120s (`active_repo: 1` held by duplicate clone `348d7f66c2fc`); worker log still shows intermittent `heartbeat failed` | **fail** (invalid baseline — re-run after AP-3.1 + healthy torrent) |
+| **Step 2 — parallel** | QC r4 `smoke-ap31-lanes.sh` (Sintel) | Torrent + repo drain **pass** — [AP-3.1-r4.json](../pm/2026-10/qc/AP-3.1-r4.json) | **pass** |
+| **Step 3 — README / Spoon-Knife** | QC r4 `smoke.readme_excerpt` + r3 live archive checks | Hello-World excerpt **pass**; Spoon-Knife 1 MB / no pull refs (r3) | **pass** |
 | **Task 6 — heartbeat** | `GET /api/status` `heartbeat_age_s` ~10s; worker log tail has historical `heartbeat failed` / `loop error` bursts | Pi reachable now; not blocking single-repo smokes | **note** |
 
 §T6 step 2 commands:

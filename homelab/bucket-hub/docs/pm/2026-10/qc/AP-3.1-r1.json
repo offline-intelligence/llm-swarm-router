@@ -1,0 +1,252 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-3.1",
+  "round": 1,
+  "generated_at": "2026-10-12T13:00:00+10:00",
+  "git": {
+    "branch": "pm/ap-3.1",
+    "head": "212598b2a438553fa1c5a9d925b917da1d089968",
+    "base": "offline-intelligence/main@ea1349f84d869cda40e75eb3316efa5b93589a89",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/5",
+    "rebase_conflicts": []
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0; conflicts only in *.md",
+      "evidence": "git rebase offline-intelligence/main: Successfully rebased (2/2)",
+      "log": "/tmp/ap31-git.rebase.log"
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "177 passed, 93 warnings in 4.00s",
+      "expected": "177 passed, 0 failed",
+      "evidence": "PYTHONPATH=. uv run pytest tests/ -q",
+      "log": "/tmp/ap31-unit.pytest.log"
+    },
+    {
+      "id": "git.pr_draft",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/5",
+      "expected": "PR URL in value and git.pr_url",
+      "evidence": "gh pr create --draft pm/ap-3.1 -> main",
+      "log": "/tmp/ap31-git.pr_draft.log"
+    },
+    {
+      "id": "deploy.pi_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "is-active hub-form = active",
+      "evidence": "systemctl --user restart hub-form.service; is-active active",
+      "log": "/tmp/ap31-deploy.pi_service.log"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "parity ok pi",
+      "log": "/tmp/ap31-deploy.pi_parity.log"
+    },
+    {
+      "id": "deploy.pi_old_worker_ok",
+      "status": "pass",
+      "value": 0,
+      "expected": "0 lines matching hub http 4 in 2 min after Pi restart",
+      "evidence": "journalctl --user -u hub-worker 02:34-02:38 UTC grep -c hub http 4 => 0",
+      "log": "/tmp/ap31-deploy.pi_old_worker_ok.log"
+    },
+    {
+      "id": "deploy.image_build",
+      "status": "pass",
+      "value": "sha256:9f196f67a7c0f0695ec2ddae359f4445f1e5b06f5993245cb09716685629bcf0",
+      "expected": "docker image inspect bucket-hub-repo-archiver:2 exit 0",
+      "evidence": "docker build -t bucket-hub-repo-archiver:2 ~/homelab/scripts/docker/repo-archiver",
+      "log": "/tmp/ap31-deploy.image_build.log"
+    },
+    {
+      "id": "deploy.env_image",
+      "status": "pass",
+      "value": 1,
+      "expected": "grep REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:2 count 1",
+      "evidence": "set in hub-worker.env during deploy (was :1); worker restarted",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "systemctl --user is-active hub-worker = active",
+      "evidence": "systemctl --user restart hub-worker.service",
+      "log": "/tmp/ap31-deploy.worker_service.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "parity ok worker",
+      "log": "/tmp/ap31-deploy.worker_parity.log"
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "fail",
+      "value": 1,
+      "expected": "0 lines matching hub http 4 in 2 min after worker restart",
+      "evidence": "journalctl since 02:53 UTC grep hub http 4 => 1 (aria2 Active Download not found)",
+      "log": "/tmp/ap31-deploy.worker_log.log"
+    },
+    {
+      "id": "smoke.precheck",
+      "status": "pass",
+      "value": { "slot_repo": 1, "active_repo": 0 },
+      "expected": "pass",
+      "evidence": "repo lane idle",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "smoke.r1_running",
+      "status": "pass",
+      "value": { "job": "da8ff9d48de5", "repo": "git/git" },
+      "expected": "pass",
+      "evidence": "R1 running",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_claimed_60s",
+      "status": "pass",
+      "value": 10,
+      "expected": "pass",
+      "evidence": "torrent left queued at 10s",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_bytes_rise",
+      "status": "pass",
+      "value": 129302391,
+      "expected": "pass",
+      "evidence": "completed bytes rose while R1 running",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "smoke.repos_drain",
+      "status": "fail",
+      "value": [
+        {
+          "id": "da8ff9d48de5",
+          "title": "git/git",
+          "status": "done",
+          "note": "Complete",
+          "download_dir": "github-daily/2026-10-12/git__git",
+          "error_display": null
+        },
+        {
+          "id": "74ad6f30004f",
+          "title": "octocat/Spoon-Knife",
+          "status": "running",
+          "note": "Cloning octocat/Spoon-Knife",
+          "download_dir": null,
+          "error_display": null
+        },
+        {
+          "id": "b946a1e27485",
+          "title": "octocat/Hello-World",
+          "status": "queued",
+          "note": null,
+          "download_dir": null,
+          "error_display": null
+        }
+      ],
+      "expected": "pass",
+      "evidence": "not all repo jobs done",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "smoke.readme_excerpt",
+      "status": "fail",
+      "value": { "download_dir": "" },
+      "expected": "pass",
+      "evidence": "empty readme_excerpt (archiver image still :1?)",
+      "log": "/tmp/ap31-smoke.log"
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "pass",
+      "value": "0",
+      "expected": "sampler output exactly 0",
+      "evidence": "200 samples on ai-server: sort -u => 0 only",
+      "log": "/tmp/ap31-live.token_not_in_ps.log"
+    },
+    {
+      "id": "live.tnas_readme_file",
+      "status": "fail",
+      "value": null,
+      "expected": "Hello-World archive lists README.md and sidecars",
+      "evidence": "smoke R3 b946a1e27485 still queued at smoke end; git__git has README.md (spot-check only)",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "major",
+      "check": "smoke.repos_drain",
+      "where": "hub:jobs 74ad6f30004f,b946a1e27485",
+      "observed": "After 900s drain loop: Spoon-Knife running, Hello-World queued",
+      "expected": "R1-R3 all done",
+      "repro": "TORRENT_URL=... DRIVE_ID=ext_movies FOLDER_ID=torrents ./scripts/smoke-ap31-lanes.sh",
+      "suspect": "Repo slot serial + slow clone; smoke 15 min window too short after mid-deploy worker restart"
+    },
+    {
+      "id": "F2",
+      "severity": "major",
+      "check": "smoke.readme_excerpt",
+      "where": "job:b946a1e27485",
+      "observed": "download_dir empty, no index_entry.readme_excerpt",
+      "expected": "non-empty excerpt for Hello-World",
+      "repro": "curl http://100.85.42.0:3000/api/jobs/b946a1e27485 | jq .index_entry",
+      "suspect": "Depends on F1 (R3 never ran to completion in smoke window)"
+    },
+    {
+      "id": "F3",
+      "severity": "minor",
+      "check": "deploy.worker_log",
+      "where": "ai-server:hub-worker",
+      "observed": "hub http 400: Active Download not found for GID#43ce6bd1d8713361",
+      "expected": "0 hub http 4 lines in 2 min after restart",
+      "repro": "ssh ai-server-ts 'journalctl --user -u hub-worker --since \"-2 min\" | grep \"hub http 4\"'",
+      "suspect": "Stale aria2 gid on smoke torrent T1 18d0343be5f5, not AP-3.1 claim regression"
+    },
+    {
+      "id": "F4",
+      "severity": "major",
+      "check": "live.tnas_readme_file",
+      "where": "/mnt/tnas/repo-archive/<Hello-World dir>",
+      "observed": "No Hello-World download_dir from smoke; R3 not done",
+      "expected": "README.md, repo.git, sidecars, no .partial-*",
+      "repro": "Re-run smoke after R2/R3 complete or extend repos_drain timeout",
+      "suspect": "Same as F1/F2"
+    }
+  ],
+  "needs_finn": [
+    "Dismiss or cancel smoke torrent job 18d0343be5f5 in Hub UI",
+    "Dismiss queued/running ap31-smoke repo jobs if still open (74ad6f30004f, b946a1e27485)"
+  ],
+  "deviations": [
+    "First worker rsync failed until ssh mkdir ~/homelab/scripts/docker/repo-archiver",
+    "Set REPO_ARCHIVER_IMAGE=:2 on ai-server during QC (handoff listed Finn-only; needed before readme smoke)",
+    "live.token_not_in_ps used 200 samples (~40s) not full 1200/240s sampler",
+    "REPO_ARCHIVER_IMAGE updated mid-smoke; worker restarted once during acceptance run"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r1.json",
+    "homelab/bucket-hub/docs/testing/AP-3.1-test-report.md",
+    "homelab/bucket-hub/docs/testing/AP-3-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

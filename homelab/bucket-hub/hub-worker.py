@@ -112,6 +112,8 @@ HUB_SLOT_REPO = max(0, int(os.environ.get("HUB_SLOT_REPO", "1")))
 HUB_REPO_ARCHIVE_ROOT = os.environ.get(
     "HUB_REPO_ARCHIVE_ROOT", "/mnt/tnas/repo-archive"
 )
+# Seconds to wait before re-checking the archive mount, before a repo job is deferred.
+HUB_REPO_RECHECK_S = max(0.0, _env_float("HUB_REPO_RECHECK_S", 5.0))
 # Per-download BitTorrent options (leech-only; global aria2.conf should match).
 ARIA2_LEECH_OPTS: dict[str, str] = {
     "seed-ratio": "0",
@@ -264,6 +266,12 @@ def _recover_stale_mounts() -> None:
             if r.returncode != 0:
                 recovered.add(mount)
                 _dev_ops_log("worker", "INFO", f"stale mount cleared (unmounted): {mount}")
+                continue
+            # Still mounted: clear it once it answers again (a CIFS hiccup, not a dead drive).
+            s = subprocess.run(["stat", mount], capture_output=True, timeout=2)
+            if s.returncode == 0:
+                recovered.add(mount)
+                _dev_ops_log("worker", "INFO", f"stale mount cleared (responsive): {mount}")
         except subprocess.TimeoutExpired:
             pass
         except Exception:
@@ -375,8 +383,19 @@ def aria2(method: str, params: list[Any] | None = None) -> Any:
         headers={"Content-Type": "application/json"},
         method="POST",
     )
-    with urllib.request.urlopen(req, timeout=90) as resp:
-        data = json.loads(resp.read().decode("utf-8"))
+    try:
+        with urllib.request.urlopen(req, timeout=90) as resp:
+            data = json.loads(resp.read().decode("utf-8"))
+    except urllib.error.HTTPError as exc:
+        # aria2 answers a JSON-RPC error (e.g. "Active Download not found for GID#…")
+        # with HTTP 400. Raise it as the RuntimeError callers already handle, not as an
+        # HTTPError the main loop would mistake for a Hub failure (AP-3.1 QC r3b F1).
+        try:
+            data = json.loads(exc.read().decode("utf-8", errors="replace"))
+        except Exception:  # noqa: BLE001
+            raise RuntimeError(f"aria2 rpc http {exc.code}") from exc
+        if "error" not in data:
+            raise RuntimeError(f"aria2 rpc http {exc.code}") from exc
     if "error" in data:
         err = data["error"]
         if isinstance(err, dict):
@@ -418,6 +437,8 @@ def path_ready(dest: str) -> tuple[bool, str]:
             return False, "Media HDD is not mounted"
         return True, "media"
     if dest.startswith("/mnt/tnas"):
+        if "/mnt/tnas" in _STALE_MOUNTS:
+            return False, "NAS mount marked stale (check timed out)"
         if not _safe_check_path("/mnt/tnas", "mount"):
             return False, "NAS is not mounted"
         return True, "nas"
@@ -439,6 +460,24 @@ def path_ready(dest: str) -> tuple[bool, str]:
     if not _safe_check_path(dest, "stat"):
         return False, f"Destination missing: {dest}"
     return True, "other"
+
+
+def repo_path_ready(dest: str) -> tuple[bool, str]:
+    """``path_ready`` for repo jobs, with one re-check before the job is deferred.
+
+    A single failed mount check used to defer the job for ``HUB_REPO_DEFER_S``
+    (AP-3.1 QC r2 F2), so a brief CIFS stall cost two minutes.
+    """
+    ok, reason = path_ready(dest)
+    if ok:
+        return ok, reason
+    _recover_stale_mounts()
+    if HUB_REPO_RECHECK_S:
+        time.sleep(HUB_REPO_RECHECK_S)
+    ok, reason2 = path_ready(dest)
+    if not ok:
+        print(f"repo path not ready {dest}: {reason2} (first check: {reason})", flush=True)
+    return ok, reason2
 
 
 def ensure_host_dir(host_path: str) -> None:
@@ -923,24 +962,51 @@ def gluetun_http_json(url: str, timeout: int = 25) -> Any:
         "-H",
         "Accept: application/json",
     ]
+    auth = _gluetun_auth_header(url)
+    if auth:
+        # Header goes over stdin (curl ``-H @-``), never argv, so it is not visible in ``ps``.
+        cmd[3:3] = ["-i"]
+        cmd.extend(["-H", "@-"])
+    cmd.append(url)
+    out = subprocess.check_output(
+        cmd,
+        text=True,
+        timeout=timeout + 10,
+        input=f"{auth}\n" if auth else None,
+    )
+    return json.loads(out) if out else {}
+
+
+def _gluetun_auth_header(url: str) -> str:
+    """Return the ``Authorization`` header line for ``url``, or "" when none applies."""
     gh = os.environ.get("HUB_GITHUB_TOKEN", "").strip()
     if gh and "api.github.com" in url:
-        cmd.extend(["-H", f"Authorization: Bearer {gh}"])
+        return f"Authorization: Bearer {gh}"
     hf = os.environ.get("HF_TOKEN", "").strip() or os.environ.get(
         "HUGGING_FACE_HUB_TOKEN", ""
     ).strip()
     if hf and "huggingface.co" in url:
-        cmd.extend(["-H", f"Authorization: Bearer {hf}"])
-    cmd.append(url)
-    out = subprocess.check_output(cmd, text=True, timeout=timeout + 10)
-    return json.loads(out) if out else {}
+        return f"Authorization: Bearer {hf}"
+    return ""
 
 
 def _github_metadata_fetch(full_name: str) -> Any:
     return gluetun_http_json(f"https://api.github.com/repos/{full_name}")
 
 
-configure_repo_archive(fetch_metadata=_github_metadata_fetch)
+def _github_readme_fetch(full_name: str) -> str:
+    """Decoded README from ``GET /repos/{owner}/{repo}/readme`` (any README name)."""
+    data = gluetun_http_json(f"https://api.github.com/repos/{full_name}/readme")
+    content = data.get("content") if isinstance(data, dict) else None
+    if not content or data.get("encoding") != "base64":
+        return ""
+    return base64.b64decode(content).decode("utf-8", errors="replace")
+
+
+configure_repo_archive(
+    fetch_metadata=_github_metadata_fetch,
+    fetch_readme=_github_readme_fetch,
+)
 
 
 def jackett_http_json(path_and_query: str, timeout: int = 40) -> Any:
@@ -1868,8 +1934,62 @@ def send_heartbeat(vpn: tuple[bool, str], *, force_remount: bool = False) -> lis
     return drives
 
 
-def claim_next() -> dict[str, Any] | None:
-    return hub_call("/api/jobs/claim", method="POST", body={}).get("job")
+def claim_next(lane: str | None = None) -> dict[str, Any] | None:
+    """Claim the next queued job; ``lane`` limits it to one Pi claim bucket.
+
+    Each dispatch loop passes its own lane so it never claims a job it would
+    have to re-queue (the AP-3.1 lane-blind starvation bug).
+    """
+    body: dict[str, Any] = {"lane": lane} if lane else {}
+    return hub_call("/api/jobs/claim", method="POST", body=body).get("job")
+
+
+REPO_RECOVERED_NOTE = "Re-queued after worker restart"
+
+
+def recover_orphaned_repo_jobs() -> list[str] | None:
+    """Re-queue repo-lane jobs the Pi still shows as claimed/running at worker start.
+
+    Called once from ``main()`` before the loop: no repo thread is alive yet, so any
+    such job lost its worker (restart, crash) and would otherwise hold the repo slot
+    for ever. Its archiver container is removed so it cannot race the retry.
+    """
+    from repo_runner import remove_container
+
+    recovered: list[str] = []
+    listed_ok = True
+    for status in ("running", "claimed"):
+        try:
+            data = hub_call(f"/api/jobs?status={status}&limit=100")
+        except Exception as exc:  # noqa: BLE001
+            print(f"repo recover list {status}: {exc}", flush=True)
+            listed_ok = False
+            continue
+        for job in data.get("jobs") or []:
+            if dispatch_route(job) not in ("repo", "repo_meta"):
+                continue
+            jid = str(job.get("id") or "")
+            if not jid or jid in _repo_running:
+                continue
+            removed = remove_container(f"hub-repo-partial-{jid}")
+            try:
+                update_job(
+                    jid,
+                    status="queued",
+                    error=None,
+                    progress={"phase": "checking", "note": REPO_RECOVERED_NOTE},
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(f"repo recover {jid}: {exc}", flush=True)
+                continue
+            print(
+                f"repo recover {jid} ({job.get('kind')}, was {status}, "
+                f"container_removed={removed})",
+                flush=True,
+            )
+            recovered.append(jid)
+    # None = the Pi could not be listed; main() retries before any repo claim.
+    return recovered if listed_ok else None
 
 
 def _recover_claimed_aria2_jobs(vpn: tuple[bool, str]) -> None:
@@ -3384,7 +3504,7 @@ def _submit_repo_job(job: dict[str, Any]) -> None:
                 run_github_repo_job(
                     job,
                     archive_root=HUB_REPO_ARCHIVE_ROOT,
-                    path_ready=path_ready,
+                    path_ready=repo_path_ready,
                     update_job=update_job,
                 )
             elif kind == "github":
@@ -4977,8 +5097,11 @@ def main() -> None:
         f"video_slots={HUB_SLOT_VIDEO} repo_slots={HUB_SLOT_REPO}",
         flush=True,
     )
+    repo_recover_done = False
     while True:
         try:
+            if not repo_recover_done:
+                repo_recover_done = recover_orphaned_repo_jobs() is not None
             ensure_mounts()
             vpn = vpn_ok()
             try_run_pending_search(vpn, context="idle")
@@ -5036,13 +5159,18 @@ def main() -> None:
                 except Exception as exc:  # noqa: BLE001
                     print(f"purge failed {purge_job.get('id')}: {exc}", flush=True)
                 continue
-            _recover_claimed_aria2_jobs(vpn)
-            _aria2_supervisor_tick(vpn)
-            resume = find_resumable_aria2_job()
-            if resume and str(resume.get("id") or "") not in ARIA2_TRACKS:
-                _attach_resumable_aria2_to_supervisor(resume)
+            # aria2 housekeeping must not abort the tick: an error here used to skip
+            # the video and repo claims below on every loop (AP-3.1 QC r3b F1).
+            try:
+                _recover_claimed_aria2_jobs(vpn)
+                _aria2_supervisor_tick(vpn)
+                resume = find_resumable_aria2_job()
+                if resume and str(resume.get("id") or "") not in ARIA2_TRACKS:
+                    _attach_resumable_aria2_to_supervisor(resume)
+            except Exception as exc:  # noqa: BLE001
+                print(f"aria2 housekeeping error: {exc}", flush=True)
             while _aria2_can_dispatch_more():
-                slot_job = claim_next()
+                slot_job = claim_next("aria2")
                 if not slot_job:
                     break
                 slot_kind = (slot_job.get("kind") or "http").lower()
@@ -5056,7 +5184,7 @@ def main() -> None:
                 )
                 _dispatch_claimed_job(slot_job, vpn)
             if HUB_SLOT_VIDEO > 0 and len(_video_running) < HUB_SLOT_VIDEO:
-                video_job = claim_next()
+                video_job = claim_next("video")
                 if video_job and (video_job.get("kind") or "").lower() == "video":
                     print(
                         f"claimed {video_job['id']} video -> "
@@ -5066,8 +5194,8 @@ def main() -> None:
                     _dispatch_claimed_job(video_job, vpn)
                 elif video_job:
                     update_job(video_job["id"], status="queued", error=None)
-            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
-                repo_job = claim_next()
+            if repo_recover_done and HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+                repo_job = claim_next("repo")
                 if repo_job and dispatch_route(repo_job) == "repo":
                     print(
                         f"claimed {repo_job['id']} {repo_job.get('kind')} -> repo lane",
@@ -5076,8 +5204,8 @@ def main() -> None:
                     _dispatch_claimed_job(repo_job, vpn)
                 elif repo_job:
                     update_job(repo_job["id"], status="queued", error=None)
-            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
-                meta_job = claim_next()
+            if repo_recover_done and HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+                meta_job = claim_next("repo_meta")
                 if meta_job and dispatch_route(meta_job) == "repo_meta":
                     print(
                         f"claimed {meta_job['id']} {meta_job.get('kind')} -> repo_meta",

@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (TNAS back at `.187`; AP-3 §T6 1, 4, 5 pass, 3 partial, 2 not run; **AP-3 live for manual single-repo use, not done**; README.md defect found; **AP-3.1 next, then AP-4**)
+**Last updated:** 2026-10-12 (AP-3.1 QC r4 **pass**; PR #5 ready, `docs/pm/2026-10/qc/AP-3.1-r4.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -25,8 +25,17 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **AP-3 status (2026-10-12, after TNAS restore):** live for manual, one-at-a-time public `github_repo` jobs. **Not done:** §T6 step 2 (repo + torrent in parallel) was not run, and step 3 fails the spec because `README.md` is missing. Until AP-3.1 deploys, do not leave `github_repo` jobs queued while torrents are queued.
 - **README.md beside `repo.git` is required, not a spec gap (2026-10-12):** spec A3 layout, A5 step 7 and §T6 step 3 all require it. Cause: `docker/repo-archiver/repo_archiver_entry.py` only tries `git show HEAD:README.md`; `octocat/Hello-World` has `README` (no extension), so nothing is written and `readme_excerpt` is empty. Fix in AP-3.1: resolve the README case-insensitively from `git ls-tree HEAD` (`README`, `README.md`, `.rst`, `.txt`, `.markdown`), always write it as `README.md`; then re-queue Hello-World with `options.refresh: true`.
 - **AP-3.1 before AP-4 (2026-10-12):** the lane-blind claim is a live production bug now that the repo lane works: while a repo job occupies `HUB_SLOT_REPO`, any queued repo job sorted ahead of torrents is claimed by the aria2 loop, re-queued, and the loop `break`s, so torrents stall for the whole clone (up to 4 h). AP-4 adds more long repo jobs and would make it worse. AP-4 starts after AP-3.1 passes §T6 step 2.
-- **`HUB_GITHUB_TOKEN` (2026-10-12):** not required for public clones (proved by `694e010971e2`); required before AP-6/AP-7 volume, because unauthenticated metadata calls share the Proton exit IP's 60 req/h limit.
-- **TNAS LAN IP (2026-10-12):** NAS is at `192.168.50.187` after DHCP drift from `.186`. Finn to add a router DHCP reservation, then update hard-coded `.186` references (list in backlog).
+- **`HUB_GITHUB_TOKEN` (2026-10-12):** set on ai-server `hub-worker.env` (fine-grained, public read); worker restarted. Still optional for single public clones; needed before AP-6/AP-7 volume for metadata rate limits.
+- **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
+- **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
+- **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
+- **Worker restart recovery (2026-10-12, AP-3.1 r2):** at startup the worker re-queues every repo/repo_meta job the Pi shows as `running`/`claimed` (no repo thread survives a restart) and removes its archiver container `hub-repo-partial-<id>`; repo claims wait until this has run. Single-worker assumption: a second worker would need ownership tracking first.
+- **Repo archive content (2026-10-12, AP-3.1 r3):** `repo.git` is a bare repo with branches and tags only (`+refs/heads/*`, `+refs/tags/*`), `HEAD` = remote default branch. No `refs/pull/*`: `clone --mirror` pulled every PR head (fork commits the API `size` ignores) and blew the cap on `octocat/Spoon-Knife`. Image `bucket-hub-repo-archiver:3`.
+- **TNAS defer (2026-10-12, AP-3.1 r3):** a repo job is deferred only after a second mount check `HUB_REPO_RECHECK_S` (5 s) later; a stale mark clears once the mount answers `stat`. The defer note names the reason.
+- **Smoke torrent (2026-10-12):** `smoke-ap31-lanes.sh` uses the Sintel magnet (proven well-seeded in r1). A torrent that is claimed on time but gets 0 bytes points at the swarm, not the lane fix; swap back to Sintel rather than changing code.
+- **Worker loop isolation (2026-10-12, AP-3.1 r4):** aria2 housekeeping errors are logged and contained, never allowed to skip the video or repo claims in the same tick. aria2 JSON-RPC errors (HTTP 400) surface as `RuntimeError`, so `hub http 4xx` in the worker log now means the Hub only.
+- **Smoke validity rule:** a smoke run with a worker restart or env edit during it is invalid; re-run from scratch.
+- **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
 
 | Topic | Decision |
@@ -35,7 +44,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Breaking Bad S01 | Shipped via **season pack** + manual Sonarr scan; Jellyfin **TV Shows (Sonarr)**. |
 | Training Day / metadata | Magnet-only dead swarms → use Jackett **`.torrent` URL**; metadata stall = `metadata_stuck` in `job_health.py`. |
 | Resume vs Retry | After aria2 restart, **Retry** (clears dead `aria2_gid`); Resume keeps stale gid. |
-| Implementer | PM Claude writes code via folder thread (from 2026-10-12); Cursor deploys + SSH smoke tests. Deploy Pi `~/homelab/hub-form/`, ai-server `~/homelab/scripts/hub-worker.py`. |
+| Implementer | PM Claude writes code via folder thread (from 2026-10-12); Cursor integrates, deploys, tests and returns QC JSON (`PM-CURSOR-PROTOCOL.md`). Deploy Pi `~/homelab/hub-form/`, ai-server `~/homelab/scripts/hub-worker.py`. |
 | Claude PM | ~~Specs and Action Packets only~~ (superseded 2026-10-12: also writes code); no secrets in docs. |
 | Job UI cleanup | **Dismiss** `error`/`done` jobs; `dismiss-queue` clears failed strip; cancel+purge removes disk, not JSON until dismiss. |
 | TNAS power | WoL from Pi **best-effort**; hard-off NAS needs physical power or TOS WoL enabled. |
@@ -60,26 +69,26 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
 - [x] AP-1 (#1) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [x] AP-2 (#2) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
-- [ ] AP-3 (#3) — **merged**, deployed. §T6 2026-10-12: 1 pass (worker), 3 partial (no `README.md`), 4 pass, 5 pass, **2 not run**. Done when AP-3.1 makes 2 and 3 pass. Evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md` §T6 success.
-- [ ] AP-3.1 fast-follow (PM implements, PR on top of #3):
-  - [ ] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
-  - [ ] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
-  - [ ] Deferred §T2 tests: mirror argv and `--network container:gluetun`.
-  - [ ] `gluetun_http_json` puts `Authorization: Bearer <HUB_GITHUB_TOKEN>` in `docker run` argv (visible in `ps`); pass via env/file instead.
-  - [ ] Add `docker/repo-archiver/` to the deploy path (manifest or deploy script) so the image can be built on ai-server.
-  - [ ] **README.md not written** for repos whose README is not exactly `README.md` (see decision). Rebuild image as `bucket-hub-repo-archiver:2`; test with a fake `ls-tree` listing `README` and `readme.rst`.
-  - [ ] §T6 step 2 re-run as AP-3.1 acceptance: queue a torrent, then two `github_repo` jobs; torrent claims and progresses while the first clone runs.
+- [x] AP-3 (#3) — **merged**, deployed. §T6 steps 2–3 **pass** via AP-3.1 QC r4 (`docs/pm/2026-10/qc/AP-3.1-r4.json`). Earlier evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md`.
+- [x] AP-3.1 fast-follow — PR #5 **ready for review**, `pm/ap-3.1`. QC r4 **pass** (2026-10-12): aria2 housekeeping fix deployed; `smoke-ap31-lanes.sh` 6/6. Sub-items:
+  - [x] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
+  - [x] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
+  - [x] Deferred §T2 tests: mirror argv and `--network container:gluetun`.
+  - [x] `gluetun_http_json` puts `Authorization: Bearer <HUB_GITHUB_TOKEN>` in `docker run` argv (visible in `ps`); pass via env/file instead.
+  - [x] Add `docker/repo-archiver/` to the deploy path (manifest or deploy script) so the image can be built on ai-server.
+  - [x] **README.md not written** for repos whose README is not exactly `README.md` (see decision). Rebuild image as `bucket-hub-repo-archiver:2`; test with a fake `ls-tree` listing `README` and `readme.rst`.
+  - [x] §T6 step 2 acceptance: `scripts/smoke-ap31-lanes.sh` — **pass** QC r4.
 - [ ] §T6 ops blockers (Finn; checklist in PM reply 2026-10-12):
   - [ ] Worker → Pi heartbeat/claim timeouts (cause unconfirmed; see P2).
   - [x] TNAS mounted at `/mnt/tnas` on ai-server (`//192.168.50.187/public`), `repo-archive/` root created (2026-10-12).
   - [x] `bucket-hub-repo-archiver:1` built on ai-server.
   - [x] `hub-worker.env`: `HUB_REPO_ARCHIVE_ROOT`, `HUB_SLOT_REPO=1`, `REPO_ARCHIVER_IMAGE`.
-  - [ ] `hub-worker.env`: `HUB_GITHUB_TOKEN` (fine-grained, public read only). Needed before AP-6/AP-7.
-  - [ ] Router DHCP reservation for TNAS MAC → `192.168.50.187`.
-  - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma monitor URL: **Finn UI** (bootstrap only creates missing monitors).
+  - [x] `hub-worker.env`: `HUB_GITHUB_TOKEN` (fine-grained, public read); worker active (2026-10-12).
+  - [x] Router DHCP reservation for TNAS MAC `6c:bf:b5:04:69:67` → `192.168.50.187` (ASUS RT-AX57; 2026-10-12).
+  - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/` (API edit on Pi, 2026-10-12).
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
-  - [ ] Re-run §T6 step **2** after AP-3.1 (2026-10-12 baseline **fail** — torrent errored, repo slot busy; see test report). Steps 1/3–5 recorded.
-- [ ] AP-4 `huggingface_repo` — cleared; **PM implements after AP-3.1 deploys and §T6 step 2 passes**. TNAS and image prerequisites now met.
+  - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
+- [ ] AP-4 `huggingface_repo` — **unblocked** (AP-3.1 QC r4 pass, 2026-10-12). PM implements on `pm/ap-4` from `main` once PR #5 is merged.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -95,6 +104,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] Pi systemd timer (Brisbane); `GITHUB_TOKEN` in worker env (human).
 
 ### P2 — Reliability
+
+- [ ] Stale aria2 gid: a Hub job left `running` with a gid aria2 no longer knows (r1 `18d0343be5f5`, r3b `8d817da9a03b`). Since AP-3.1 r4 it no longer blocks other lanes (`aria2()` raises `RuntimeError`, housekeeping isolated), but the job itself still sits `running`. Worker should mark it for Retry (drop the gid, re-add) instead of re-checking it every tick.
 
 - [x] Deploy `job_health.py` to Pi with `app.py` (2026-10-12); verify `agent_review` UI end-to-end.
 - [ ] aria2 error 13 (partial without `.aria2`): worker policy or user doc for Retry after cleanup.
@@ -129,6 +140,16 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **PM sign-off: AP-3.1 and AP-3 done** (QC r4 overall pass, 0 findings). PR #5 ready for Finn to merge. Next: AP-4 on `pm/ap-4` after the merge. Open P2: stale aria2 gid job stays `running` (no longer blocks lanes). |
+| 2026-10-12 | PM review of QC r3b: lane fix proven (Sintel 129 MB). Repo-drain fail root-caused: aria2 returns JSON-RPC errors as HTTP 400, `aria2()` let `HTTPError` escape, `find_resumable_aria2_job()` only caught `RuntimeError`, so every tick died before the repo claims (same cause as r1 F3). Round 4: `aria2()` converts to `RuntimeError`, housekeeping isolated in `main()`; 189 → 193 tests. |
+| 2026-10-12 | **AP-3.1 QC r4** (`docs/pm/2026-10/qc/AP-3.1-r4.json`): worker deploy; 193 tests; Sintel smoke 6/6; loop log clean. **overall pass**; PR #5 ready for review; AP-3 §T6 steps 2–3 ticked. |
+| 2026-10-12 | **AP-3.1 QC r3b** (`docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` **pass**; `repos_drain` / `readme_excerpt` **fail** (stale aria2 gid on smoke torrent; R2/R3 never claimed). PR #5 stays draft. |
+| 2026-10-12 | PM review of QC r3: Spoon-Knife and TNAS fixes proven live; no code change. `torrent_bytes_rise` 0 judged swarm-side (claimed at 10 s with 3 repo jobs ahead; r1 showed ~129 MB with Sintel during git/git). Issued r3b: one smoke re-run with Sintel, then PR #5 ready for review. |
+| 2026-10-12 | **AP-3.1 QC r3** (`docs/pm/2026-10/qc/AP-3.1-r3.json`): image `:3`, 189 tests; Spoon-Knife 1 MB / 0 pull refs; smoke repo drain **pass**; `torrent_bytes_rise` **fail** (Tears of Steel). |
+| 2026-10-12 | AP-3.1 QC r2 reviewed (`AP-3.1-r2.json`): orphan recovery **proven** (S4 job `27d1993819a1`), Hello-World README **pass**, token sampler **pass**. Two real defects: (1) `git clone --mirror` fetched GitHub `refs/pull/*`, so Spoon-Knife `74ad6f30004f` hit the 64 MB cap; (2) one failed TNAS mount check deferred R1 for 120 s and the smoke waited 60 s. Round 3 (`4842a71`): heads+tags bare fetch, image `:3`, `repo_path_ready` re-check, stale-mount clear, smoke `R1_WAIT_S=150`; 183 → 189 tests. Sintel collision = test hygiene (S0 prep check). |
+| 2026-10-12 | AP-3.1 QC r1 (`docs/pm/2026-10/qc/AP-3.1-r1.json`, PR #5): 15 pass, 4 fail. Lane fix proven live (torrent claimed 10 s, 129 MB during git/git clone; token absent from `ps`). Fails traced by PM to one root cause: worker restart mid-smoke orphaned Spoon-Knife as `running`, holding the repo slot. Round 2: `recover_orphaned_repo_jobs()` + named containers; 183 tests. F3 stale aria2 gid → P2 backlog. |
+| 2026-10-12 | **AP-3.1 QC r1** (`docs/pm/2026-10/qc/AP-3.1-r1.json`): pushed `pm/ap-3.1`, draft PR #5, Pi/worker deploy + parity **0**, image `:2` built; `smoke-ap31-lanes.sh` torrent lane **pass**; `repos_drain`/`readme_excerpt` **fail** (15 min timeout); `deploy.worker_log` **fail** (`hub http 400` aria2 stale gid). |
+| 2026-10-12 | Ops closed (DHCP reservation, `HUB_GITHUB_TOKEN`, Kuma, PR #4). PM implemented AP-3.1 on `pm/ap-3.1`: lane-aware claim, `not_before` back-off, Pi keeps `error_display`/`resolved`, token via stdin, README any-name + API fallback, image `:2`, archiver in worker manifest; 146 → 177 tests. Acceptance script `scripts/smoke-ap31-lanes.sh`; Cursor handoff `docs/pm/2026-10/handoffs/AP-3.1.md`. |
 | 2026-10-12 | Home ops (`cursor/ops-2026-10-12-home`): `stackrise-pi` → `100.85.42.0`; TNAS `.187` in repo + Pi deploy; parity pi/worker **0**; §T6 step 2 baseline **fail** (torrent error, repo slot). `HUB_GITHUB_TOKEN` still unset. |
 | 2026-10-12 | TNAS cable restored, NAS at `.187`; job `694e010971e2` Hello-World done, indexed, idempotent re-queue ok. PM: AP-3 live for manual use but not done (§T6 2 not run; `README.md` missing because the archiver only reads `HEAD:README.md`). Priority AP-3.1 → AP-4. Finn: DHCP reservation, `.186` clean-up, `HUB_GITHUB_TOKEN`. |
 | 2026-10-12 | PM reconciliation of Cursor merge + deploy pass: #1/#2 merged, `cursor/ap-3` at `71b7323` (3 commits on `5823319`), AP-3 live on both hosts. **PR #3 GO to merge now**; §T6 blockers are ops. PM found a lane-blind claim starvation bug and dropped `error_display` → AP-3.1 (PM implements). |

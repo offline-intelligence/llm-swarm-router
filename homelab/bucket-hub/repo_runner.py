@@ -72,6 +72,25 @@ class RecordingRepoRunner:
         }
 
 
+def container_name_for(work_dir: Path) -> str:
+    """Stable container name per job (``hub-repo-partial-<job_id>``) so orphans can be removed."""
+    return "hub-repo-" + work_dir.name.lstrip(".")
+
+
+def remove_container(name: str) -> bool:
+    """``docker rm -f <name>``; True if a container was removed. Never raises."""
+    try:
+        proc = subprocess.run(
+            ["docker", "rm", "-f", name],
+            capture_output=True,
+            text=True,
+            timeout=60,
+        )
+    except Exception:  # noqa: BLE001
+        return False
+    return proc.returncode == 0
+
+
 class DockerRepoRunner:
     def __init__(
         self,
@@ -89,6 +108,9 @@ class DockerRepoRunner:
         env: dict[str, str],
     ) -> dict[str, Any]:
         work_dir.mkdir(parents=True, exist_ok=True)
+        name = container_name_for(work_dir)
+        # A container left by a killed worker would race this clone for the same partial dir.
+        remove_container(name)
         env_path: str | None = None
         try:
             with tempfile.NamedTemporaryFile(
@@ -104,6 +126,8 @@ class DockerRepoRunner:
                 "docker",
                 "run",
                 "--rm",
+                "--name",
+                name,
                 f"--network=container:{self.gluetun_container}",
                 "--env-file",
                 env_path,

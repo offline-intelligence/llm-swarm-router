@@ -1,5 +1,35 @@
 # Changelog
 
+## 2026-10-12 — AP-3.1 repo lane fast-follow (PM)
+
+**Packet:** AP-3.1 (`pm/ap-3.1`), written by the PM; Cursor deploys.
+
+**Why:** the worker claimed jobs lane-blind, so a queued repo job could be claimed and bounced by the aria2 loop every tick and starve torrents; TNAS defers had no back-off; the Pi dropped worker `error_display`/`resolved`; the GitHub token was visible in `ps`; `README.md` was missing for repos whose README is not literally `README.md`.
+
+**What changed:**
+
+- `POST /api/jobs/claim` accepts optional `{"lane": …}` (a `_job_kind_bucket`); `hub-worker.py` passes `aria2`, `video`, `repo`, `repo_meta` from its dispatch loops. No body keeps the old claim.
+- Jobs with a future `not_before` are skipped by every claim; TNAS-offline defer sets it (`HUB_REPO_DEFER_S`, default 120 s).
+- `JobUpdate` accepts `error_display`, `resolved`, `not_before`; stored `error_display` shows when there is no raw error and is cleared on `running`/`done`.
+- `gluetun_http_json` sends `Authorization` over stdin (`docker run -i`, `curl -H @-`), never argv.
+- Archiver image `:2`: README picked case-insensitively from `git ls-tree HEAD` and saved as `README.md`; worker falls back to the GitHub `/readme` API.
+- `docker/repo-archiver/*` added to the `[worker]` deploy manifest.
+- New `scripts/smoke-ap31-lanes.sh` (§T6 step 2, adversarial order). Tests: 146 → 177 passed.
+
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r1.json`): Pi/worker deploy + parity ok; §T6 adversarial torrent lane **pass**; repo drain/readme smoke timeout; worker log had aria2 `hub http 400` lines.
+
+QC r2 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r2.json`): orphan recovery proven on deliberate restart; Hello-World README on TNAS; full smoke not clean (stale Sintel + TNAS defer).
+
+QC r3 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3.json`): archiver `:3` Spoon-Knife 1 MB / no `refs/pull`; full repo drain pass; `smoke.torrent_bytes_rise` fail (Tears of Steel swarm).
+
+QC r3b **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` pass; `smoke.repos_drain` fail (stale aria2 gid on smoke torrent).
+
+Round 4 (PM): `aria2()` raises `RuntimeError` for aria2's HTTP 400 JSON-RPC errors (they were escaping as `HTTPError` and logged as `hub http 400`); aria2 housekeeping in the worker loop is isolated so a stale gid can no longer skip the video and repo claims. Tests 189 → 193.
+
+QC r4 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r4.json`): worker deploy; full Sintel smoke 6/6; PR #5 ready for review.
+
+Round 3 (PM): archiver image `:3` fetches branches and tags only (no GitHub `refs/pull/*`, which made Spoon-Knife exceed its cap); worker re-checks the TNAS mount once (`HUB_REPO_RECHECK_S`, 5 s) before deferring a repo job and clears a stale mark once the mount answers; defer note names the reason; smoke R1 waits 150 s. Tests 183 → 189.
+
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy
 
 **Packet:** ops (`cursor/ops-2026-10-12-home`).
@@ -12,6 +42,7 @@
 - Pi manifest redeployed; `verify-deploy-parity.sh pi` exit 0; Glance hub iframe `?v=20261012ops1`.
 - Mac `~/.ssh/config`: `stackrise-pi` → Tailscale `100.85.42.0` (local, not in repo).
 - §T6 step 2 baseline recorded **fail** in `AP-3-test-report.md` (torrent error + repo slot).
+- Follow-up (Finn, same day): ASUS RT-AX57 DHCP reservation `tnas` → `.187`; `HUB_GITHUB_TOKEN` set on ai-server; Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/`.
 
 ## 2026-10-12 — AP-3 deploy reconciliation (PM)
 
