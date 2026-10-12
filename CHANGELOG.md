@@ -16,7 +16,7 @@ Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-U
 
 Round 2 (PM): QC r1 R4 was a PM bug. The shipped `capture-folders.json` `magnet` → `nas/inbox` key overrode the TV preset; TV and film are now fixed to Expansion HDD `torrents/`, legacy `magnet`/`website` keys dropped, smoke R1 pins the paths. Tests 277 → 279. Cursor prompt `homelab/bucket-hub/docs/pm/2026-10/handoffs/AP-UX-1-r2.md`.
 
-QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): Pi deploy + smoke R0–R4 pass; gateway Caddy + hub-escape 200; Finn R5 pending.
+QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): smoke R0–R4 pass; awaiting Finn one-line R5 (`ui.presets`).
 
 ## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
 

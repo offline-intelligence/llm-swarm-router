@@ -227,19 +227,27 @@
       "id": "ui.presets",
       "status": "blocked",
       "value": null,
-      "expected": "Finn R5 verbatim confirmation",
-      "evidence": "awaiting Finn: hard refresh http://100.85.42.0:3000/ Download tab + magnet queue test",
+      "expected": "Finn R5 one line in his own words",
+      "evidence": "PM 2026-10-12: close on Finn verbatim + r2 smoke/browser evidence; not yet received",
+      "log": null
+    },
+    {
+      "id": "merge.pr8",
+      "status": "skip",
+      "value": { "reason": "overall blocked on ui.presets" },
+      "expected": "merge if pass and #7 merged",
+      "evidence": "gh pr ready/merge skipped",
       "log": null
     }
   ],
   "findings": [],
   "needs_finn": [
-    "Hard refresh http://100.85.42.0:3000/ and confirm AP-UX-1.md S4 items 1–4 plus magnet Saves to Expansion HDD › torrents with no escAttr error (reply verbatim for ui.presets)"
+    "One line in your own words: Download tab on http://100.85.42.0:3000/ — segment chips, Saves to, Manually set path, queue filter, magnet → Expansion HDD › torrents (for ui.presets)"
   ],
   "deviations": [
     "First rsync loop used broken remote path (tilde expanded locally); redeployed with stackrise-pi:homelab/hub-form/",
     "verify-deploy-parity.sh gateway exit 1 on glance ?v= only; live hf1 kept (OPS-HF1); Caddy + hub-escape 200",
-    "Sonarr/Radarr /ping returned 000 on worker; R0 still ConnectionResetError (not a blocker)"
+    "OPS-ARR1: Sonarr/Radarr /ping 000 on worker host; R0 compared Jellyfin only (not an AP-UX-1 blocker)"
   ],
   "docs_updated": [
     "homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json",
