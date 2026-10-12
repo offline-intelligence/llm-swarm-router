@@ -1,0 +1,58 @@
+# AP-9: social video downloads (YouTube, X, Instagram, Threads, TikTok), yoinks approach
+
+**Asked by:** Finn, 2026-10-12: "integrate this repo as a way to download youtube, X, instagram, etc." Repo: <https://github.com/pablostanley/yoinks> (MIT).  
+**Status:** backlog. The probe (AP-9.0) can run now; PM builds AP-9.1 after OPS-ARR2 and AP-5a.2.
+
+## What yoinks is (read 2026-10-12)
+
+- A TypeScript, Node 18+ CLI with a full-screen terminal UI (Ink). Install with `npm i -g yoinks`; run with `yoinks <url>`.
+- It wraps **yt-dlp**: it downloads the standalone binary to `~/.yoinks/bin` on first run. It uses **ffmpeg** to merge streams and to make mp3.
+- Its README names YouTube, X/Twitter, Instagram, Threads and TikTok, plus the "1,800+" sites yt-dlp supports.
+- It always saves to `~/Downloads`. Its roadmap still lists, unchecked: `--best` / `--mp3` flags, `-o <dir>`, playlists and multi-video threads, and self-update.
+
+## PM recommendation: take the approach, not the binary
+
+The Hub already runs yt-dlp. The worker's `run_video_job` runs it in a container on Gluetun, with YouTube cookies. yoinks adds a format picker and a list of social sites on top of the same yt-dlp. As a server component it has three gaps today:
+- It is interactive.
+- It cannot choose an output folder.
+- It cannot run unattended.
+
+Running it on ai-server would mean screen-scraping a TUI to reach the yt-dlp we already call. So AP-9 brings what yoinks does well into the Hub's own video lane:
+
+| yoinks idea | Hub change (AP-9.1) |
+|-------------|---------------------|
+| Paste any social link | `detect_kind` maps `x.com`, `twitter.com`, `instagram.com`, `threads.net`, `tiktok.com`, `facebook.com/…/videos`, `reddit.com`, `vimeo.com` and YouTube to `video` (today only YouTube, Vimeo and TikTok). The worker records `platform`. |
+| Format picker | **Best**, **1080p**, **720p** and **Audio (mp3)** chips on the Video preset. Each maps to a yt-dlp `-f` / `-S` / `-x` option. A server-side `GET /api/video/formats?url=` (yt-dlp `-J`) is optional, only if the probe shows it is fast enough. |
+| Works without ads, no account | Per-site cookies where a site needs login: `~/homelab/data/ytdlp/cookies-<platform>.txt` (mode 600, never in git), falling back to today's `cookies.txt`. A clear "needs cookies" job error per platform. |
+| Saves to Downloads | A **Social** segment with presets that save to `videos/social/<platform>/<uploader>/`, plus the existing "Manually set path". |
+| Personal archiving | An index entry (AP-5c video builder) with the platform, uploader, post URL, caption excerpt and upload date, and an `ABOUT-THIS-DOWNLOAD.md` beside multi-file posts. |
+
+**Out of scope for AP-9.1:**
+- Image-only posts and carousels. yt-dlp fetches only videos from these; a `gallery-dl` lane would be AP-9.2 if Finn wants it.
+- Private accounts.
+- Bulk profile scraping.
+
+yoinks stays available as a personal tool on Finn's Mac (`npx yoinks`). That needs no Hub change.
+
+**Use:** personal archiving only. Respect each platform's terms and only keep what you have the right to keep, as yoinks' own README says.
+
+## AP-9.0 probe (Cursor, metadata only, no downloads)
+
+Run `yt-dlp -J --skip-download` from ai-server through Gluetun, the same way the worker does (`docker run --rm --network container:gluetun python:3.11-slim`, then `pip install -U yt-dlp`). Use one public URL per platform, which Finn supplies, first without cookies and then with them where a cookies file exists. Record per platform:
+- whether metadata comes back, and the error class if not (login required, rate-limited, geo, extractor error);
+- the best format height, whether audio and video are separate (needs ffmpeg), and filesize or duration;
+- the time taken, and the yt-dlp version.
+
+The QC JSON (`qc/AP-9.0-r1.json`) decides which platforms need cookies, and whether a live format list is fast enough for the picker.
+
+## AP-9.1 build (PM), sketch
+
+- `detect_kind` and the platform registry, plus a test per platform.
+- Video preset format chips, `options.format` = `best` | `1080` | `720` | `mp3`, mapped to yt-dlp args (tested).
+- `run_video_job`:
+  - per-platform cookie selection;
+  - platform-specific output template `%(uploader)s/%(title)s [%(id)s].%(ext)s`;
+  - `--write-info-json` for the index;
+  - error classification (`needs_cookies`, `rate_limited`, `unavailable`).
+- A Social segment and presets in `download_presets.py`.
+- Smoke `smoke-ap9-social.sh`: one short public clip per platform Finn approves, plus a size cap.

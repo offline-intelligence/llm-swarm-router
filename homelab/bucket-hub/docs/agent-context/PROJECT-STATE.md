@@ -144,6 +144,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [x] OPS-ARR1 folded into OPS-ARR2 (same fault: worker host cannot reach Sonarr/Radarr).
 - [x] **OPS-ARR2** worker → Sonarr/Radarr via `arr_client` + docker exec transport — QC r2 **pass** `docs/pm/2026-10/qc/OPS-ARR2-r2.json`; PR **#12 merged** (2026-10-12).
+- [ ] **AP-9 social video** (YouTube, X, Instagram, Threads, TikTok, Facebook, Reddit; yoinks approach in Hub video lane). AP-9.0 probe `handoffs/AP-9.0.md`; spec `docs/pm/2026-10/AP-9-social-video.md`.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
 - [x] AP-5a.1 per-download record — QC r4 **pass** `docs/pm/2026-10/qc/AP-5a1-r4.json`; PR **#11 merged** (2026-10-12). Operator doc `docs/DOWNLOAD-INDEX.md`.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
@@ -201,6 +202,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 |------|------|
 | 2026-10-12 | **OPS-ARR2 QC r2** (`docs/pm/2026-10/qc/OPS-ARR2-r2.json`): **pass** — rebase on main; root cause Gluetun publish; live parity ok; **PR #12 merged**. |
 | 2026-10-12 | **AP-5a.1 QC r4** (`docs/pm/2026-10/qc/AP-5a1-r4.json`): **pass** — F1 boundary proved (r3 overlap); smoke 7/7; **PR #11 merged**. |
+| 2026-10-12 | Finn added **AP-9 social video** (yoinks approach in Hub yt-dlp lane). Spec `docs/pm/2026-10/AP-9-social-video.md`; probe `handoffs/AP-9.0.md` on `pm/ap9-spec`. |
 | 2026-10-12 | **OPS-ARR2 QC r1** (`docs/pm/2026-10/qc/OPS-ARR2-r1.json`): **pass** — docker transport; PR #12 ready (not merged). |
 | 2026-10-12 | **AP-5a.1 QC r3** (`docs/pm/2026-10/qc/AP-5a1-r3.json`): **fail** — back-fill **25 written**; smoke **X1** overlap artefact. |
 | 2026-10-12 | PM built **OPS-ARR2** (folds OPS-ARR1): `arr_client.py`, `api_unreachable`, `smoke-ops-arr2.sh`. Tests 301 → 316. |

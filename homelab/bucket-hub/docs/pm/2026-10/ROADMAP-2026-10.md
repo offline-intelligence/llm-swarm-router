@@ -67,6 +67,7 @@ Finn's suggested order (hotfix → AP-4.1 → presets → index) is kept.
 | 24 | Legacy "Hugging Face files (to drive)": keep for selected files only (AP-UX-1 `hf_files` preset); revisit removal after AP-5c | PM | |
 | 25 | AP-6 recurring runner, AP-7 GitHub stars / HF likes → queue, AP-8 release tracking | PM | after AP-5a (they use `/api/index/sources`) |
 | 26 | Later: semantic search / RAG over the catalogue (`ai_summary`) | — | only if Finn promotes it |
+| 27 | **AP-9 social video** (Finn 2026-10-12, repo <https://github.com/pablostanley/yoinks>): AP-9.0 probe (Cursor, metadata only) → AP-9.1 social links → `video`, format chips (Best/1080p/720p/mp3), per-site cookies, Social segment, index entry → AP-9.2 optional `gallery-dl` for image posts. Spec `AP-9-social-video.md` | Cursor → PM | probe now; build after OPS-ARR2 and AP-5a.2 |
 
 ## Decisions Finn can change
 
