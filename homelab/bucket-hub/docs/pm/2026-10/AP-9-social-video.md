@@ -88,4 +88,6 @@ Finn mainly wanted YouTube, which the Hub already downloads (same yt-dlp, same c
 
 Probe r2 findings kept for reference: Instagram needs login cookies, Facebook's extractor was broken, Reddit blocks VPN exits. Revisit only if Finn asks.
 
+ffmpeg in METUBE_IMAGE: **7.1.5-0+deb13u1** (AP-9.0-r3).
+
 Order: a small slice after AP-5a.2.

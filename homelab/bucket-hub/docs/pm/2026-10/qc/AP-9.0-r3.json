@@ -1,0 +1,76 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-9.0",
+  "round": 3,
+  "generated_at": "2026-10-13T00:05:00+10:00",
+  "git": {
+    "branch": "pm/ap9-spec",
+    "head": "pending-commit",
+    "base": "main@c96e8af",
+    "pr_url": null,
+    "rebase_conflicts": [],
+    "merged": null
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "git.ff",
+      "status": "pass",
+      "value": {
+        "merge": "pm/ap9-1-spec into pm/ap9-spec",
+        "from": "f5eb227",
+        "to": "70aea9e",
+        "diff_stat": "homelab/bucket-hub/docs/, TODO.md only (466 insertions vs main)"
+      },
+      "expected": "fast-forward; docs and QC only above main",
+      "evidence": "git merge --ff-only pm/ap9-1-spec; git diff --stat main..HEAD",
+      "log": null
+    },
+    {
+      "id": "info.metube_image",
+      "status": "pass",
+      "value": "ghcr.io/alexta69/metube:latest",
+      "expected": "METUBE_IMAGE from hub-worker.env or default",
+      "evidence": "ai-server-ts hub-worker.env grep",
+      "log": null
+    },
+    {
+      "id": "image.ffmpeg",
+      "status": "pass",
+      "value": {
+        "ffmpeg": "ffmpeg version 7.1.5-0+deb13u1",
+        "ffprobe": "ffprobe version 7.1.5-0+deb13u1"
+      },
+      "expected": "ffmpeg and ffprobe print a version in METUBE_IMAGE",
+      "evidence": "docker run --rm --entrypoint sh METUBE_IMAGE",
+      "log": null
+    },
+    {
+      "id": "info.metube_ytdlp",
+      "status": "pass",
+      "value": "2026.08.19",
+      "expected": "yt-dlp version in image",
+      "evidence": "same docker run as image.ffmpeg",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "skip",
+      "value": "pending PM merge",
+      "expected": "docs PR merge SHA after gh pr merge",
+      "evidence": "integrator opens PR; PM merges when ready",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "AP-9.0-r2 deviations (Threads/TikTok skip; integrator probe URLs) accepted by PM before r3.",
+    "AP-9.1 rescope (YouTube polish only) merged via pm/ap9-1-spec FF on pm/ap9-spec."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-9.0-r3.json",
+    "homelab/bucket-hub/docs/pm/2026-10/AP-9-social-video.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md"
+  ]
+}

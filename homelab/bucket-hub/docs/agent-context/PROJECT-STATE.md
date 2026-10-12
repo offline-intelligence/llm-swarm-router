@@ -200,6 +200,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-9.0 QC r3** (`docs/pm/2026-10/qc/AP-9.0-r3.json`): **pass** — FF merge PM AP-9 rescope docs; `METUBE_IMAGE` has ffmpeg 7.1.5 + yt-dlp 2026.08.19; docs PR opened. |
 | 2026-10-12 | Finn: mainly wants YouTube, so **AP-9.1 slimmed** to resolution chips (Best/1080p/720p), X links → video, and all video jobs in `METUBE_IMAGE` (ffmpeg). Per-site cookies, platform registry, Social segment and Instagram/Facebook/Reddit dropped. |
 | 2026-10-12 | PM scoped **AP-9.1** from `qc/AP-9.0-r2.json`: YouTube + X in; Instagram in with `cookies-instagram.txt` (Finn exports, secondary account advised); Facebook best effort; Reddit deferred (blocks VPN exits; non-VPN egress is Finn's call); Threads/TikTok out. All video jobs move to `METUBE_IMAGE` (ffmpeg; `python:3.11-slim` lacks it). Fixed format chips (metadata ~16 s, no live picker). Spec § AP-9.1 in `docs/pm/2026-10/AP-9-social-video.md`. Build after AP-5a.2. |
 | 2026-10-12 | **AP-9.0 QC r2** (`docs/pm/2026-10/qc/AP-9.0-r2.json`): **pass** — Gluetun metadata probe (YouTube+cookies, X ok; IG/FB/Reddit fail classes recorded). Finn: skip Threads/TikTok. |
