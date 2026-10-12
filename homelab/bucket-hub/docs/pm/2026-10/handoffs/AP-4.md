@@ -60,7 +60,8 @@ gh pr view 5 --repo offline-intelligence/llm-swarm-router --json state,isDraft
 
 ```bash
 cd homelab/bucket-hub && PYTHONPATH=. uv run --with pytest --with huggingface_hub==0.26.2 pytest tests/ -q 2>&1 | tee /tmp/ap4r1-unit.pytest.log | tail -3
-cd ../.. && git push -u offline-intelligence pm/ap-4
+cd ../.. && git push offline-intelligence pm/ap-3.1   # PM sign-off commit f4b7f05 is local only
+git push -u offline-intelligence pm/ap-4
 gh pr create --draft --repo offline-intelligence/llm-swarm-router --head pm/ap-4 --base <main or pm/ap-3.1 per S0> \
   --title "AP-4: huggingface_repo archive lane" --body-file homelab/bucket-hub/docs/testing/AP-4-test-report.md
 ```
