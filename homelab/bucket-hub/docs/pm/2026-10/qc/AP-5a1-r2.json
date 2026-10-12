@@ -5,7 +5,7 @@
   "generated_at": "2026-10-12T22:10:00+10:00",
   "git": {
     "branch": "pm/ap-5a1",
-    "head": "d39f4ea",
+    "head": "c2e125d",
     "base": "offline-intelligence/main@b396a6f",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/11",
     "rebase_conflicts": []
@@ -31,7 +31,7 @@
     {
       "id": "git.push",
       "status": "pass",
-      "value": "d39f4ea",
+      "value": "c2e125d",
       "expected": "pushed",
       "evidence": "git push offline-intelligence pm/ap-5a1 (d39f4ea test fix + QC docs)",
       "log": null
