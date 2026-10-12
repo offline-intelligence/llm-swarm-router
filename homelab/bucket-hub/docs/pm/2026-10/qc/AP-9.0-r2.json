@@ -5,7 +5,7 @@
   "generated_at": "2026-10-12T23:50:00+10:00",
   "git": {
     "branch": "pm/ap9-spec",
-    "head": "bac15fb",
+    "head": "4a83f78",
     "base": "offline-intelligence/main@c96e8af",
     "pr_url": null,
     "rebase_conflicts": []
