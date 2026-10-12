@@ -1,0 +1,185 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "OPS-ARR2",
+  "round": 1,
+  "generated_at": "2026-10-12T23:25:00+10:00",
+  "git": {
+    "branch": "pm/ops-arr2",
+    "head": "86afbda",
+    "base": "offline-intelligence/main",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/12",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "316 passed, 0 skipped, 0 failed in 9.55s",
+      "expected": "316 passed, 0 failed",
+      "evidence": "PYTHONPATH=. uv run python -m pytest -q",
+      "log": null
+    },
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": "up to date with offline-intelligence/main (OPS-ARR2 commit 86afbda atop ap-5a.1 r3)",
+      "expected": "rebase onto main",
+      "evidence": "git rebase offline-intelligence/main",
+      "log": null
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/12",
+      "expected": "draft PR url",
+      "evidence": "gh pr create --draft",
+      "log": null
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "86afbda",
+      "expected": "pushed",
+      "evidence": "git push offline-intelligence pm/ops-arr2",
+      "log": null
+    },
+    {
+      "id": "info.d1_before",
+      "status": "pass",
+      "value": [
+        {
+          "app": "sonarr",
+          "host_loopback": "000",
+          "host_lan": "000",
+          "in_app": "200",
+          "app_has_curl": true,
+          "netns_current": true,
+          "bind_address": "*"
+        },
+        {
+          "app": "radarr",
+          "host_loopback": "000",
+          "host_lan": "000",
+          "in_app": "200",
+          "app_has_curl": true,
+          "netns_current": true,
+          "bind_address": "*"
+        }
+      ],
+      "expected": "D1 probe rows",
+      "evidence": "smoke-ops-arr2.sh smoke.d1_paths",
+      "log": "/tmp/opsarr2-before.log"
+    },
+    {
+      "id": "info.worker_docker",
+      "status": "pass",
+      "value": "bucket in docker group",
+      "expected": "docker group",
+      "evidence": "ssh ai-server-ts id -nG",
+      "log": null
+    },
+    {
+      "id": "info.root_cause",
+      "status": "pass",
+      "value": {
+        "sonarr": "spec table row 4: in_app=200, app_has_curl=true, worker docker → SONARR_VIA_DOCKER=sonarr (host_loopback/lan 000; bind_address *)",
+        "radarr": "same row 4 → RADARR_VIA_DOCKER=radarr"
+      },
+      "expected": "transport choice per app",
+      "evidence": "OPS-ARR2-arr-reachability.md Choosing the transport",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh worker",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh pi",
+      "log": null
+    },
+    {
+      "id": "deploy.gateway_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh gateway; glance ?v=20261012arr2",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": { "active": true, "traceback_2min": false },
+      "expected": "active",
+      "evidence": "systemctl --user is-active hub-worker",
+      "log": null
+    },
+    {
+      "id": "ops.arr_fix",
+      "status": "pass",
+      "value": {
+        "sonarr": "SONARR_VIA_DOCKER=sonarr in hub-worker.env (lines present before this round; hub-worker restarted)",
+        "radarr": "RADARR_VIA_DOCKER=radarr in hub-worker.env"
+      },
+      "expected": "env transport per spec",
+      "evidence": "grep name-only on hub-worker.env",
+      "log": null
+    },
+    {
+      "id": "smoke.d1_paths",
+      "status": "pass",
+      "value": "same as info.d1_before",
+      "expected": "pass",
+      "evidence": "smoke-ops-arr2.sh after deploy",
+      "log": "/tmp/opsarr2-after.log"
+    },
+    {
+      "id": "smoke.m1_arr_check",
+      "status": "pass",
+      "value": [
+        { "service": "sonarr", "transport": "docker:sonarr", "code": "ok", "ms": 103 },
+        { "service": "radarr", "transport": "docker:radarr", "code": "ok", "ms": 51 }
+      ],
+      "expected": "ok for both apps",
+      "evidence": "arr_client.py --check",
+      "log": "/tmp/opsarr2-after.json"
+    },
+    {
+      "id": "smoke.m2_scan_command",
+      "status": "pass",
+      "value": "docker:sonarr DownloadedEpisodesScan queued",
+      "expected": "transport + command queued",
+      "evidence": "python3 arr_client.request POST DownloadedEpisodesScan",
+      "log": null
+    },
+    {
+      "id": "ui.next_tv_import",
+      "status": "skip",
+      "value": "no TV download yet",
+      "expected": "optional Finn",
+      "evidence": "S5",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "AP-5a.1 r3 full manifest rsync had reverted Pi form/job_health; OPS-ARR2 redeploy restored them.",
+    "SONARR_VIA_DOCKER / RADARR_VIA_DOCKER were already on ai-server from integrator ops earlier the same evening."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/OPS-ARR2-r1.json",
+    "homelab/bucket-hub/docs/testing/OPS-ARR2-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

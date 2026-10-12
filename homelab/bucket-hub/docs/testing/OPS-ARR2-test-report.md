@@ -24,3 +24,4 @@ Spec: `docs/pm/2026-10/OPS-ARR2-arr-reachability.md`. Handoff: `docs/pm/2026-10/
 
 | round | date | result | notes |
 |-------|------|--------|-------|
+| r1 | 2026-10-12 | **pass** | D1: host loopback/lan 000, `in_app` 200, `bind_address` * → **docker exec** transport (`SONARR_VIA_DOCKER` / `RADARR_VIA_DOCKER`). M1 ok; end-to-end scan **queued**. QC `docs/pm/2026-10/qc/OPS-ARR2-r1.json`. |
