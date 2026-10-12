@@ -5,12 +5,12 @@
   "generated_at": "2026-10-13T09:56:00+10:00",
   "git": {
     "branch": "pm/ap-4.3",
-    "head": "4ebc3b5f85fdb4c03219395335fb9a9557409ab2",
+    "head": "5eb2d9e",
     "base": "offline-intelligence/main@4ebc3b5f85fdb4c03219395335fb9a9557409ab2",
     "pr_url": null,
     "rebase_conflicts": []
   },
-  "overall": "blocked",
+  "overall": "fail",
   "checks": [
     {
       "id": "git.ff",
