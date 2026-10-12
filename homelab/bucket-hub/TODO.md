@@ -170,11 +170,16 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 ### Active — Repo archive (PM ↔ Cursor, 2026-10-12)
 
 - [x] AP-3 / AP-3.1 GitHub repo archive to TNAS (QC r4 pass; PR #5 awaiting merge)
-- [ ] AP-4 `huggingface_repo` archive lane (QC r1b: `docs/pm/2026-10/handoffs/AP-4-r1b.md`)
+- [x] AP-4 `huggingface_repo` archive lane (QC r1b pass)
 - [ ] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`)
-- [ ] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (needed for any gated model)
+- [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (rotated 2026-10-12; presence checked in AP-4.1 r2)
+- [ ] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy (Glance queue broken) — `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`
+- [ ] Finn: name `GATE_REPO` (small gated model not yet accepted) and click Accept licence during AP-4.1 r2
+- [ ] MERGE-1: merge #5, retarget + merge #6, retarget #7
+- [ ] AP-UX-1 download presets; drive/folder only behind "Manually set path" (`docs/pm/2026-10/AP-UX-1-download-presets.md`)
+- [ ] AP-5a/5b index: ai-server SQLite catalogue + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
-- [ ] Later: AP-5 index + search across kinds, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking
+- [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking
 
 ### Active — Hub / ops next
 
