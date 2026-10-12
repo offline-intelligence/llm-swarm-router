@@ -45,6 +45,20 @@ Run `yt-dlp -J --skip-download` from ai-server through Gluetun, the same way the
 
 The QC JSON (`qc/AP-9.0-r1.json`) decides which platforms need cookies, and whether a live format list is fast enough for the picker.
 
+### Probe results (r1)
+
+| Platform | URL (Finn) | Cookies | Result | Class | max_height | split_av | secs | Notes |
+|----------|------------|---------|--------|-------|------------|----------|------|-------|
+| youtube | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| x | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| instagram | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| threads | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| tiktok | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| facebook | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+| reddit | — | — | **blocked** | — | — | — | — | awaiting S0 URLs |
+
+QC: `docs/pm/2026-10/qc/AP-9.0-r1.json` (**overall blocked**, 2026-10-12).
+
 ## AP-9.1 build (PM), sketch
 
 - `detect_kind` and the platform registry, plus a test per platform.
