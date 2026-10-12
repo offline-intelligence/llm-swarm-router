@@ -53,7 +53,10 @@ No new files for the deploy manifest; no archiver image change (`:4` stays).
 | `smoke.gate_*` phase 1 | **not run** | no GATE_REPO; Glance queue still broken (OPS-HF1) |
 | Finn UI + phase 2 smoke | **not run** | awaiting PM `GATE_REPO` + OPS-HF1 gateway deploy + Finn "accepted" |
 
-QC: `docs/pm/2026-10/qc/AP-4.1-r1.json` (**blocked**); `docs/pm/2026-10/qc/AP-4.1-r2.json` (**blocked**).
+| Phase 1 smoke r3 | **pass** | job `7407b085aa83`, `google/gemma-2-9b-it`, awaiting_licence |
+| Finn R5 + phase 2 | **blocked** | awaiting Licence UI words + **accepted** |
+
+QC: `AP-4.1-r3.json` (**pass**). Finn accepted Gemma + Llama licences; `google/gemma-2-9b-it` archived (~18 GB weights on TNAS). OPS-HF1: `OPS-HF1-r2.json` (**pass**). PR #7 merged.
 
 ## Not covered live
 

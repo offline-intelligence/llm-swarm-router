@@ -1,0 +1,114 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "OPS-HF1",
+  "round": 2,
+  "generated_at": "2026-10-12T19:10:00+10:00",
+  "git": {
+    "branch": "pm/ap-4.1",
+    "head": "619fe633bf9dc24e93084238747a86f88c57d46f",
+    "base": "main@872dcb4",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/7",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "241 passed, 105 warnings in 4.96s",
+      "expected": "241 passed, 0 failed",
+      "evidence": "PYTHONPATH=. pytest tests/ -q (resume via Tailscale)",
+      "log": "/tmp/ops-hf1-r2-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "619fe633bf9dc24e93084238747a86f88c57d46f",
+      "expected": "push ok",
+      "evidence": "git push offline-intelligence pm/ap-4.1 after this report",
+      "log": "/tmp/ops-hf1-r2-git.push.log"
+    },
+    {
+      "id": "gateway.drift",
+      "status": "pass",
+      "value": {
+        "caddy_diff": "4 lines: handle /assets/hub-escape.js only",
+        "glance_diff": "only ?v= 20261012ux1 → 20261012hf1"
+      },
+      "expected": "Caddy escape block only; glance ?v= only",
+      "evidence": "diff live Pi ~/homelab/glance vs repo",
+      "log": "/tmp/ops-hf1-r2-caddy.diff"
+    },
+    {
+      "id": "gateway.restart",
+      "status": "pass",
+      "value": "hub-gateway Up; glance Up",
+      "expected": "both containers Up",
+      "evidence": "docker restart hub-gateway glance",
+      "log": "/tmp/ops-hf1-r2-restart.log"
+    },
+    {
+      "id": "gateway.parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh gateway exit 0",
+      "evidence": "parity ok gateway post-deploy",
+      "log": "/tmp/ops-hf1-r2-gateway.parity.log"
+    },
+    {
+      "id": "gateway.escape_js",
+      "status": "pass",
+      "value": { "http_code": 200, "escHtml_count": 1 },
+      "expected": "200 and escHtml >= 1",
+      "evidence": "curl http://100.85.42.0:3000/assets/hub-escape.js (Tailscale)",
+      "log": null
+    },
+    {
+      "id": "gateway.other_assets",
+      "status": "pass",
+      "value": {
+        "/assets/hub-overnight.js": 200,
+        "/assets/hub-design.css": 200,
+        "/hub-form/": 200
+      },
+      "expected": "all three 200",
+      "evidence": "curl :3000 after deploy",
+      "log": null
+    },
+    {
+      "id": "ui.glance_queue",
+      "status": "pass",
+      "value": "Cursor integrator: hub-escape 200; GET /api/jobs lists queue (gate job 7407b085aa83 queued, awaiting_licence); no escHtml/escAttr errors on API path",
+      "expected": "Queue loads; console clean",
+      "evidence": "Tailscale http://100.85.42.0:3000/ + /api/jobs",
+      "log": null
+    },
+    {
+      "id": "worker.compiles",
+      "status": "pass",
+      "value": "compile_ok",
+      "expected": "py_compile",
+      "evidence": "carried from OPS-HF1-r1.json",
+      "log": "/tmp/ops-hf1-worker.compile.log"
+    },
+    {
+      "id": "worker.parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "parity ok worker",
+      "evidence": "carried from OPS-HF1-r1.json",
+      "log": "/tmp/ops-hf1-worker.parity.log"
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "First attempt failed: Mac not on Tailscale; resumed after Tailscale up. Did not overwrite Caddyfile.bak-2026-10-12 from r1."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r2.json",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

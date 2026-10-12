@@ -56,6 +56,8 @@ QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): Pi dep
 
 Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r1.json`): glance.yml live drift blocked copy; `hub-escape.js` still 404 on :3000; worker parity ok.
 
+QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r2.json`): gateway Caddy+glance deployed via Tailscale; `hub-escape.js` 200 on :3000.
+
 ## 2026-10-12 — AP-4.1 gated Hugging Face repos: one-click licence (PM)
 
 **Packet:** AP-4.1 (`pm/ap-4.1`, on top of `pm/ap-4`), written by the PM; Cursor deploys.
@@ -73,6 +75,8 @@ Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-
 Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r1.json`): integrate + deploy ok; `HF_TOKEN` unset; gated smoke not run.
 
 QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r2.json`): `HF_TOKEN` present, worker restarted; PM `GATE_REPO` list exhausted (`gated: manual`); smoke not run; PR #7 retargeted to `main`, not merged.
+
+QC r3 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json`): gated Gemma archive + index; PR #7 merged.
 
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 

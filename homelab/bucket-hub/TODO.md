@@ -171,10 +171,10 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 
 - [x] AP-3 / AP-3.1 GitHub repo archive to TNAS (QC r4 pass; PR #5 awaiting merge)
 - [x] AP-4 `huggingface_repo` archive lane (QC r1b pass)
-- [ ] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`)
+- [x] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`) — QC r3 pass
 - [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (presence checked in AP-4.1 r2)
 - [ ] Finn: revoke and replace the HF token (it was pasted in chat) once the gated tests are done, in a few days
-- [ ] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy (Glance queue broken) — `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`
+- [x] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy — QC r2 pass 2026-10-12 (`OPS-HF1-r2.json`)
 - [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b-it`, 18.5 GB, gated manual)
 - [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
 - [x] AP-UX-1 download presets + segments; drive/folder only behind "Manually set path" — QC r2 pass `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12)
