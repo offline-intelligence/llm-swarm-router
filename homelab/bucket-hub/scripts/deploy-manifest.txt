@@ -50,3 +50,9 @@ torrent-indexers-catalog.json
 # Archiver image build context (AP-3.1). Build on ai-server from ~/homelab/scripts/docker/repo-archiver.
 docker/repo-archiver/Dockerfile
 docker/repo-archiver/repo_archiver_entry.py
+
+[gateway]
+# Destination: ~/homelab/glance/ on the Pi (hub-gateway Caddy + Glance read these).
+# After copying: ssh stackrise-pi 'docker restart hub-gateway glance'
+Caddyfile
+glance.yml

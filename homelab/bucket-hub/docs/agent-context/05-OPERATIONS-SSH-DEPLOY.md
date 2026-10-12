@@ -27,10 +27,23 @@ cd homelab/bucket-hub
 # rsync every path in the [pi] section of scripts/deploy-manifest.txt to ~/homelab/hub-form/
 # including static/hub-escape.js, job_kinds.py, index_writer.py
 ssh stackrise-pi 'systemctl --user restart hub-form.service'
-ssh stackrise-pi 'docker restart glance hub-gateway'   # if Glance/Caddy need reload after glance.yml change
 # bump glance.yml iframe ?v=
 ./scripts/verify-deploy-parity.sh pi   # must exit 0
 ```
+
+### Gateway (hub-gateway Caddy + Glance) on the Pi
+
+The Glance page at `:3000` reads `Caddyfile` and `glance.yml` from `~/homelab/glance/`, **not** `~/homelab/hub-form/`. Copy the `[gateway]` section there whenever either file changes (a new `/assets/` file needs a Caddy route, and `?v=` bumps only reach Glance this way):
+
+```bash
+cd homelab/bucket-hub
+scp Caddyfile glance.yml stackrise-pi:~/homelab/glance/
+ssh stackrise-pi 'docker restart hub-gateway glance'
+./scripts/verify-deploy-parity.sh gateway   # must exit 0
+curl -s -o /dev/null -w '%{http_code}\n' http://100.85.42.0:3000/assets/hub-escape.js   # 200
+```
+
+`tests/test_deploy_manifest.py::test_every_html_asset_is_routed_by_gateway_and_served_by_app` fails when a page references an `/assets/` file the Caddyfile does not route.
 
 ## Deploy worker to ai-server
 

@@ -65,6 +65,10 @@
 	handle /assets/hub-design.css {
 		reverse_proxy host.docker.internal:3020
 	}
+	# Shared escape/redact helpers for form.html (missing route broke the Glance queue, 2026-10-12)
+	handle /assets/hub-escape.js {
+		reverse_proxy host.docker.internal:3020
+	}
 
 	# Glance UI (everything else)
 	handle {
