@@ -1,0 +1,270 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-4.1",
+  "round": 3,
+  "generated_at": "2026-10-12T19:05:00+10:00",
+  "git": {
+    "branch": "pm/ap-4.1",
+    "head": "c50f382dff2e9c9c4bc90a84f25769e6e652ebd1",
+    "base": "main@872dcb4",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/7",
+    "rebase_conflicts": []
+  },
+  "overall": "blocked",
+  "checks": [
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "parity ok pi",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "process_lstart": "Mon Oct 12 16:21:39 2026",
+        "app_py_mtime": "2026-10-12 16:20:42 +1000",
+        "restart_cmd": "systemctl --user restart hub-form.service"
+      },
+      "expected": "process newer than app.py",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.gate_endpoint",
+      "status": "pass",
+      "value": { "http_code": 404, "body": "Job not found" },
+      "expected": "404 detail Job not found",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.form_gate_ui",
+      "status": "pass",
+      "value": 6,
+      "expected": "grep count >= 2",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.env_hf_token",
+      "status": "pass",
+      "value": 1,
+      "expected": "grep '^HF_TOKEN=hf_' count 1",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "active",
+      "evidence": "carried from AP-4.1-r2.json (no worker restart this round)",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "pass",
+      "value": 0,
+      "expected": "0 error lines",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "parity ok worker",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "info.gate_repo",
+      "status": "pass",
+      "value": {
+        "repo": "google/gemma-2-9b-it",
+        "gated": "manual",
+        "st_bytes": 18483466448,
+        "head_before": null,
+        "head_before_note": "not run: ai-server-ts SSH timeout; required before phase 1"
+      },
+      "expected": "PM GATE_REPO; manual gating allowed",
+      "evidence": "HF public API from Mac; HEAD probe deferred to resume",
+      "log": null
+    },
+    {
+      "id": "smoke.gate_precheck",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached: OPS-HF1-r2 gateway.escape_js fail; Hub unreachable",
+      "log": null
+    },
+    {
+      "id": "smoke.gate_check_404",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.g_waiting",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.g_waiting_stable",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "ui.licence_needed",
+      "status": "blocked",
+      "value": null,
+      "expected": "Finn confirms Licence needed UI",
+      "evidence": "phase 1 smoke not run; awaiting Finn accept after resume",
+      "log": null
+    },
+    {
+      "id": "info.access_granted",
+      "status": "skip",
+      "value": null,
+      "expected": "HEAD 200 after accept",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.g_check_now",
+      "status": "skip",
+      "value": null,
+      "expected": "pass phase 2",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.g_done",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.g_index",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "info.gate_wait_s",
+      "status": "skip",
+      "value": null,
+      "expected": "from index row",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.hf_layout",
+      "status": "skip",
+      "value": null,
+      "expected": "TNAS layout",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.hf_real_weights",
+      "status": "skip",
+      "value": null,
+      "expected": "real weights",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.no_partials",
+      "status": "skip",
+      "value": null,
+      "expected": "0",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.index_rows",
+      "status": "skip",
+      "value": null,
+      "expected": "licence_accepted_by user",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "skip",
+      "value": null,
+      "expected": "hf_ counts 0 only",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "merge.pr5",
+      "status": "pass",
+      "value": { "base": "main", "merge_sha": "872dcb4b16284b69a04223b5d307d04ffccb0fb3" },
+      "expected": "MERGED",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "merge.pr6",
+      "status": "pass",
+      "value": { "base": "main", "merge_sha": "0663c39bc550d392e0fcbec127b9869d512993ea" },
+      "expected": "MERGED",
+      "evidence": "carried from AP-4.1-r2.json",
+      "log": null
+    },
+    {
+      "id": "merge.pr7",
+      "status": "pass",
+      "value": {
+        "base": "main",
+        "merged": false,
+        "reason": "OPS-HF1-r2 and AP-4.1-r3 overall not pass"
+      },
+      "expected": "merge if both QC pass",
+      "evidence": "gh pr merge skipped",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "check": "smoke.gate_precheck",
+      "where": "integrator network",
+      "observed": "Pi HTTP and SSH timeout from Mac; ai-server-ts SSH timeout",
+      "expected": "Reach stackrise-pi and ai-server-ts via Tailscale before deploy/smoke",
+      "repro": "ssh -o ConnectTimeout=15 stackrise-pi 'echo ok'; curl --connect-timeout 10 http://100.85.42.0:3000/hub-form/"
+    }
+  ],
+  "needs_finn": [
+    "Tailscale on Mac + Pi online; then ask Cursor to resume OPS-HF1 r2 Part A and AP-4.1 r3 from phase 1",
+    "After phase 1 smoke: confirm Licence needed UI and reply accepted (google/gemma-2-9b-it)"
+  ],
+  "deviations": [
+    "No worker restart per handoff; homelab unreachable so Part D/E not started"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json",
+    "homelab/bucket-hub/docs/testing/AP-4.1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

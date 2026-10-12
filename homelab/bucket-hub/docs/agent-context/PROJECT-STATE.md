@@ -188,6 +188,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Date | Note |
 |------|------|
 | 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |
+| 2026-10-12 | **OPS-HF1 QC r2** (`qc/OPS-HF1-r2.json`): **fail** — 241 tests pass; Pi `100.85.42.0` and `ai-server-ts` unreachable from integrator Mac (SSH/HTTP timeout off-LAN); gateway deploy/smoke not run. |
+| 2026-10-12 | **AP-4.1 QC r3** (`qc/AP-4.1-r3.json`): **blocked** — `GATE_REPO=google/gemma-2-9b-it`; carried deploy from r2; phase 1 deferred until OPS-HF1 r2 deploy + Tailscale connectivity. |
 | 2026-10-12 | PM review: OPS-HF1 r1 fail = glance.yml cache-buster drift only (deploy correctly stopped); repo bumped to `v=20261012hf1`, overwrite of `?v=` diffs authorised. AP-4.1 r2 blocked: PM's Gemma picks are gated manual (and base 9b is 37 GB); rule relaxed, `GATE_REPO=google/gemma-2-9b-it`. #5, #6 merged to `main`; #7 retargeted. Issued `OPS-HF1-r2-AP-4.1-r3.md`. |
 | 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |
 | 2026-10-12 | **AP-4.1 QC r2** (`docs/pm/2026-10/qc/AP-4.1-r2.json`): **blocked** — `HF_TOKEN` + worker restart pass; `google/gemma-2-9b` / `-it` both `gated: manual` on HF API (no smoke); MERGE-1 #5/#6 merged to `main`, #7 draft on `main`. |

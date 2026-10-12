@@ -1,0 +1,131 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "OPS-HF1",
+  "round": 2,
+  "generated_at": "2026-10-12T19:05:00+10:00",
+  "git": {
+    "branch": "pm/ap-4.1",
+    "head": "c50f382dff2e9c9c4bc90a84f25769e6e652ebd1",
+    "base": "main@872dcb4",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/7",
+    "rebase_conflicts": []
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "241 passed, 105 warnings in 5.11s",
+      "expected": "241 passed, 0 failed",
+      "evidence": "PYTHONPATH=. pytest tests/ -q on pm/ap-4.1 (glance v=20261012hf1)",
+      "log": "/tmp/ops-hf1-r2-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "c50f382dff2e9c9c4bc90a84f25769e6e652ebd1",
+      "expected": "push ok",
+      "evidence": "git push offline-intelligence pm/ap-4.1",
+      "log": "/tmp/ops-hf1-r2-git.push.log"
+    },
+    {
+      "id": "gateway.drift",
+      "status": "blocked",
+      "value": null,
+      "expected": "Caddy diff only hub-escape block; glance diff only ?v= line",
+      "evidence": "ssh stackrise-pi ConnectTimeout 15s; diff not collected",
+      "log": null
+    },
+    {
+      "id": "gateway.restart",
+      "status": "skip",
+      "value": null,
+      "expected": "hub-gateway and glance Up",
+      "evidence": "not reached: gateway.drift blocked",
+      "log": null
+    },
+    {
+      "id": "gateway.parity",
+      "status": "skip",
+      "value": null,
+      "expected": "verify-deploy-parity.sh gateway exit 0",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "gateway.escape_js",
+      "status": "fail",
+      "value": { "http_code": 0, "curl": "connection timed out (10s)" },
+      "expected": "200 and escHtml count >= 1",
+      "evidence": "curl http://100.85.42.0:3000/assets/hub-escape.js from Mac",
+      "log": null
+    },
+    {
+      "id": "gateway.other_assets",
+      "status": "pass",
+      "value": {
+        "/assets/hub-overnight.js": 200,
+        "/assets/hub-design.css": 200,
+        "/hub-form/": 200
+      },
+      "expected": "all three 200",
+      "evidence": "carried from OPS-HF1-r1.json (last successful curl on LAN)",
+      "log": null
+    },
+    {
+      "id": "ui.glance_queue",
+      "status": "blocked",
+      "value": null,
+      "expected": "Queue loads; no escHtml/escAttr in console",
+      "evidence": "Hub unreachable from integrator Mac; deploy not run",
+      "log": null
+    },
+    {
+      "id": "worker.compiles",
+      "status": "pass",
+      "value": "compile_ok",
+      "expected": "py_compile hub-worker.py",
+      "evidence": "carried from OPS-HF1-r1.json",
+      "log": "/tmp/ops-hf1-worker.compile.log"
+    },
+    {
+      "id": "worker.parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "carried from OPS-HF1-r1.json",
+      "log": "/tmp/ops-hf1-worker.parity.log"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "check": "gateway.drift",
+      "where": "stackrise-pi (100.85.42.0:22)",
+      "observed": "ssh: connect to host 100.85.42.0 port 22: Operation timed out",
+      "expected": "SSH ok to run drift diff and scp Caddyfile/glance.yml",
+      "repro": "ssh -o ConnectTimeout=15 stackrise-pi 'echo ok'"
+    },
+    {
+      "id": "F2",
+      "severity": "blocker",
+      "check": "gateway.escape_js",
+      "where": "http://100.85.42.0:3000",
+      "observed": "curl connect timeout; http_code 0",
+      "expected": "Tailscale/LAN reachability to Pi :3000",
+      "repro": "curl -s -o /dev/null -w '%{http_code}\\n' --connect-timeout 10 http://100.85.42.0:3000/assets/hub-escape.js"
+    }
+  ],
+  "needs_finn": [
+    "Connect Mac to Tailscale (or home LAN); confirm Pi is up; re-run OPS-HF1 r2 Part A deploy when stackrise-pi and :3000 respond"
+  ],
+  "deviations": [
+    "Did not overwrite Caddyfile.bak-2026-10-12 from r1 (deploy not attempted)"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r2.json",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

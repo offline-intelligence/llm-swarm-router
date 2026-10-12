@@ -53,7 +53,9 @@ No new files for the deploy manifest; no archiver image change (`:4` stays).
 | `smoke.gate_*` phase 1 | **not run** | no GATE_REPO; Glance queue still broken (OPS-HF1) |
 | Finn UI + phase 2 smoke | **not run** | awaiting PM `GATE_REPO` + OPS-HF1 gateway deploy + Finn "accepted" |
 
-QC: `docs/pm/2026-10/qc/AP-4.1-r1.json` (**blocked**); `docs/pm/2026-10/qc/AP-4.1-r2.json` (**blocked**).
+| QC r3 | **blocked** | `GATE_REPO=google/gemma-2-9b-it` (manual); smoke not run — homelab unreachable from integrator Mac (Tailscale) |
+
+QC: `AP-4.1-r1.json` (**blocked**); `AP-4.1-r2.json` (**blocked**); `AP-4.1-r3.json` (**blocked**).
 
 ## Not covered live
 
