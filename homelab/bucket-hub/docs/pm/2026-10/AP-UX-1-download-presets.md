@@ -26,18 +26,31 @@ So a magnet sent from the Firefox add-on lands in `nas/inbox`, while the same ma
 5. **The Hub never invents `Show/Season` folders** (AP-1 decision stands): presets only pick an existing inbox or library folder.
 6. **Existing connections keep working** (Finn, 2026-10-12). AP-UX-1 changes only where the Hub *sends* new jobs. It does not edit Sonarr, Radarr, aria2, Jellyfin, Jackett or Firefox add-on config, and does not move existing files or jobs. Queued and running jobs keep their stored destination. R0 reads the current Sonarr and Radarr download-client paths and Jellyfin library paths before deploy and again after; any difference is a blocker.
 
+## Segments (Finn, 2026-10-12)
+
+Finn asked for separate download segments, each with pre-defined paths, built on the existing downloaders. Each preset belongs to one **segment**; the segment is stored on the job (`segment`), shown in the queue (filter chips "All · TV & film · Repo archive · Websites · Other"), and carried into the index (AP-5).
+
+| Segment | Presets | Existing machinery it reuses (unchanged) |
+|---------|---------|------------------------------------------|
+| `tv` — TV & film | `tv`, `film` | aria2 lane in Gluetun, flat `torrents/` inbox, Sonarr/Radarr import, Jellyfin tags |
+| `repo` — Repo archive | `github_repo`, `hf_repo`, `hf_files` | repo lane, archiver image, TNAS `repo-archive/` root, gate flow (AP-4.1) |
+| `website` — Websites | `website` | website archive (httrack / FlareSolverr) |
+| `other` — Other | `video`, `file` | MeTube/yt-dlp via Proton, aria2 direct download |
+
+No new downloader is built: a segment is a name plus its presets' paths, and every preset resolves to a job kind the worker already runs.
+
 ## Preset registry v1
 
-| id | Group | Label (chip) | Job kind(s) | Destination | Fallback | "Saves to" line |
+| id | Segment | Label (chip) | Job kind(s) | Destination | Fallback | "Saves to" line |
 |----|-------|--------------|-------------|-------------|----------|-----------------|
-| `tv` | Media | TV episode or season | `magnet`, `http` (.torrent) | Expansion HDD (`ext_movies`/`movies_usb`) › `torrents/` | none | "Expansion HDD › torrents (Sonarr files it under TV)" |
-| `film` | Media | Film | `magnet`, `http` (.torrent) | Expansion HDD › `torrents/` | none | "Expansion HDD › torrents (Radarr files it under Films)" |
-| `video` | Media | Video (YouTube etc.) | `video` | `nas` › `media_archive` | Media HDD › `videos/` if present | "TNAS › media_archive" |
-| `file` | Media | File (direct link) | `http` | `nas` › `inbox` | Media HDD › `inbox/` | "TNAS › inbox" |
+| `tv` | TV & film | TV episode or season | `magnet`, `http` (.torrent) | Expansion HDD (`ext_movies`/`movies_usb`) › `torrents/` | none | "Expansion HDD › torrents (Sonarr files it under TV)" |
+| `film` | TV & film | Film | `magnet`, `http` (.torrent) | Expansion HDD › `torrents/` | none | "Expansion HDD › torrents (Radarr files it under Films)" |
+| `video` | Other | Video (YouTube etc.) | `video` | `nas` › `media_archive` | Media HDD › `videos/` if present | "TNAS › media_archive" |
+| `file` | Other | File (direct link) | `http` | `nas` › `inbox` | Media HDD › `inbox/` | "TNAS › inbox" |
 | `github_repo` | Repo archive | GitHub repo | `github_repo` | TNAS archive root `github-daily/<day>/` | none (job defers while TNAS sleeps) | "TNAS repo archive › github-daily" |
 | `hf_repo` | Repo archive | Hugging Face model or dataset | `huggingface_repo` | TNAS archive root `huggingface-daily/<day>/` | none (defers) | "TNAS repo archive › huggingface-daily" |
 | `hf_files` | Repo archive | Hugging Face: selected files | `hf` | `nas` › `ai_language` | none | "TNAS › ai_language (selected files only)" |
-| `website` | Website | Website copy | `website_archive` | `nas` › `website_backups` | Expansion HDD › `nas_staging` | "TNAS › website_backups" |
+| `website` | Websites | Website copy | `website_archive` | `nas` › `website_backups` | Expansion HDD › `nas_staging` | "TNAS › website_backups" |
 
 Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveId`: id `ext_movies`/`movies_usb`, or root `/mnt/external/movies`), moved server-side as `resolve_drive(role)`. Roles: `expansion_movies`, `nas`, `media_hdd`, `archive_root`.
 
@@ -49,13 +62,13 @@ Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveI
 |--------|------|-----------|
 | `GET` | `/api/presets` | `{presets: [{id, group, label, kinds, available, resolved: {drive_id, folder_id, path, label} \| {archive_root: "…"} \| null, reason, saves_to}]}` resolved against the current `library.json` (mounted / present flags). `available: false` + `reason` ("Expansion HDD is not mounted on the worker") when no candidate works |
 | `POST` | `/api/presets/resolve` | Body `{url, preset?, torrent_category?}` → `{preset, kind, destination, saves_to, available, reason}`. No job is created. Used by the form on paste and by the smoke script |
-| `POST` | `/api/jobs` | New optional fields `preset` (id) and `manual_path` (bool). Rules in "Decisions" 2–3. Stored on the job: `preset`, `destination_source` (`"preset"` \| `"manual"` \| `"legacy"`). An unavailable preset → **503** with the reason (never a silent fallback to another drive than the table allows) |
+| `POST` | `/api/jobs` | New optional fields `preset` (id) and `manual_path` (bool). Rules in "Decisions" 2–3. Stored on the job: `preset`, `segment`, `destination_source` (`"preset"` \| `"manual"` \| `"legacy"`). An unavailable preset → **503** with the reason (never a silent fallback to another drive than the table allows) |
 
 `POST /api/capture` (Firefox) and the Requests approve path call the same resolver; `capture-folders.json` overrides are applied as `{preset_id: {drive_id, folder_id}}` (the old `type_folder_map` keys are mapped: `media`/`video` → `video`, `magnet` → `tv`, `http` → `file`, `hf` → `hf_files`, `website` → `website`, `github` → `github_repo`).
 
 ## UI (`form.html`)
 
-1. **Download tab, top to bottom:** URL box → preset chips in three groups ("Media: TV · Film · Video · File", "Repo archive: GitHub · Hugging Face", "Website: Website copy") → one line **Saves to: …** from `saves_to` → **Queue download**.
+1. **Download tab, top to bottom:** URL box → preset chips in four segments ("TV & film: TV · Film", "Repo archive: GitHub · Hugging Face", "Websites: Website copy", "Other: Video · File") → one line **Saves to: …** from `saves_to` → **Queue download**.
 2. **1 · Drive** and **2 · Folder** are hidden. A **Manually set path** checkbox under the Saves-to line reveals them; while it is ticked the request sends `manual_path: true` and the Saves-to line reads "Manual: <drive> › <folder>". Unticking restores the preset.
 3. An unavailable preset shows its chip disabled with the reason as hint text, and Queue is disabled unless Manually set path is ticked.
 4. The **Type** select in More options is removed (presets replace it). "Select files" in the HF panel switches the preset to `hf_files`.
@@ -77,6 +90,7 @@ Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveI
 | P9 | `POST /api/presets/resolve` for a GitHub, HF, magnet, YouTube and plain https URL | presets `github_repo`, `hf_repo`, `tv`, `video`, `file`; no job file written |
 | P10 | archive-root presets | no drive needed; `destination.archive_root` = `HUB_REPO_ARCHIVE_ROOT` |
 | P11 | UI escaping | new render functions pass `test_innerhtml_interpolations_escaped` |
+| P13 | every preset has a segment; `POST /api/jobs` stores `segment`; `GET /api/jobs?segment=tv` filters | as stated |
 | P12 | UI structure | `#drives`/`#folders` sit inside the manual-path container that is hidden by default |
 
 ## Live acceptance (Cursor, `scripts/smoke-apux1-presets.sh`, no downloads)

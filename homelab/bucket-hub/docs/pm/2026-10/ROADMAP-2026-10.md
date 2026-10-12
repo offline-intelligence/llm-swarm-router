@@ -7,9 +7,11 @@ Ordered by what unblocks Finn soonest. Packet ids are what handoffs, QC files an
 1. **OPS-HF1 gateway assets** first: the Glance queue is broken (`escHtml is not defined`), which also hides the AP-4.1 Accept-licence UI. One Caddy route; code is done.
 2. **AP-4.1 QC** second: code is deployed and passing; only the live gated smoke and Finn's click remain. Closing it finishes "paste an HF link and it downloads".
 3. **MERGE-1** in parallel with 1–2: four stacked PRs make every rebase riskier. Cursor merges (Finn authorised 2026-10-12).
-4. **AP-UX-1 presets** before the index: it fixes a daily confusion (drive chips for TNAS-only kinds), removes a real inconsistency (Firefox magnets land in `nas/inbox`, form magnets in the Sonarr inbox), and is mostly Pi + form work. Small to medium.
-5. **AP-5a/5b index**: biggest new piece (new ai-server service); benefits from presets because jobs then carry consistent destinations. Medium to large.
-6. Hygiene and AP-5c, AP-6–8 after.
+4. **AP-UX-1 presets and segments** (Finn: pressing) before the index: it fixes a daily confusion (drive chips for TNAS-only kinds), removes a real inconsistency (Firefox magnets land in `nas/inbox`, form magnets in the Sonarr inbox), and is mostly Pi + form work. Small to medium.
+5. **AP-5a/5b index** (Finn: pressing; per-download record for people and machines, updated on delete and after the nightly sync): biggest new piece (new ai-server service); benefits from presets because jobs then carry consistent destinations. Medium to large.
+6. Audit phases 1b (season-first TV ranking) and 2 (confirm Sonarr imports, which also fills `library_path` in the index), then hygiene, AP-5c, AP-6–8.
+
+PM starts AP-UX-1 code now on `pm/ap-ux-1` (from `pm/ap-4.1`, rebased onto `main` when #7 merges), so it is ready for Cursor as soon as AP-4.1 QC passes.
 
 Finn's suggested order (hotfix → AP-4.1 → presets → index) is kept.
 

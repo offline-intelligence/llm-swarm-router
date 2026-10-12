@@ -79,6 +79,32 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ---
 
+## Where things are tracked (master documents)
+
+| Question | Document |
+|----------|----------|
+| What is decided, what is next, what happened (this file) | `docs/agent-context/PROJECT-STATE.md`: decisions, backlog, learnings, session log |
+| Goals, priority order and the full todo list | `docs/pm/2026-10/ROADMAP-2026-10.md` |
+| What the audit found and the remediation phases | `docs/pm/2026-10/bucket-hub-audit-2026-10.md` (§7 phases) |
+| How PM and Cursor work, QC schema | `docs/pm/PM-CURSOR-PROTOCOL.md` |
+| Outcome of every round (machine-readable) | `docs/pm/2026-10/qc/<packet>-r<n>.json` |
+| What each packet must do | specs in `docs/pm/2026-10/` (AP-4.1, AP-UX-1, AP-5 v2, …) and handoffs in `docs/pm/2026-10/handoffs/` |
+| What shipped | repo-root `CHANGELOG.md`; `homelab/bucket-hub/TODO.md` for the short list |
+
+## Learnings (keep; newest first)
+
+- **Verify external facts before writing them into a prompt.** PM picked Gemma as an "auto-gated, ~18 GB" test model without checking; it was manually gated and the base model 37 GB (AP-4.1 r2). Cursor's B3 check caught it. PM cannot reach huggingface.co from its tools, so such picks are labelled unverified and Cursor checks first.
+- **Every file a host reads must be in the deploy manifest.** The gateway `Caddyfile`/`glance.yml` live in `~/homelab/glance/`, outside the manifest, so a missing `/assets/hub-escape.js` route broke the Glance queue unseen (OPS-HF1). Now `[gateway]` + parity + an asset-route test.
+- **Diff live config before overwriting it, and say which differences are safe.** OPS-HF1 r1 stopped correctly on a cache-buster difference; the rule now names `?v=` values as safe.
+- **Restarts mid-smoke create false failures.** A worker restart orphaned a running repo job and held the slot (AP-3.1 r1). Smokes now forbid restarts/env edits, and the worker recovers orphans.
+- **External APIs report errors in unexpected ways.** aria2 returns JSON-RPC errors as HTTP 400; the uncaught `HTTPError` killed every worker tick (AP-3.1 r3b). Housekeeping is isolated in `main()`.
+- **Defaults of upstream tools matter.** `git clone --mirror` fetched GitHub `refs/pull/*` and blew the size cap (AP-3.1 r2); the archiver fetches heads + tags only.
+- **The Mac checkout is shared.** An uncommitted, damaged `hub-worker.py` appeared there (2026-10-12). Parity checks proved the deployed copy clean; never deploy from uncommitted files.
+- **PM inferences must be marked and tested.** "Legacy hf downloads are LFS pointers" was wrong (AP-4 r1); QC disk checks are the arbiter.
+- **Small packets with machine-readable QC work.** Every round since AP-1 ends in a `bucket-hub-qc/v1` JSON; failures were traceable to one cause per round.
+
+---
+
 ## Backlog (ordered)
 
 - [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
@@ -108,8 +134,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
 - [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
-- [ ] AP-UX-1 download presets + "Manually set path" — **spec** `docs/pm/2026-10/AP-UX-1-download-presets.md`; Finn to review preset table; PM codes after MERGE-1.
-- [ ] AP-5a/5b/5c index on ai-server cache — **spec** `docs/pm/2026-10/AP-5-index-architecture-v2.md`; Finn to confirm architecture.
+- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — Finn: pressing; PM coding on `pm/ap-ux-1`; spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
+- [ ] AP-5a/5b/5c per-download index (person + machine record; updated on finish, on delete, after nightly sync) — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` §Per-download record; after AP-UX-1.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -161,6 +187,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |
 | 2026-10-12 | PM review: OPS-HF1 r1 fail = glance.yml cache-buster drift only (deploy correctly stopped); repo bumped to `v=20261012hf1`, overwrite of `?v=` diffs authorised. AP-4.1 r2 blocked: PM's Gemma picks are gated manual (and base 9b is 37 GB); rule relaxed, `GATE_REPO=google/gemma-2-9b-it`. #5, #6 merged to `main`; #7 retargeted. Issued `OPS-HF1-r2-AP-4.1-r3.md`. |
 | 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |
 | 2026-10-12 | **AP-4.1 QC r2** (`docs/pm/2026-10/qc/AP-4.1-r2.json`): **blocked** — `HF_TOKEN` + worker restart pass; `google/gemma-2-9b` / `-it` both `gated: manual` on HF API (no smoke); MERGE-1 #5/#6 merged to `main`, #7 draft on `main`. |

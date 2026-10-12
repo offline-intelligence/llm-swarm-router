@@ -132,6 +132,33 @@ The two JSONL journals are never replaced; the catalogue is added beside them. D
 4. Unmount nothing; instead stop `hub-index` → Pi search returns `pi-fallback` with Hub downloads only; start it again.
 5. Run the overnight `index-rebuild` step on its own → counts in the run log; Pi snapshot timestamp updated.
 
+## Per-download record, deletes and nightly (Finn, 2026-10-12)
+
+Finn's ask: every download is indexed **for a person and for a machine**, and the index changes when something is deleted and after the nightly sync.
+
+**One record per download, two views.**
+
+| View | Where | Content |
+|------|-------|---------|
+| Machine | journal line (truth) + catalogue row; for folder downloads also `.hub-provenance-<job>.json` beside the files (exists today for GitHub/HF) | `schema`, `job_id`, `kind`, `segment` (AP-UX-1), `source_id`, url, title, tags, `user_note`, `context`, destination, file list summary (count, bytes, top files), licence, timestamps, `status` (`present` / `offline` / `missing` / `deleted`) |
+| Person | Hub Index panel (AP-5b) card for the item, and for folder downloads `ABOUT-THIS-DOWNLOAD.md` beside the files | Title, where it came from, why it was kept (`user_note`), when, size, what is inside, where it lives now |
+
+TV and film torrents get no file beside them: Sonarr/Radarr move the files out of `torrents/`, so a sidecar would be left behind. Their record lives in the journal and catalogue and gains `library_path` once the import is confirmed (audit phase 2, M5).
+
+**Deletes.**
+
+- Deletes made through the Hub (`POST /api/storage/delete`, `POST /api/jobs/{id}/purge-complete`, cancel + purge) append a tombstone to the journal (`{"event": "deleted", "job_id", "paths", "by", "at"}`) and nudge `hub-index /forget`. The catalogue marks the item and its files `deleted` at once. Deleted items drop out of normal search, stay findable with a "deleted" filter for 30 days, then are purged.
+- Deletes made outside the Hub (Finder, Sonarr upgrades, manual `rm`) are found by the next scan: `missing` (see "Offline is not deleted").
+
+**Nightly.** The `index-rebuild` overnight step runs after `queue-drain` and `seedvault-sync` (the nightly sync), then pushes the Pi snapshot. The overnight card shows the step with counts (`new`, `changed`, `missing`, `deleted`).
+
+| id | case | expected |
+|----|------|----------|
+| I11 | `POST /api/storage/delete` on an indexed folder | journal tombstone; catalogue `deleted` within 5 s (nudge); absent from default search, present with `status=deleted` filter |
+| I12 | finished folder job (GitHub, website, file) | `ABOUT-THIS-DOWNLOAD.md` and `.hub-provenance-<job>.json` written; the md contains title, source, note and size; no secrets (scrubbed like the readme excerpt) |
+| I13 | finished TV torrent | no sidecar in `torrents/`; journal entry with `segment: "tv"` |
+| I14 | overnight run with the step | step result carries `{new, changed, missing, deleted}` and the card renders them |
+
 ## Out of scope
 
 - Semantic or RAG search (`ai_summary` stays reserved; a later packet can add embeddings behind the same `/search`).
