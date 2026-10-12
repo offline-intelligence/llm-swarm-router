@@ -6,7 +6,9 @@
 
 Deployed 2026-10-12, QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r2.json`).
 
-QC r3 **fail**, back-fill **25 written** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r3.json`); PR #11 merge deferred (export cursor smoke X1).
+QC r3 **fail**, back-fill **25 written** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r3.json`); r3 X1 overlap artefact (not a journal bug).
+
+QC r4 **pass**, merged PR #11 (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r4.json`); back-fill 25 on Pi; smoke 7/7.
 
 r3 (PM): `minecraft` jobs are housekeeping, not downloads (`NOT_DOWNLOADS`), so the back-fill skips them (dry run 27 → 25 to write).
 

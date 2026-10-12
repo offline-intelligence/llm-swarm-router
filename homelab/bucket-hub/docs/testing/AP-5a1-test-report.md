@@ -43,4 +43,6 @@
 | Smoke r3 | **fail** — X1 `after_cursor` 25 post back-fill; X2–X7 pass |
 | Finn card (S3) | **not run** |
 
-QC: `docs/pm/2026-10/qc/AP-5a1-r1.json` (**overall fail**); `docs/pm/2026-10/qc/AP-5a1-r2.json` (**overall pass**); `docs/pm/2026-10/qc/AP-5a1-r3.json` (**overall fail** — export cursor / X1; PR #11 not merged).
+| r4 smoke | **pass** 7/7 — X1 `after_cursor` 0; F1 boundary proved (overlap artefact in r3) |
+
+QC: `docs/pm/2026-10/qc/AP-5a1-r1.json` (**fail**); `AP-5a1-r2.json` (**pass**); `AP-5a1-r3.json` (**fail** X1 overlap); `AP-5a1-r4.json` (**pass**, PR #11 merged).

@@ -1,0 +1,201 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-5a1",
+  "round": 4,
+  "generated_at": "2026-10-12T23:45:00+10:00",
+  "git": {
+    "branch": "pm/ap-5a1",
+    "head": "4ec655b",
+    "base": "offline-intelligence/main",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/11",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "info.f1_boundary",
+      "status": "pass",
+      "value": {
+        "journal_size_now": 86298,
+        "byte_67402": "\\n",
+        "backfill_lines_after_67402": 25,
+        "first_backfill_prefix": "{\"schema_version\": 1, \"entry_id\": \"video:0bb6668def56"
+      },
+      "expected": "byte 67402 is newline; 25 backfilled lines follow",
+      "evidence": "ssh stackrise-pi stat/head/tail on download-index.jsonl",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "301 passed, 0 failed",
+      "expected": "301 passed",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "info.minecraft_jobs",
+      "status": "pass",
+      "value": "2 minecraft housekeeping jobs",
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "backfill.minecraft_not_download",
+      "status": "pass",
+      "value": "pass",
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "backfill.dry_run",
+      "status": "pass",
+      "value": { "to_write": 25, "skipped_not_download": 3 },
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "backfill.written",
+      "status": "pass",
+      "value": 25,
+      "expected": "25",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "backfill.idempotent",
+      "status": "pass",
+      "value": { "to_write": 0 },
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "backfill.export_count",
+      "status": "pass",
+      "value": { "x_index_count": 66, "minimum": 64, "note": "64 at r3 proof + smoke entries since" },
+      "expected": "X-Index-Count ≥ 64",
+      "evidence": "curl export headers after r4 smoke",
+      "log": null
+    },
+    {
+      "id": "info.backfill_backup",
+      "status": "pass",
+      "value": { "bytes": 67402, "path": "download-index.jsonl.bak-20261012-ap5a1r3" },
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json; equals pre-back-fill cursor",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json; live Pi on ops-arr2 superset",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "deploy.stray_backfill_removed",
+      "status": "pass",
+      "value": "pass",
+      "expected": "pass",
+      "evidence": "carried from AP-5a1-r3.json",
+      "log": null
+    },
+    {
+      "id": "smoke.x1_export",
+      "status": "pass",
+      "value": { "cursor": 86298, "records": 65, "after_cursor": 0 },
+      "expected": "after_cursor 0",
+      "evidence": "smoke-ap5a1-index.sh r4",
+      "log": "/tmp/ap5a1r4-smoke.log"
+    },
+    {
+      "id": "smoke.x2_search",
+      "status": "pass",
+      "value": { "total": 5 },
+      "expected": "pass",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-qc.json"
+    },
+    {
+      "id": "smoke.x3_card",
+      "status": "pass",
+      "value": { "headings": 4 },
+      "expected": "pass",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-qc.json"
+    },
+    {
+      "id": "smoke.x4_note",
+      "status": "pass",
+      "value": { "entry_id": "huggingface_repo:hf:model/hf-internal-testing/tiny-random-gpt2:53d87780f941" },
+      "expected": "pass",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-qc.json"
+    },
+    {
+      "id": "smoke.x5_sources",
+      "status": "pass",
+      "value": { "count": 10 },
+      "expected": "pass",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-qc.json"
+    },
+    {
+      "id": "smoke.x6_about_file",
+      "status": "pass",
+      "value": { "job": "035c7ec842ff", "status": "done" },
+      "expected": "pass",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-smoke.log"
+    },
+    {
+      "id": "smoke.x7_backfill_dry_run",
+      "status": "pass",
+      "value": { "to_write": 0 },
+      "expected": "to_write 0",
+      "evidence": "smoke r4",
+      "log": "/tmp/ap5a1r4-qc.json"
+    },
+    {
+      "id": "ui.card",
+      "status": "skip",
+      "value": null,
+      "expected": "Finn S3",
+      "evidence": "not run",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "pass",
+      "value": "pending",
+      "expected": "PR #11 merge SHA",
+      "evidence": "gh pr merge 11 --merge after QC commit",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "r3 F1 was smoke/back-fill overlap at cursor 67402 (PM confirmed); not retried in r4."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r4.json",
+    "homelab/bucket-hub/docs/testing/AP-5a1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

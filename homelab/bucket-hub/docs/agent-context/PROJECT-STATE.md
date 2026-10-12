@@ -143,7 +143,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (`/ping` 000), so AP-UX-1 R0 compared Jellyfin only. Ops investigation.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
-- [x] AP-5a.1 per-download record (Pi journal API: search, card, note, export cursor, sources, entries; delete tombstones; `ABOUT-THIS-DOWNLOAD.md` for GitHub/HF; back-fill dry run) — QC r2 **pass** `docs/pm/2026-10/qc/AP-5a1-r2.json` (2026-10-12 deploy + smoke 7/7). Operator doc `docs/DOWNLOAD-INDEX.md`. PR #11 ready for merge.
+- [x] AP-5a.1 per-download record — QC r4 **pass** `docs/pm/2026-10/qc/AP-5a1-r4.json`; PR **#11 merged** (2026-10-12). Operator doc `docs/DOWNLOAD-INDEX.md`.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
 - [ ] AP-5b Index panel + search proxy/fallback; AP-5c website/video builders and sidecars — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md`.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
@@ -197,6 +197,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-5a.1 QC r4** (`docs/pm/2026-10/qc/AP-5a1-r4.json`): **pass** — F1 boundary proved (r3 overlap); smoke 7/7; **PR #11 merged**. |
 | 2026-10-12 | **AP-5a.1 QC r3** (`docs/pm/2026-10/qc/AP-5a1-r3.json`): **fail** — back-fill **25 written**; smoke **X1** `after_cursor=25`; PR **#11 not merged**. |
 | 2026-10-12 | PM reviewed the AP-5a.1 r2 back-fill dry run (27 to write): accepted except 2 `minecraft` jobs (Minecraft-server housekeeping, no such kind in current code). r3 on `pm/ap-5a1-r3`: `minecraft` added to `NOT_DOWNLOADS` + test (301 pass). Cursor runs the real back-fill (expect 25), then merges PR #11 (`cursor-prompts/cursor-ap5a1-r3.md`). Next PM build: AP-5a.2. |
 | 2026-10-12 | **AP-5a.1 QC r2** (`docs/pm/2026-10/qc/AP-5a1-r2.json`): **pass** — PM test fix `d39f4ea`; 301 unit tests (`huggingface_hub==0.26.2`); Pi/worker deploy + parity; smoke X1–X7 7/7; PR #11 marked ready (not merged). |
