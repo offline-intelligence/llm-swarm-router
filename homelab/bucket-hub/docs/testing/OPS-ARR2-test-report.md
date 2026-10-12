@@ -25,3 +25,4 @@ Spec: `docs/pm/2026-10/OPS-ARR2-arr-reachability.md`. Handoff: `docs/pm/2026-10/
 | round | date | result | notes |
 |-------|------|--------|-------|
 | r1 | 2026-10-12 | **pass** | D1: host loopback/lan 000, `in_app` 200, `bind_address` * → **docker exec** transport (`SONARR_VIA_DOCKER` / `RADARR_VIA_DOCKER`). M1 ok; end-to-end scan **queued**. QC `docs/pm/2026-10/qc/OPS-ARR2-r1.json`. |
+| r2 | 2026-10-12 | **pass** | Rebased on main after AP-5a.1 merge; root cause confirmed (Gluetun port publish); live parity matches main without deploy. QC `docs/pm/2026-10/qc/OPS-ARR2-r2.json`; PR #12 merged. |

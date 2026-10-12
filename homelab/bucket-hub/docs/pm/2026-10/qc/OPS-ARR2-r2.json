@@ -1,0 +1,166 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "OPS-ARR2",
+  "round": 2,
+  "generated_at": "2026-10-12T23:55:00+10:00",
+  "git": {
+    "branch": "pm/ops-arr2",
+    "head": "6684786",
+    "base": "offline-intelligence/main@b06a2a0",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/12",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": "2 commits above main (0ec79d1 OPS-ARR2 code, 6684786 r1 QC docs); TODO + PROJECT-STATE conflicts resolved",
+      "expected": "clean rebase onto main after PR #11",
+      "evidence": "git rebase offline-intelligence/main",
+      "log": null
+    },
+    {
+      "id": "git.pr_files",
+      "status": "pass",
+      "value": "OPS-ARR2 core: arr_client.py, hub-worker.py, job_health.py, form.html, glance.yml, deploy-manifest.txt, smoke-ops-arr2.sh, test_arr_client.py, OPS-ARR2 docs/QC; gh also lists paths already on main from squash merge history",
+      "expected": "OPS-ARR2 files only",
+      "evidence": "gh pr view 12 --json files; git log main..HEAD",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "316 passed, 0 failed",
+      "expected": "316 passed",
+      "evidence": "PYTHONPATH=. pytest -q on pm/ops-arr2",
+      "log": null
+    },
+    {
+      "id": "info.root_cause",
+      "status": "pass",
+      "value": "Host loopback and LAN 000; in_app 200; netns_current true; BindAddress * → Docker port publish into Gluetun broken; docker exec transport supported",
+      "expected": "PM confirmed",
+      "evidence": "carried from OPS-ARR2-r1.json + PM r2 review",
+      "log": null
+    },
+    {
+      "id": "info.d1_before",
+      "status": "pass",
+      "value": "carried",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": "/tmp/opsarr2-before.log"
+    },
+    {
+      "id": "info.worker_docker",
+      "status": "pass",
+      "value": "docker group",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json; live deploy unchanged this round",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.gateway_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "ops.arr_fix",
+      "status": "pass",
+      "value": "SONARR_VIA_DOCKER=sonarr; RADARR_VIA_DOCKER=radarr",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "smoke.d1_paths",
+      "status": "pass",
+      "value": "carried",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": "/tmp/opsarr2-after.log"
+    },
+    {
+      "id": "smoke.m1_arr_check",
+      "status": "pass",
+      "value": "sonarr+radarr ok via docker transport",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "smoke.m2_scan_command",
+      "status": "pass",
+      "value": "docker:sonarr DownloadedEpisodesScan queued",
+      "expected": "pass",
+      "evidence": "carried from OPS-ARR2-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.parity_main",
+      "status": "pass",
+      "value": { "pi": 0, "worker": 0, "gateway": 0 },
+      "expected": "all exit 0 without deploy",
+      "evidence": "verify-deploy-parity.sh after checkout main",
+      "log": null
+    },
+    {
+      "id": "ui.next_tv_import",
+      "status": "skip",
+      "value": "no TV download yet",
+      "expected": "optional",
+      "evidence": "S5",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "pass",
+      "value": "pending",
+      "expected": "PR #12 merge SHA",
+      "evidence": "gh pr merge 12 --merge",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "Rebase conflict in TODO.md and PROJECT-STATE.md (docs-only); both sides kept.",
+    "r3 full [pi] manifest rsync reverted OPS-ARR2 form briefly; Part B r1 redeploy fixed live hosts (no rsync this round).",
+    "gh pr view 12 --json files lists paths beyond the two commits above main (GitHub PR file list includes merge-base artefacts)."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/OPS-ARR2-r2.json",
+    "homelab/bucket-hub/docs/testing/OPS-ARR2-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

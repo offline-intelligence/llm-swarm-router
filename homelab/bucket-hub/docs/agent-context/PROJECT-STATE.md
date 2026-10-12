@@ -29,6 +29,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
 - **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
 - **UI sign-off (2026-10-12):** integrator browser QC that Finn forwards to the PM counts as Finn's sign-off for ui.* checks; PM states acceptance in the next handoff.
+- **Sonarr/Radarr transport (2026-10-12, OPS-ARR2):** the host worker calls Sonarr/Radarr with docker exec (`SONARR_VIA_DOCKER=sonarr`, `RADARR_VIA_DOCKER=radarr`); host loopback and LAN publish into Gluetun return 000 while the apps answer inside (BindAddress *, namespace current). Doctor: `arr_client.py --check`.
 - **Download index shape (2026-10-12, AP-5a.1):** the Pi journal stays append-only truth; deletes are `{"event":"deleted"}` tombstones and notes `{"event":"note"}` lines, merged on read (`download_record.load_records`); machines read `GET /api/index/export?since=<byte cursor>`. TV/film torrents get no sidecar (Sonarr/Radarr move files).
 - **Merge rule (2026-10-12):** Cursor merges a PR only after its QC overall = pass and the PM handoff names the merge.
 - **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
@@ -142,7 +143,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r2 **pass** `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [x] OPS-ARR1 folded into OPS-ARR2 (same fault: worker host cannot reach Sonarr/Radarr).
-- [x] **OPS-ARR2** worker → Sonarr/Radarr via `arr_client` + `SONARR_VIA_DOCKER` / `RADARR_VIA_DOCKER` — QC r1 **pass** `docs/pm/2026-10/qc/OPS-ARR2-r1.json` (2026-10-12 deploy); PR #12 ready for review.
+- [x] **OPS-ARR2** worker → Sonarr/Radarr via `arr_client` + docker exec transport — QC r2 **pass** `docs/pm/2026-10/qc/OPS-ARR2-r2.json`; PR **#12 merged** (2026-10-12).
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
 - [x] AP-5a.1 per-download record — QC r4 **pass** `docs/pm/2026-10/qc/AP-5a1-r4.json`; PR **#11 merged** (2026-10-12). Operator doc `docs/DOWNLOAD-INDEX.md`.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
@@ -198,6 +199,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **OPS-ARR2 QC r2** (`docs/pm/2026-10/qc/OPS-ARR2-r2.json`): **pass** — rebase on main; root cause Gluetun publish; live parity ok; **PR #12 merged**. |
 | 2026-10-12 | **AP-5a.1 QC r4** (`docs/pm/2026-10/qc/AP-5a1-r4.json`): **pass** — F1 boundary proved (r3 overlap); smoke 7/7; **PR #11 merged**. |
 | 2026-10-12 | **OPS-ARR2 QC r1** (`docs/pm/2026-10/qc/OPS-ARR2-r1.json`): **pass** — docker transport; PR #12 ready (not merged). |
 | 2026-10-12 | **AP-5a.1 QC r3** (`docs/pm/2026-10/qc/AP-5a1-r3.json`): **fail** — back-fill **25 written**; smoke **X1** overlap artefact. |

@@ -6,6 +6,8 @@
 
 Deployed 2026-10-12, QC r1 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-ARR2-r1.json`); transport **docker:sonarr** / **docker:radarr** on ai-server.
 
+QC r2 **pass**, merged PR #12 (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-ARR2-r2.json`).
+
 ## 2026-10-12 — AP-5a.1 per-download record (PM)
 
 **Why:** Finn wants every download indexed for a person and for a machine, and the index to change when something is deleted. **What changed:** `download_record.py` merges the Pi journal (entries, note edits, delete tombstones); `/api/index/search`, `/card`, `PATCH` note, `/export?since=<cursor>`, `/sources`, `POST /entries`; finished jobs record `segment`/`preset`/`saves_to`; Storage delete and cancel + purge mark records `deleted`; deletes and syncs no longer appear as downloads; GitHub/HF archives get `ABOUT-THIS-DOWNLOAD.md`; `scripts/rebuild-download-index.py --from-jobs`. Tests 286 → 301. Doc `homelab/bucket-hub/docs/DOWNLOAD-INDEX.md`.
