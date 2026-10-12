@@ -113,6 +113,18 @@ Unit tests: **189 passed** (PM run, Python 3.13). Smoke script checked against a
 
 QC: `docs/pm/2026-10/qc/AP-3.1-r3b.json` (**overall fail** — repo drain; worker log: stale aria2 gid `85365f42082a8ffe` on torrent `8d817da9a03b`).
 
+## Round 4 (2026-10-12)
+
+| Check | Result |
+|-------|--------|
+| Unit tests | **193 passed** (aria2 housekeeping isolated from repo claims) |
+| Worker deploy + parity | **pass** |
+| `smoke-ap31-lanes.sh` (Sintel) | **6/6 pass** — torrent claim + bytes, repo drain, Hello-World excerpt |
+| Token not in `ps` (1200) | **pass** |
+| Worker log `hub http 4` / loop error | **0** in 30 min |
+
+QC: `docs/pm/2026-10/qc/AP-3.1-r4.json` (**overall pass**). PR #5 ready for review.
+
 ## Round 4 (PM fix, 2026-10-12)
 
 | Finding (r3b) | Fix | Tests |

@@ -26,6 +26,8 @@ QC r3b **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sinte
 
 Round 4 (PM): `aria2()` raises `RuntimeError` for aria2's HTTP 400 JSON-RPC errors (they were escaping as `HTTPError` and logged as `hub http 400`); aria2 housekeeping in the worker loop is isolated so a stale gid can no longer skip the video and repo claims. Tests 189 → 193.
 
+QC r4 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r4.json`): worker deploy; full Sintel smoke 6/6; PR #5 ready for review.
+
 Round 3 (PM): archiver image `:3` fetches branches and tags only (no GitHub `refs/pull/*`, which made Spoon-Knife exceed its cap); worker re-checks the TNAS mount once (`HUB_REPO_RECHECK_S`, 5 s) before deferring a repo job and clears a stale mark once the mount answers; defer note names the reason; smoke R1 waits 150 s. Tests 183 → 189.
 
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy

@@ -1,0 +1,209 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-3.1",
+  "round": 4,
+  "generated_at": "2026-10-12T15:30:00+10:00",
+  "git": {
+    "branch": "pm/ap-3.1",
+    "head": "b146462f7f927f5dd6af1db84fb416ec7dbd9df2",
+    "base": "offline-intelligence/main@ea1349f84d869cda40e75eb3316efa5b93589a89",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/5",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "info.r3b_leftovers",
+      "status": "pass",
+      "value": {
+        "queued": [],
+        "running": []
+      },
+      "expected": "lists of queued/running jobs; dismiss r3b smoke ids",
+      "evidence": "both lists empty before deploy (jobs already cleared)",
+      "log": "/tmp/ap31r4-info.r3b_leftovers-queued.log"
+    },
+    {
+      "id": "prep.torrent_dest_clean",
+      "status": "pass",
+      "value": ["/mnt/external/movies/torrents/Sintel"],
+      "expected": "no active Sintel* smoke dir",
+      "evidence": "mv to Sintel.ap31-r3b-smoke-20261012 before smoke",
+      "log": null
+    },
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0, no *.py/*.sh conflicts",
+      "evidence": "already up to date with offline-intelligence/main",
+      "log": "/tmp/ap31r4-git.rebase.log"
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "193 passed, 93 warnings in 4.50s",
+      "expected": "193 passed, 0 failed",
+      "evidence": "homelab/bucket-hub pytest -q",
+      "log": "/tmp/ap31r4-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "b146462f7f927f5dd6af1db84fb416ec7dbd9df2",
+      "expected": "PR #5 head = local HEAD",
+      "evidence": "git push --force-with-lease offline-intelligence pm/ap-3.1",
+      "log": "/tmp/ap31r4-git.push.log"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "parity ok pi",
+      "log": "/tmp/ap31r4-deploy.pi_parity.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "parity ok worker after rsync",
+      "log": "/tmp/ap31r4-deploy.worker_parity.log"
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "is-active hub-worker = active",
+      "evidence": "systemctl --user restart hub-worker",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "pass",
+      "value": 0,
+      "expected": "0 lines matching loop error|Traceback|hub http 4 in 2 min after restart",
+      "evidence": "journalctl --user -u hub-worker --since -2 min",
+      "log": "/tmp/ap31r4-deploy.worker_log-count.log"
+    },
+    {
+      "id": "smoke.precheck",
+      "status": "pass",
+      "value": { "slot_repo": 1, "active_repo": 0 },
+      "evidence": "repo lane idle",
+      "expected": "active_repo == 0",
+      "log": "/tmp/ap31r4-smoke.log"
+    },
+    {
+      "id": "smoke.r1_running",
+      "status": "pass",
+      "value": { "job": "09dbf6afa966", "repo": "git/git", "waited_s": 11, "tnas_defer": "" },
+      "evidence": "R1 running",
+      "expected": "git/git running within wait",
+      "log": "/tmp/ap31r4-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_claimed_60s",
+      "status": "pass",
+      "value": 10,
+      "evidence": "torrent left queued at 10s",
+      "expected": "claimed within 60s while R1 runs",
+      "log": "/tmp/ap31r4-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_bytes_rise",
+      "status": "pass",
+      "value": 129302391,
+      "evidence": "completed bytes rose while R1 running",
+      "expected": "bytes rise while R1 running",
+      "log": "/tmp/ap31r4-smoke.log"
+    },
+    {
+      "id": "smoke.repos_drain",
+      "status": "pass",
+      "value": [
+        {
+          "id": "09dbf6afa966",
+          "title": "git/git",
+          "status": "done",
+          "note": "Complete",
+          "started_at": "2026-10-12T05:22:30.713021+00:00",
+          "finished_at": "2026-10-12T05:23:43.582580+00:00",
+          "download_dir": "github-daily/2026-10-12/git__git",
+          "error_display": null
+        },
+        {
+          "id": "ec26562dbbd6",
+          "title": "octocat/Spoon-Knife",
+          "status": "done",
+          "note": "Complete",
+          "started_at": "2026-10-12T05:24:09.418673+00:00",
+          "finished_at": "2026-10-12T05:24:21.093581+00:00",
+          "download_dir": "github-daily/2026-10-12/octocat__Spoon-Knife",
+          "error_display": null
+        },
+        {
+          "id": "05c1dcf1cc7b",
+          "title": "octocat/Hello-World",
+          "status": "done",
+          "note": "Complete",
+          "started_at": "2026-10-12T05:24:26.274264+00:00",
+          "finished_at": "2026-10-12T05:24:37.078404+00:00",
+          "download_dir": "github-daily/2026-10-12/octocat__Hello-World",
+          "error_display": null
+        }
+      ],
+      "evidence": "R1-R3 done",
+      "expected": "all three repo jobs done",
+      "log": "/tmp/ap31r4-smoke-qc.json"
+    },
+    {
+      "id": "smoke.readme_excerpt",
+      "status": "pass",
+      "value": {
+        "excerpt": "Hello World!",
+        "download_dir": "github-daily/2026-10-12/octocat__Hello-World"
+      },
+      "evidence": "Hello-World readme_excerpt non-empty",
+      "expected": "non-empty readme_excerpt on Hello-World",
+      "log": "/tmp/ap31r4-smoke-qc.json"
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "pass",
+      "value": ["0"],
+      "expected": "distinct counts = 0 only; 1200 samples",
+      "evidence": "sort -u on 1200x ps grep Authorization",
+      "log": "/tmp/ap31r4-live.token_not_in_ps.log"
+    },
+    {
+      "id": "live.loop_clean",
+      "status": "pass",
+      "value": 0,
+      "expected": "grep count 0 for hub http 4|loop error|Traceback in 30 min",
+      "evidence": "journalctl since -30 min",
+      "log": "/tmp/ap31r4-live.loop_clean-count.log"
+    },
+    {
+      "id": "info.aria2_housekeeping",
+      "status": "pass",
+      "value": [],
+      "expected": "tail of aria2 housekeeping / Active Download lines (may be empty)",
+      "evidence": "no aria2 housekeeping lines in 30 min window",
+      "log": "/tmp/ap31r4-info.aria2_housekeeping.log"
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "Moved /mnt/external/movies/torrents/Sintel to Sintel.ap31-r3b-smoke-20261012 (r3b incomplete download)"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r4.json",
+    "homelab/bucket-hub/docs/testing/AP-3.1-test-report.md",
+    "homelab/bucket-hub/docs/testing/AP-3-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}
