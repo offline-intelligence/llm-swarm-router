@@ -1,0 +1,145 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-4.3",
+  "round": 1,
+  "generated_at": "2026-10-13T09:56:00+10:00",
+  "git": {
+    "branch": "pm/ap-4.3",
+    "head": "4ebc3b5f85fdb4c03219395335fb9a9557409ab2",
+    "base": "offline-intelligence/main@4ebc3b5f85fdb4c03219395335fb9a9557409ab2",
+    "pr_url": null,
+    "rebase_conflicts": []
+  },
+  "overall": "blocked",
+  "checks": [
+    {
+      "id": "git.ff",
+      "status": "fail",
+      "value": null,
+      "expected": "pm/ap-4.3 fast-forwards onto current main",
+      "evidence": "git fetch origin offline-intelligence pm/ap-4.3 → fatal: couldn't find remote ref pm/ap-4.3; local HEAD=4ebc3b5 (main), no AP-4.3 commits",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "fail",
+      "value": "342 passed in 14.63s",
+      "expected": "full suite pass including new regression: oversize job status skipped_too_large, never done",
+      "evidence": "tests/test_repo_archive_hf.py::test_size_cap_skip still asserts last[\"status\"] == \"done\" (line 131); no test asserts job status skipped_too_large",
+      "log": "/tmp/AP-4.3-pytest.log"
+    },
+    {
+      "id": "code.status_fix",
+      "status": "fail",
+      "value": "status=\"done\"",
+      "expected": "oversize branch uses status=\"skipped_too_large\"",
+      "evidence": "repo_archive_hf.py:501 update_job(..., status=\"done\", ...) in source_size > cap_bytes branch",
+      "log": null
+    },
+    {
+      "id": "code.download_anyway",
+      "status": "fail",
+      "value": null,
+      "expected": "POST /api/jobs/{id}/download-anyway with ceiling HF_MAX_SIZE_CEILING_MB",
+      "evidence": "rg download_anyway app.py → no matches",
+      "log": null
+    },
+    {
+      "id": "code.form_select",
+      "status": "fail",
+      "value": null,
+      "expected": "HF form three-tier size select posting options.max_size_mb",
+      "evidence": "rg max_size_mb|70 GB form.html → no matches",
+      "log": null
+    },
+    {
+      "id": "code.free_space",
+      "status": "fail",
+      "value": null,
+      "expected": "TNAS free-space defer with not_before +1h and error_display",
+      "evidence": "rg free_space repo_archive_hf.py → no matches",
+      "log": null
+    },
+    {
+      "id": "ui.skip_pill",
+      "status": "blocked",
+      "value": null,
+      "expected": "amber Skipped styling, not green done",
+      "evidence": "form.html has no skipped_too_large styling; skip job ebbfd8cc840d stayed queued 60s (repo lane busy with a95d6ad635bb); AP-4.3 code not deployed",
+      "log": null
+    },
+    {
+      "id": "smoke.download_anyway",
+      "status": "skip",
+      "value": null,
+      "expected": "skip → Download anyway → done on TNAS",
+      "evidence": "not reached: packet branch missing; download-anyway endpoint absent",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "./scripts/verify-deploy-parity.sh pi → parity ok pi",
+      "log": "/tmp/AP-4.3-parity-pi.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "blocked",
+      "value": null,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "ssh -o ConnectTimeout=15 ai-server-ts echo → no response in 20s; worker parity hung >3 min (Tailscale/off-LAN)",
+      "log": "/tmp/AP-4.3-parity-worker.log"
+    },
+    {
+      "id": "info.live_job_a95d6ad635bb",
+      "status": "pass",
+      "value": "running",
+      "expected": "status only, no action",
+      "evidence": "GET http://100.85.42.0:3000/api/jobs/a95d6ad635bb → status running",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "check": "git.ff",
+      "where": "github:offline-intelligence/llm-swarm-router",
+      "observed": "remote ref pm/ap-4.3 not found on origin or offline-intelligence",
+      "expected": "PM branch pm/ap-4.3 pushed for integrator fetch/rebase",
+      "repro": "git fetch offline-intelligence pm/ap-4.3",
+      "suspect": "PM code not pushed from Mac folder thread yet; spec file AP-4.3-hf-large-models-and-OPS-NAS2.md also absent from repo"
+    },
+    {
+      "id": "F2",
+      "severity": "blocker",
+      "check": "unit.pytest",
+      "where": "tests/test_repo_archive_hf.py:131",
+      "observed": "test_size_cap_skip expects status done",
+      "expected": "job status skipped_too_large after AP-4.3",
+      "repro": "cd homelab/bucket-hub && PYTHONPATH=. uv run python -m pytest tests/test_repo_archive_hf.py::test_size_cap_skip -q",
+      "suspect": "AP-4.3 implementation not on integrator tree"
+    },
+    {
+      "id": "F3",
+      "severity": "major",
+      "check": "deploy.worker_parity",
+      "where": "host:ai-server-ts",
+      "observed": "SSH connect timeout from integrator Mac",
+      "expected": "worker parity completes",
+      "repro": "ssh -o ConnectTimeout=15 ai-server-ts 'echo ok'",
+      "suspect": "ai-server asleep or Tailscale path down; Pi parity OK"
+    }
+  ],
+  "needs_finn": [
+    "PM: push pm/ap-4.3 (and spec docs/pm/2026-10/AP-4.3-hf-large-models-and-OPS-NAS2.md) to offline-intelligence, then re-run integrator QC",
+    "If worker parity required this round: ensure ai-server-ts reachable over Tailscale (wake ai-server)"
+  ],
+  "deviations": [
+    "Integrated against main@4ebc3b5 only; created local pm/ap-4.3 branch solely to host QC JSON because remote packet branch missing",
+    "Queued QC skip probe job ebbfd8cc840d (tiny-random-gpt2, max_size_mb 1); left queued behind running a95d6ad635bb — no cancel per leave-live-job instruction"
+  ],
+  "docs_updated": ["homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.3-r1.json"]
+}
