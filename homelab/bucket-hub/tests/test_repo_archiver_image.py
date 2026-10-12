@@ -121,3 +121,33 @@ def test_docker_runner_deletes_env_file_on_failure(tmp_path, monkeypatch):
             clone_url="https://github.com/a/b.git", work_dir=tmp_path / "w", env={"GITHUB_TOKEN": "t"}
         )
     assert not os.path.exists(seen["env_file"])
+
+
+def test_docker_runner_names_container_and_clears_leftover(tmp_path, monkeypatch):
+    import repo_runner
+
+    calls: list[list[str]] = []
+
+    def fake_run(cmd, capture_output=True, text=True, timeout=None):
+        calls.append(cmd)
+        if cmd[:3] == ["docker", "rm", "-f"]:
+            return subprocess.CompletedProcess(cmd, 1, stdout="", stderr="No such container")
+        return subprocess.CompletedProcess(cmd, 0, stdout='{"ok": true}\n', stderr="")
+
+    monkeypatch.setattr(repo_runner.subprocess, "run", fake_run)
+    repo_runner.DockerRepoRunner(image="x").run_github_mirror(
+        clone_url="https://github.com/a/b.git", work_dir=tmp_path / ".partial-j9", env={}
+    )
+    assert calls[0] == ["docker", "rm", "-f", "hub-repo-partial-j9"]
+    run = calls[1]
+    assert run[run.index("--name") + 1] == "hub-repo-partial-j9"
+
+
+def test_remove_container_never_raises(monkeypatch):
+    import repo_runner
+
+    def boom(*a, **k):
+        raise FileNotFoundError("docker")
+
+    monkeypatch.setattr(repo_runner.subprocess, "run", boom)
+    assert repo_runner.remove_container("hub-repo-partial-x") is False

@@ -37,6 +37,17 @@ cd homelab/bucket-hub && PYTHONPATH=. uv run --with pytest pytest tests/ -q
 | | `test_docker_runner_argv_uses_gluetun_and_env_file` | `--network=container:gluetun`, `/work` mount, token only in 0600 env file, file deleted (deferred AP-3 §T2) |
 | | `test_docker_runner_deletes_env_file_on_failure` | env file deleted on clone failure |
 
+Round 2 (QC r1 F1: orphaned repo job after a worker restart). PM run: **183 passed**.
+
+| File | Test | Asserts |
+|------|------|---------|
+| `test_repo_lane_ap31.py` | `test_recover_requeues_orphaned_repo_jobs` | `running`/`claimed` repo and repo_meta jobs re-queued with note, containers `hub-repo-partial-<id>` removed, aria2 jobs untouched |
+| | `test_recover_skips_jobs_this_worker_runs` | jobs in `_repo_running` left alone |
+| | `test_recover_returns_none_when_pi_unreachable` | `None` so `main()` retries |
+| | `test_repo_claims_gated_on_recovery` | both repo claim sections wait for recovery |
+| `test_repo_archiver_image.py` | `test_docker_runner_names_container_and_clears_leftover` | `docker rm -f hub-repo-partial-<id>` before `docker run --name hub-repo-partial-<id>` |
+| | `test_remove_container_never_raises` | docker missing → `False` |
+
 `test_deploy_manifest.py` now also checks `docker/repo-archiver/*` exist (added to `[worker]`).
 
 ## Manual acceptance (§T6 step 2, adversarial order)

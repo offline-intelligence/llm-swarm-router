@@ -228,3 +228,76 @@ def test_github_readme_fetch_decodes_base64(monkeypatch):
     payload = {"encoding": "base64", "content": base64.b64encode(b"Hello World!\n").decode()}
     monkeypatch.setattr(mod, "gluetun_http_json", lambda url, timeout=25: payload)
     assert mod._github_readme_fetch("octocat/Hello-World") == "Hello World!\n"
+
+
+# --- Round 2: orphaned repo jobs after a worker restart (QC r1 F1) -------------------
+
+
+def _fake_hub(monkeypatch, mod, jobs_by_status, fail_list=False):
+    patches: list[tuple[str, dict]] = []
+
+    def fake_hub_call(path, method="GET", body=None):
+        if method == "GET" and path.startswith("/api/jobs?status="):
+            if fail_list:
+                raise OSError("pi unreachable")
+            status = path.split("status=", 1)[1].split("&", 1)[0]
+            return {"jobs": jobs_by_status.get(status, [])}
+        if method == "PATCH":
+            patches.append((path.rsplit("/", 1)[1], body))
+            return {"ok": True}
+        raise AssertionError((path, method))
+
+    monkeypatch.setattr(mod, "hub_call", fake_hub_call)
+    return patches
+
+
+def test_recover_requeues_orphaned_repo_jobs(monkeypatch):
+    mod = _worker_mod()
+    removed: list[str] = []
+    import repo_runner
+
+    monkeypatch.setattr(repo_runner, "remove_container", lambda name: removed.append(name) or True)
+    patches = _fake_hub(
+        monkeypatch,
+        mod,
+        {
+            "running": [
+                {"id": "r2", "kind": "github_repo", "status": "running"},
+                {"id": "m1", "kind": "magnet", "status": "running", "worker": "aria2"},
+            ],
+            "claimed": [{"id": "s1", "kind": "github_stars_sync", "status": "claimed"}],
+        },
+    )
+    out = mod.recover_orphaned_repo_jobs()
+    assert out == ["r2", "s1"]
+    assert [p[0] for p in patches] == ["r2", "s1"]
+    assert patches[0][1]["status"] == "queued"
+    assert patches[0][1]["progress"]["note"] == "Re-queued after worker restart"
+    assert removed == ["hub-repo-partial-r2", "hub-repo-partial-s1"]
+
+
+def test_recover_skips_jobs_this_worker_runs(monkeypatch):
+    mod = _worker_mod()
+    import repo_runner
+
+    monkeypatch.setattr(repo_runner, "remove_container", lambda name: True)
+    patches = _fake_hub(
+        monkeypatch, mod, {"running": [{"id": "r2", "kind": "github_repo", "status": "running"}]}
+    )
+    mod._repo_running.add("r2")
+    try:
+        assert mod.recover_orphaned_repo_jobs() == []
+    finally:
+        mod._repo_running.discard("r2")
+    assert patches == []
+
+
+def test_recover_returns_none_when_pi_unreachable(monkeypatch):
+    mod = _worker_mod()
+    _fake_hub(monkeypatch, mod, {}, fail_list=True)
+    assert mod.recover_orphaned_repo_jobs() is None
+
+
+def test_repo_claims_gated_on_recovery():
+    src = (HUB_ROOT / "hub-worker.py").read_text(encoding="utf-8")
+    assert src.count("if repo_recover_done and HUB_SLOT_REPO > 0") == 2

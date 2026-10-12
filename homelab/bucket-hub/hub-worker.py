@@ -1905,6 +1905,54 @@ def claim_next(lane: str | None = None) -> dict[str, Any] | None:
     return hub_call("/api/jobs/claim", method="POST", body=body).get("job")
 
 
+REPO_RECOVERED_NOTE = "Re-queued after worker restart"
+
+
+def recover_orphaned_repo_jobs() -> list[str] | None:
+    """Re-queue repo-lane jobs the Pi still shows as claimed/running at worker start.
+
+    Called once from ``main()`` before the loop: no repo thread is alive yet, so any
+    such job lost its worker (restart, crash) and would otherwise hold the repo slot
+    for ever. Its archiver container is removed so it cannot race the retry.
+    """
+    from repo_runner import remove_container
+
+    recovered: list[str] = []
+    listed_ok = True
+    for status in ("running", "claimed"):
+        try:
+            data = hub_call(f"/api/jobs?status={status}&limit=100")
+        except Exception as exc:  # noqa: BLE001
+            print(f"repo recover list {status}: {exc}", flush=True)
+            listed_ok = False
+            continue
+        for job in data.get("jobs") or []:
+            if dispatch_route(job) not in ("repo", "repo_meta"):
+                continue
+            jid = str(job.get("id") or "")
+            if not jid or jid in _repo_running:
+                continue
+            removed = remove_container(f"hub-repo-partial-{jid}")
+            try:
+                update_job(
+                    jid,
+                    status="queued",
+                    error=None,
+                    progress={"phase": "checking", "note": REPO_RECOVERED_NOTE},
+                )
+            except Exception as exc:  # noqa: BLE001
+                print(f"repo recover {jid}: {exc}", flush=True)
+                continue
+            print(
+                f"repo recover {jid} ({job.get('kind')}, was {status}, "
+                f"container_removed={removed})",
+                flush=True,
+            )
+            recovered.append(jid)
+    # None = the Pi could not be listed; main() retries before any repo claim.
+    return recovered if listed_ok else None
+
+
 def _recover_claimed_aria2_jobs(vpn: tuple[bool, str]) -> None:
     """Re-dispatch Hub jobs stuck in claimed (worker died after claim, before aria2)."""
     try:
@@ -5010,8 +5058,11 @@ def main() -> None:
         f"video_slots={HUB_SLOT_VIDEO} repo_slots={HUB_SLOT_REPO}",
         flush=True,
     )
+    repo_recover_done = False
     while True:
         try:
+            if not repo_recover_done:
+                repo_recover_done = recover_orphaned_repo_jobs() is not None
             ensure_mounts()
             vpn = vpn_ok()
             try_run_pending_search(vpn, context="idle")
@@ -5099,7 +5150,7 @@ def main() -> None:
                     _dispatch_claimed_job(video_job, vpn)
                 elif video_job:
                     update_job(video_job["id"], status="queued", error=None)
-            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+            if repo_recover_done and HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
                 repo_job = claim_next("repo")
                 if repo_job and dispatch_route(repo_job) == "repo":
                     print(
@@ -5109,7 +5160,7 @@ def main() -> None:
                     _dispatch_claimed_job(repo_job, vpn)
                 elif repo_job:
                     update_job(repo_job["id"], status="queued", error=None)
-            if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
+            if repo_recover_done and HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
                 meta_job = claim_next("repo_meta")
                 if meta_job and dispatch_route(meta_job) == "repo_meta":
                     print(

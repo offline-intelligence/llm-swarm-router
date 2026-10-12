@@ -120,7 +120,7 @@ for _ in $(seq 1 90); do
   (( n == 3 )) && break
   sleep 10
 done
-repos="$(for j in "$R1" "$R2" "$R3"; do job "$j" | jq -c '{id, title, status, note: .progress.note, download_dir, error_display}'; done | jq -sc .)"
+repos="$(for j in "$R1" "$R2" "$R3"; do job "$j" | jq -c '{id, title, status, note: .progress.note, started_at, finished_at, download_dir, error_display}'; done | jq -sc .)"
 if [[ "$(echo "$repos" | jq '[.[] | select(.status == "done")] | length')" == 3 ]]; then
   qc repos_drain pass "$repos" "R1-R3 done"
 else
@@ -128,7 +128,10 @@ else
 fi
 excerpt="$(field "$R3" '.index_entry.readme_excerpt // ""')"
 dl="$(field "$R3" '.download_dir // ""')"
-if [[ -n "$excerpt" ]]; then
+s3="$(field "$R3" .status)"
+if [[ "$s3" != "done" ]]; then
+  qc readme_excerpt fail "$(jq -nc --arg s "$s3" '{R3_status:$s}')" "R3 (Hello-World) not done, README not testable; see smoke.repos_drain"
+elif [[ -n "$excerpt" ]]; then
   qc readme_excerpt pass "$(jq -nc --arg e "${excerpt:0:60}" --arg d "$dl" '{excerpt:$e, download_dir:$d}')" "Hello-World readme_excerpt non-empty"
 else
   qc readme_excerpt fail "$(jq -nc --arg d "$dl" '{download_dir:$d}')" "empty readme_excerpt (archiver image still :1?)"

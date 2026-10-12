@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 QC r1 **fail** — deploy ok, §T6 lane smoke pass, drain/readme/worker-log fail; `docs/pm/2026-10/qc/AP-3.1-r1.json`)
+**Last updated:** 2026-10-12 (AP-3.1 QC r1 **fail** on orphaned repo job after mid-smoke worker restart; lane fix itself proven (torrent claimed at 10 s during git/git clone). PM round 2 adds orphan recovery; handoff `docs/pm/2026-10/handoffs/AP-3.1-r2.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -29,6 +29,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
 - **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
 - **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
+- **Worker restart recovery (2026-10-12, AP-3.1 r2):** at startup the worker re-queues every repo/repo_meta job the Pi shows as `running`/`claimed` (no repo thread survives a restart) and removes its archiver container `hub-repo-partial-<id>`; repo claims wait until this has run. Single-worker assumption: a second worker would need ownership tracking first.
+- **Smoke validity rule:** a smoke run with a worker restart or env edit during it is invalid; re-run from scratch.
 - **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
 
@@ -99,6 +101,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ### P2 — Reliability
 
+- [ ] Stale aria2 gid after worker restart logs `hub http 400: Active Download not found for GID#…` (seen AP-3.1 QC r1 F3 on smoke torrent `18d0343be5f5`). Worker should drop the gid and Retry-style re-add instead of PATCHing the dead one.
+
 - [x] Deploy `job_health.py` to Pi with `app.py` (2026-10-12); verify `agent_review` UI end-to-end.
 - [ ] aria2 error 13 (partial without `.aria2`): worker policy or user doc for Retry after cleanup.
 - [ ] Reduce Pi ↔ worker heartbeat timeouts under load. Now blocking §T6. Code facts: worker `hub_call` tries `HUB_URL` entries in order (default LAN `192.168.50.138:3020` then Tailscale `100.85.42.0:3020`), 30 s timeout each, and only logs `heartbeat failed` when all fail; Pi `/api/worker/heartbeat` synchronously re-reads every job JSON (`_scan_running_jobs_health`) and merges the library on each 12 s beat. Need the worker log line and job count to confirm which.
@@ -132,6 +136,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | AP-3.1 QC r1 (`docs/pm/2026-10/qc/AP-3.1-r1.json`, PR #5): 15 pass, 4 fail. Lane fix proven live (torrent claimed 10 s, 129 MB during git/git clone; token absent from `ps`). Fails traced by PM to one root cause: worker restart mid-smoke orphaned Spoon-Knife as `running`, holding the repo slot. Round 2: `recover_orphaned_repo_jobs()` + named containers; 183 tests. F3 stale aria2 gid → P2 backlog. |
 | 2026-10-12 | **AP-3.1 QC r1** (`docs/pm/2026-10/qc/AP-3.1-r1.json`): pushed `pm/ap-3.1`, draft PR #5, Pi/worker deploy + parity **0**, image `:2` built; `smoke-ap31-lanes.sh` torrent lane **pass**; `repos_drain`/`readme_excerpt` **fail** (15 min timeout); `deploy.worker_log` **fail** (`hub http 400` aria2 stale gid). |
 | 2026-10-12 | Ops closed (DHCP reservation, `HUB_GITHUB_TOKEN`, Kuma, PR #4). PM implemented AP-3.1 on `pm/ap-3.1`: lane-aware claim, `not_before` back-off, Pi keeps `error_display`/`resolved`, token via stdin, README any-name + API fallback, image `:2`, archiver in worker manifest; 146 → 177 tests. Acceptance script `scripts/smoke-ap31-lanes.sh`; Cursor handoff `docs/pm/2026-10/handoffs/AP-3.1.md`. |
 | 2026-10-12 | Home ops (`cursor/ops-2026-10-12-home`): `stackrise-pi` → `100.85.42.0`; TNAS `.187` in repo + Pi deploy; parity pi/worker **0**; §T6 step 2 baseline **fail** (torrent error, repo slot). `HUB_GITHUB_TOKEN` still unset. |
