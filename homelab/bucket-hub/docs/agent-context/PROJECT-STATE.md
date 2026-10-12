@@ -88,7 +88,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/` (API edit on Pi, 2026-10-12).
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
-- [ ] AP-4 `huggingface_repo` — cleared; **PM implements after AP-3.1 deploys and §T6 step 2 passes**. TNAS and image prerequisites now met.
+- [ ] AP-4 `huggingface_repo` — **unblocked** (AP-3.1 QC r4 pass, 2026-10-12). PM implements on `pm/ap-4` from `main` once PR #5 is merged.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -140,6 +140,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **PM sign-off: AP-3.1 and AP-3 done** (QC r4 overall pass, 0 findings). PR #5 ready for Finn to merge. Next: AP-4 on `pm/ap-4` after the merge. Open P2: stale aria2 gid job stays `running` (no longer blocks lanes). |
 | 2026-10-12 | PM review of QC r3b: lane fix proven (Sintel 129 MB). Repo-drain fail root-caused: aria2 returns JSON-RPC errors as HTTP 400, `aria2()` let `HTTPError` escape, `find_resumable_aria2_job()` only caught `RuntimeError`, so every tick died before the repo claims (same cause as r1 F3). Round 4: `aria2()` converts to `RuntimeError`, housekeeping isolated in `main()`; 189 → 193 tests. |
 | 2026-10-12 | **AP-3.1 QC r4** (`docs/pm/2026-10/qc/AP-3.1-r4.json`): worker deploy; 193 tests; Sintel smoke 6/6; loop log clean. **overall pass**; PR #5 ready for review; AP-3 §T6 steps 2–3 ticked. |
 | 2026-10-12 | **AP-3.1 QC r3b** (`docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` **pass**; `repos_drain` / `readme_excerpt` **fail** (stale aria2 gid on smoke torrent; R2/R3 never claimed). PR #5 stays draft. |
