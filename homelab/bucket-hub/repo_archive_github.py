@@ -81,7 +81,7 @@ def fetch_readme_fallback(full_name: str) -> str:
 def get_runner() -> RepoRunner:
     global _runner
     if _runner is None:
-        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:2")
+        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:3")
         _runner = DockerRepoRunner(image=image)
     return _runner
 
@@ -168,7 +168,7 @@ def run_github_repo_job(
             status="queued",
             error_display=TNAS_OFFLINE_MSG,
             not_before=retry_at.isoformat(),
-            progress={"phase": "checking", "note": TNAS_OFFLINE_MSG},
+            progress={"phase": "checking", "note": f"{TNAS_OFFLINE_MSG} ({reason})"},
         )
         return
 

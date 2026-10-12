@@ -4,6 +4,7 @@ from __future__ import annotations
 import importlib.util
 import json
 import os
+import shutil
 import subprocess
 from pathlib import Path
 
@@ -38,7 +39,7 @@ def test_pick_readme(names, want):
 
 
 def test_entry_mirror_and_readme_copy(tmp_path, monkeypatch):
-    """Mirror argv, ls-tree lookup, README copied as README.md whatever its source name."""
+    """Heads+tags bare fetch argv, HEAD from the remote, README copied as README.md."""
     mod = _entry_mod()
     work = tmp_path / "work"
     real_path = mod.Path
@@ -50,7 +51,9 @@ def test_entry_mirror_and_readme_copy(tmp_path, monkeypatch):
         assert env["GIT_LFS_SKIP_SMUDGE"] == "1"
         assert env["GIT_TERMINAL_PROMPT"] == "0"
 
-    def fake_check_output(cmd, text=True, stderr=None, errors=None):
+    def fake_check_output(cmd, text=True, stderr=None, errors=None, env=None):
+        if "ls-remote" in cmd:
+            return "ref: refs/heads/master\tHEAD\n7fd1a60b01f91b314f59955a4e4d4e80d8edf11d\tHEAD\n"
         if "ls-tree" in cmd:
             return "LICENSE\nREADME\n"
         if "show" in cmd:
@@ -63,12 +66,66 @@ def test_entry_mirror_and_readme_copy(tmp_path, monkeypatch):
     monkeypatch.setattr(mod.subprocess, "run", fake_run)
     monkeypatch.setattr(mod.subprocess, "check_output", fake_check_output)
     result = mod.github_mirror("https://github.com/octocat/Hello-World.git")
-    assert runs[0][:3] == ["git", "clone", "--mirror"]
-    assert runs[0][3] == "https://github.com/octocat/Hello-World.git"
-    assert "--recurse-submodules" not in runs[0]
+    flat = [" ".join(c) for c in runs]
+    assert not any("--mirror" in c for c in flat)
+    assert not any("--recurse-submodules" in c for c in flat)
+    assert runs[0][:3] == ["git", "init", "--bare"]
+    assert any(c.endswith("remote.origin.url https://github.com/octocat/Hello-World.git") for c in flat)
+    assert any(c.endswith("remote.origin.fetch +refs/heads/*:refs/heads/*") for c in flat)
+    assert any(c.endswith("--add remote.origin.fetch +refs/tags/*:refs/tags/*") for c in flat)
+    assert any(c.endswith("fetch --prune --quiet origin") for c in flat)
+    assert runs[-1][-3:] == ["symbolic-ref", "HEAD", "refs/heads/master"]
     assert (work / "README.md").read_text(encoding="utf-8") == "Hello World!\n"
     assert result["readme_source"] == "README"
     assert result["readme_text"] == "Hello World!\n"
+
+
+def _git(*args, cwd=None):
+    return subprocess.run(
+        ["git", "-c", "user.name=t", "-c", "user.email=t@example.invalid", *args],
+        cwd=cwd, check=True, capture_output=True, text=True,
+    ).stdout
+
+
+@pytest.mark.skipif(shutil.which("git") is None, reason="git not installed")
+def test_entry_real_git_skips_pull_refs(tmp_path, monkeypatch):
+    """QC r2 F1: refs/pull/* must not be archived; branches, tags and remote HEAD must."""
+    src = tmp_path / "src"
+    src.mkdir()
+    _git("init", "--quiet", "--initial-branch=trunk", cwd=src)
+    (src / "Readme.md").write_text("Spoon\n", encoding="utf-8")
+    _git("add", ".", cwd=src)
+    _git("commit", "--quiet", "-m", "one", cwd=src)
+    _git("tag", "v1", cwd=src)
+    _git("branch", "side", cwd=src)
+    # A PR head that is on no branch, as GitHub serves for fork PRs.
+    _git("checkout", "--quiet", "-b", "fork-pr", cwd=src)
+    (src / "big.bin").write_bytes(b"x" * 4096)
+    _git("add", ".", cwd=src)
+    _git("commit", "--quiet", "-m", "pr", cwd=src)
+    pr_sha = _git("rev-parse", "HEAD", cwd=src).strip()
+    _git("update-ref", "refs/pull/1/head", pr_sha, cwd=src)
+    _git("checkout", "--quiet", "trunk", cwd=src)
+    _git("branch", "-D", "fork-pr", cwd=src)
+
+    mod = _entry_mod()
+    work = tmp_path / "work"
+    real_path = mod.Path
+    monkeypatch.setattr(mod, "Path", lambda p: real_path(str(p).replace("/work", str(work), 1)))
+    result = mod.github_mirror(src.as_uri())
+
+    git_dir = work / "repo.git"
+    refs = _git("--git-dir", str(git_dir), "for-each-ref", "--format=%(refname)").split()
+    assert sorted(refs) == ["refs/heads/side", "refs/heads/trunk", "refs/tags/v1"]
+    assert _git("--git-dir", str(git_dir), "symbolic-ref", "HEAD").strip() == "refs/heads/trunk"
+    missing = subprocess.run(
+        ["git", "--git-dir", str(git_dir), "cat-file", "-e", pr_sha],
+        capture_output=True,
+    )
+    assert missing.returncode != 0, "PR-only commit was archived"
+    assert result["commit_sha"] == _git("rev-parse", "trunk", cwd=src).strip()
+    assert result["readme_source"] == "Readme.md"
+    assert (work / "README.md").read_text(encoding="utf-8") == "Spoon\n"
 
 
 def test_docker_runner_argv_uses_gluetun_and_env_file(tmp_path, monkeypatch):
@@ -85,7 +142,7 @@ def test_docker_runner_argv_uses_gluetun_and_env_file(tmp_path, monkeypatch):
         return subprocess.CompletedProcess(cmd, 0, stdout=json.dumps({"ok": True}) + "\n", stderr="")
 
     monkeypatch.setattr(repo_runner.subprocess, "run", fake_run)
-    runner = repo_runner.DockerRepoRunner(image="bucket-hub-repo-archiver:2")
+    runner = repo_runner.DockerRepoRunner(image="bucket-hub-repo-archiver:3")
     out = runner.run_github_mirror(
         clone_url="https://github.com/octocat/Hello-World.git",
         work_dir=tmp_path / ".partial-j1",
@@ -95,7 +152,7 @@ def test_docker_runner_argv_uses_gluetun_and_env_file(tmp_path, monkeypatch):
     assert out == {"ok": True}
     assert "--network=container:gluetun" in cmd
     assert cmd[-3:] == [
-        "bucket-hub-repo-archiver:2",
+        "bucket-hub-repo-archiver:3",
         "github_mirror",
         "https://github.com/octocat/Hello-World.git",
     ]

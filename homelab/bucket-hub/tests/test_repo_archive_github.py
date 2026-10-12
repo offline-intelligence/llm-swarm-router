@@ -26,6 +26,7 @@ def test_mount_offline_defers(archive_root, fake_runner, gh_api):
     )
     assert updates[-1]["status"] == "queued"
     assert "TNAS offline" in updates[-1]["error_display"]
+    assert updates[-1]["progress"]["note"] == "TNAS offline, will retry (NAS is not mounted)"
     assert not fake_runner.calls
 
 

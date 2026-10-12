@@ -2,6 +2,10 @@
 """Repo archiver container entry (GitHub mirror mode).
 
 Reads mode from argv[1], clone URL from argv[2]. Prints one JSON line on stdout.
+
+The archive is a bare repo holding branches and tags only. ``git clone --mirror``
+also copies GitHub's ``refs/pull/*`` (every PR head, including fork commits), which
+the API size check does not count and which made popular repos blow the size cap.
 """
 from __future__ import annotations
 
@@ -35,6 +39,26 @@ def pick_readme(names: list[str]) -> str | None:
     return others[0] if others else None
 
 
+# Branches and tags only: no refs/pull/*, refs/changes/* or other host-side refs.
+FETCH_REFSPECS = (
+    "+refs/heads/*:refs/heads/*",
+    "+refs/tags/*:refs/tags/*",
+)
+
+
+def remote_head(clone_url: str, env: dict) -> str | None:
+    """Return the remote default branch ref (``refs/heads/<name>``), or None."""
+    out = subprocess.check_output(
+        ["git", "ls-remote", "--symref", clone_url, "HEAD"],
+        text=True,
+        env=env,
+    )
+    for line in out.splitlines():
+        if line.startswith("ref: ") and line.endswith("\tHEAD"):
+            return line[len("ref: "):].split("\t", 1)[0]
+    return None
+
+
 def github_mirror(clone_url: str) -> dict:
     work = Path("/work")
     work.mkdir(parents=True, exist_ok=True)
@@ -43,11 +67,17 @@ def github_mirror(clone_url: str) -> dict:
         "GIT_LFS_SKIP_SMUDGE": "1",
         "GIT_TERMINAL_PROMPT": "0",
     }
-    subprocess.run(
-        ["git", "clone", "--mirror", clone_url, str(dest)],
-        check=True,
-        env={**env, **dict(os.environ)},
-    )
+    run_env = {**env, **dict(os.environ)}
+    git_dir = ["git", "--git-dir", str(dest)]
+    subprocess.run(["git", "init", "--bare", "--quiet", str(dest)], check=True, env=run_env)
+    subprocess.run([*git_dir, "config", "remote.origin.url", clone_url], check=True, env=run_env)
+    subprocess.run([*git_dir, "config", "remote.origin.fetch", FETCH_REFSPECS[0]], check=True, env=run_env)
+    for spec in FETCH_REFSPECS[1:]:
+        subprocess.run([*git_dir, "config", "--add", "remote.origin.fetch", spec], check=True, env=run_env)
+    subprocess.run([*git_dir, "fetch", "--prune", "--quiet", "origin"], check=True, env=run_env)
+    head = remote_head(clone_url, run_env)
+    if head:
+        subprocess.run([*git_dir, "symbolic-ref", "HEAD", head], check=True, env=run_env)
     readme = ""
     readme_source = None
     try:

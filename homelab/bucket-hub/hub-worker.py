@@ -112,6 +112,8 @@ HUB_SLOT_REPO = max(0, int(os.environ.get("HUB_SLOT_REPO", "1")))
 HUB_REPO_ARCHIVE_ROOT = os.environ.get(
     "HUB_REPO_ARCHIVE_ROOT", "/mnt/tnas/repo-archive"
 )
+# Seconds to wait before re-checking the archive mount, before a repo job is deferred.
+HUB_REPO_RECHECK_S = max(0.0, _env_float("HUB_REPO_RECHECK_S", 5.0))
 # Per-download BitTorrent options (leech-only; global aria2.conf should match).
 ARIA2_LEECH_OPTS: dict[str, str] = {
     "seed-ratio": "0",
@@ -264,6 +266,12 @@ def _recover_stale_mounts() -> None:
             if r.returncode != 0:
                 recovered.add(mount)
                 _dev_ops_log("worker", "INFO", f"stale mount cleared (unmounted): {mount}")
+                continue
+            # Still mounted: clear it once it answers again (a CIFS hiccup, not a dead drive).
+            s = subprocess.run(["stat", mount], capture_output=True, timeout=2)
+            if s.returncode == 0:
+                recovered.add(mount)
+                _dev_ops_log("worker", "INFO", f"stale mount cleared (responsive): {mount}")
         except subprocess.TimeoutExpired:
             pass
         except Exception:
@@ -418,6 +426,8 @@ def path_ready(dest: str) -> tuple[bool, str]:
             return False, "Media HDD is not mounted"
         return True, "media"
     if dest.startswith("/mnt/tnas"):
+        if "/mnt/tnas" in _STALE_MOUNTS:
+            return False, "NAS mount marked stale (check timed out)"
         if not _safe_check_path("/mnt/tnas", "mount"):
             return False, "NAS is not mounted"
         return True, "nas"
@@ -439,6 +449,24 @@ def path_ready(dest: str) -> tuple[bool, str]:
     if not _safe_check_path(dest, "stat"):
         return False, f"Destination missing: {dest}"
     return True, "other"
+
+
+def repo_path_ready(dest: str) -> tuple[bool, str]:
+    """``path_ready`` for repo jobs, with one re-check before the job is deferred.
+
+    A single failed mount check used to defer the job for ``HUB_REPO_DEFER_S``
+    (AP-3.1 QC r2 F2), so a brief CIFS stall cost two minutes.
+    """
+    ok, reason = path_ready(dest)
+    if ok:
+        return ok, reason
+    _recover_stale_mounts()
+    if HUB_REPO_RECHECK_S:
+        time.sleep(HUB_REPO_RECHECK_S)
+    ok, reason2 = path_ready(dest)
+    if not ok:
+        print(f"repo path not ready {dest}: {reason2} (first check: {reason})", flush=True)
+    return ok, reason2
 
 
 def ensure_host_dir(host_path: str) -> None:
@@ -3465,7 +3493,7 @@ def _submit_repo_job(job: dict[str, Any]) -> None:
                 run_github_repo_job(
                     job,
                     archive_root=HUB_REPO_ARCHIVE_ROOT,
-                    path_ready=path_ready,
+                    path_ready=repo_path_ready,
                     update_job=update_job,
                 )
             elif kind == "github":

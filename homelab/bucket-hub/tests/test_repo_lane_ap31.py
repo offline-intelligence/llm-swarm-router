@@ -301,3 +301,71 @@ def test_recover_returns_none_when_pi_unreachable(monkeypatch):
 def test_repo_claims_gated_on_recovery():
     src = (HUB_ROOT / "hub-worker.py").read_text(encoding="utf-8")
     assert src.count("if repo_recover_done and HUB_SLOT_REPO > 0") == 2
+
+
+# --- QC r2 F2: TNAS re-check before deferring -----------------------------------
+
+
+def test_repo_path_ready_rechecks_before_defer(monkeypatch):
+    w = _worker_mod()
+    answers = iter([(False, "NAS is not mounted"), (True, "nas")])
+    sleeps: list[float] = []
+    monkeypatch.setattr(w, "path_ready", lambda _d: next(answers))
+    monkeypatch.setattr(w, "_recover_stale_mounts", lambda: None)
+    monkeypatch.setattr(w, "HUB_REPO_RECHECK_S", 5.0)
+    monkeypatch.setattr(w.time, "sleep", sleeps.append)
+    assert w.repo_path_ready("/mnt/tnas/repo-archive") == (True, "nas")
+    assert sleeps == [5.0]
+
+
+def test_repo_path_ready_reports_second_reason(monkeypatch, capsys):
+    w = _worker_mod()
+    answers = iter([(False, "NAS is not mounted"), (False, "NAS mount marked stale (check timed out)")])
+    monkeypatch.setattr(w, "path_ready", lambda _d: next(answers))
+    monkeypatch.setattr(w, "_recover_stale_mounts", lambda: None)
+    monkeypatch.setattr(w, "HUB_REPO_RECHECK_S", 0.0)
+    ok, reason = w.repo_path_ready("/mnt/tnas/repo-archive")
+    assert not ok and "stale" in reason
+    assert "first check: NAS is not mounted" in capsys.readouterr().out
+
+
+def test_repo_path_ready_no_sleep_when_ready(monkeypatch):
+    w = _worker_mod()
+    monkeypatch.setattr(w, "path_ready", lambda _d: (True, "nas"))
+    monkeypatch.setattr(w.time, "sleep", lambda _s: (_ for _ in ()).throw(AssertionError("slept")))
+    assert w.repo_path_ready("/mnt/tnas/repo-archive") == (True, "nas")
+
+
+def test_stale_mount_cleared_when_responsive(monkeypatch):
+    """A mount that timed out once must not stay 'stale' after it answers again."""
+    import subprocess as sp
+
+    w = _worker_mod()
+    w._STALE_MOUNTS.clear()
+    w._STALE_MOUNTS.add("/mnt/tnas")
+    monkeypatch.setattr(w, "_dev_ops_log", lambda *a, **k: None)
+    monkeypatch.setattr(
+        w.subprocess, "run", lambda cmd, **_k: sp.CompletedProcess(cmd, 0, b"", b"")
+    )
+    assert w.path_ready("/mnt/tnas/repo-archive")[1].startswith("NAS mount marked stale")
+    w._recover_stale_mounts()
+    assert "/mnt/tnas" not in w._STALE_MOUNTS
+
+
+def test_stale_mount_kept_while_stat_hangs(monkeypatch):
+    import subprocess as sp
+
+    w = _worker_mod()
+    w._STALE_MOUNTS.clear()
+    w._STALE_MOUNTS.add("/mnt/tnas")
+    monkeypatch.setattr(w, "_dev_ops_log", lambda *a, **k: None)
+
+    def fake_run(cmd, **_k):
+        if cmd[0] == "stat":
+            raise sp.TimeoutExpired(cmd, 2)
+        return sp.CompletedProcess(cmd, 0, b"", b"")
+
+    monkeypatch.setattr(w.subprocess, "run", fake_run)
+    w._recover_stale_mounts()
+    assert "/mnt/tnas" in w._STALE_MOUNTS
+    w._STALE_MOUNTS.clear()

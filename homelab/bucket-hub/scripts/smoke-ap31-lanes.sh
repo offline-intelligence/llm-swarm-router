@@ -7,7 +7,8 @@
 #   DRIVE_ID     Hub drive id for the torrent (from GET /api/library)
 #   FOLDER_ID    Hub folder id under that drive (the torrents/ inbox)
 # Optional: HUB (default http://100.85.42.0:3000), LONG_REPO (default git/git),
-#           WATCH_S (default 180), QC_OUT (default /tmp/ap31-smoke-qc.json)
+#           WATCH_S (default 180), QC_OUT (default /tmp/ap31-smoke-qc.json),
+#           R1_WAIT_S (default 150: longer than one HUB_REPO_DEFER_S back-off of 120 s)
 #
 # Machine output (docs/pm/PM-CURSOR-PROTOCOL.md): one line per check on stdout,
 #   QC {"id":"smoke.<check>","status":"pass|fail|skip","value":…,"evidence":"…"}
@@ -17,6 +18,7 @@ set -uo pipefail
 HUB="${HUB:-http://100.85.42.0:3000}"
 LONG_REPO="${LONG_REPO:-git/git}"
 WATCH_S="${WATCH_S:-180}"
+R1_WAIT_S="${R1_WAIT_S:-150}"
 QC_OUT="${QC_OUT:-/tmp/ap31-smoke-qc.json}"
 : "${TORRENT_URL:?set TORRENT_URL}" "${DRIVE_ID:?set DRIVE_ID}" "${FOLDER_ID:?set FOLDER_ID}"
 command -v jq >/dev/null || { echo "jq required" >&2; exit 2; }
@@ -65,16 +67,25 @@ qc precheck pass "$(echo "$lane" | jq -c '{slot_repo, active_repo}')" "repo lane
 R1="$(post_job "$(repo_body "$LONG_REPO" 1024)")"
 [[ -n "$R1" ]] || { qc r1_running fail null "enqueue $LONG_REPO failed"; finish; }
 st=""
-for _ in $(seq 1 30); do
-  st="$(field "$R1" .status)"
+deferred=""
+r1_start=$(date +%s)
+while (( $(date +%s) - r1_start < R1_WAIT_S )); do
+  j1="$(job "$R1")" || j1='{}'
+  st="$(echo "$j1" | jq -r '.status // ""')"
+  note="$(echo "$j1" | jq -r '.progress.note // ""')"
+  # Keep the first TNAS defer note as evidence; the job is retried after the back-off.
+  [[ -z "$deferred" && "$note" == TNAS\ offline* ]] && deferred="$note"
   [[ "$st" == "running" || "$st" == "done" || "$st" == "error" ]] && break
   sleep 2
 done
+r1_s=$(( $(date +%s) - r1_start ))
 if [[ "$st" != "running" ]]; then
-  qc r1_running fail "$(jq -nc --arg s "$st" --arg j "$R1" '{job:$j, status:$s}')" \
-    "R1 not running after 60s (done = repo too small, pick a bigger LONG_REPO)"; finish
+  qc r1_running fail "$(jq -nc --arg s "$st" --arg j "$R1" --arg d "$deferred" --argjson t "$r1_s" \
+    '{job:$j, status:$s, waited_s:$t, tnas_defer:$d}')" \
+    "R1 not running after ${R1_WAIT_S}s (done = repo too small, pick a bigger LONG_REPO)"; finish
 fi
-qc r1_running pass "$(jq -nc --arg j "$R1" --arg r "$LONG_REPO" '{job:$j, repo:$r}')" "R1 running"
+qc r1_running pass "$(jq -nc --arg j "$R1" --arg r "$LONG_REPO" --arg d "$deferred" --argjson t "$r1_s" \
+  '{job:$j, repo:$r, waited_s:$t, tnas_defer:$d}')" "R1 running"
 
 # 3. two repo jobs queued AHEAD of the torrent, then the torrent
 R2="$(post_job "$(repo_body octocat/Spoon-Knife 64)")"
