@@ -12,6 +12,7 @@ job_kinds.py
 hub_worker.py
 repo_archive_paths.py
 repo_archive_github.py
+repo_archive_hf.py
 repo_runner.py
 overnight_report.py
 torrent_indexer_catalog.py
@@ -40,6 +41,7 @@ index_writer.py
 job_kinds.py
 repo_archive_paths.py
 repo_archive_github.py
+repo_archive_hf.py
 repo_runner.py
 hub_torrent_parse.py
 media_pipeline.py

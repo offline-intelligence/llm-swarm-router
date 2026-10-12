@@ -18,6 +18,9 @@ REPO_KINDS = frozenset(
         "github_release",
     }
 )
+# Kinds the worker writes under ``HUB_REPO_ARCHIVE_ROOT``; the Pi ignores drive/folder.
+# Legacy ``github``/``hf`` stay drive-based (they need ``destination_path``).
+ARCHIVE_ROOT_KINDS = frozenset({"github_repo", "huggingface_repo", "github_release"})
 REPO_META_KINDS = frozenset(
     {
         "github_stars_sync",
@@ -29,6 +32,10 @@ REPO_META_KINDS = frozenset(
 
 def is_repo_download_kind(kind: str) -> bool:
     return str(kind or "").strip().lower() in REPO_KINDS
+
+
+def is_archive_root_kind(kind: str) -> bool:
+    return str(kind or "").strip().lower() in ARCHIVE_ROOT_KINDS
 
 
 def is_repo_meta_kind(kind: str) -> bool:

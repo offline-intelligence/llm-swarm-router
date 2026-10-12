@@ -68,6 +68,23 @@ def github_dated_dir(root: Path, day: str) -> Path:
     return root / "github-daily" / day
 
 
+def hf_dated_dir(root: Path, day: str) -> Path:
+    return root / "huggingface-daily" / day
+
+
+def hf_slug(repo_type: str, repo_id: str) -> str:
+    """``model``, ``org/name`` → ``models__org__name`` (spec A3)."""
+    org, name = parse_github_full_name(repo_id)
+    return f"{slug_segment(repo_type)}s__{slug_segment(org)}__{slug_segment(name)}"
+
+
+def final_hf_dir(dated: Path, repo_type: str, repo_id: str) -> Path:
+    return dated / hf_slug(repo_type, repo_id)
+
+
+DAILY_ROOTS = ("github-daily", "huggingface-daily")
+
+
 def partial_dir(dated: Path, job_id: str) -> Path:
     return dated / f".partial-{job_id}"
 
@@ -77,7 +94,7 @@ def final_github_dir(dated: Path, full_name: str) -> Path:
 
 
 def assert_removable_partial(path: Path, job_id: str) -> None:
-    """Guard: only ``.partial-<job_id>`` directly under a dated github folder."""
+    """Guard: only ``.partial-<job_id>`` directly under a dated github/huggingface folder."""
     name = path.name
     expected = f".partial-{job_id}"
     if name != expected:
@@ -85,8 +102,8 @@ def assert_removable_partial(path: Path, job_id: str) -> None:
     parent = path.parent
     if not re.fullmatch(r"\d{4}-\d{2}-\d{2}", parent.name):
         raise ValueError(f"partial parent must be a dated folder: {parent}")
-    if parent.parent.name != "github-daily":
-        raise ValueError(f"partial must live under github-daily: {parent}")
+    if parent.parent.name not in DAILY_ROOTS:
+        raise ValueError(f"partial must live under {' or '.join(DAILY_ROOTS)}: {parent}")
 
 
 def remove_partial_dir(path: Path, job_id: str) -> None:

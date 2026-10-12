@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 QC r4 **pass**; PR #5 ready, `docs/pm/2026-10/qc/AP-3.1-r4.json`)
+**Last updated:** 2026-10-12 (AP-4 QC r1 blocked on env only; r1b resume issued `docs/pm/2026-10/handoffs/AP-4-r1b.md`; AP-4.1 gated-licence spec drafted)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -36,6 +36,13 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Worker loop isolation (2026-10-12, AP-3.1 r4):** aria2 housekeeping errors are logged and contained, never allowed to skip the video or repo claims in the same tick. aria2 JSON-RPC errors (HTTP 400) surface as `RuntimeError`, so `hub http 4xx` in the worker log now means the Hub only.
 - **Smoke validity rule:** a smoke run with a worker restart or env edit during it is invalid; re-run from scratch.
 - **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
+- **Archive-root kinds (2026-10-12, AP-4):** `job_kinds.ARCHIVE_ROOT_KINDS` = `github_repo`, `huggingface_repo`, `github_release`. They write under the TNAS repo-archive root, never a library drive, so `POST /api/jobs` skips the drive check for them (and for repo-meta kinds) only. Legacy `hf` / `github` drive jobs get a `destination_path` again (the old early branch dropped it).
+- **Hugging Face layout (2026-10-12, AP-4):** `huggingface-daily/<YYYY-MM-DD>/<models|datasets>__<org>__<name>/` holds `snapshot/`, `README.md` (the model card) and the sidecars; snapshot pinned to the metadata `sha`. Spaces are rejected. Options: `prefer_safetensors` (default on: drops `.bin/.pt/.pth/.ckpt/.h5/.msgpack` when safetensors exist), `allow_patterns` (wins, always adds `README.md`), `ignore_patterns`, `max_size_mb` (pre-check from metadata, post-check at 110 %), `revision`, `refresh`. Errors read `Repository not found or private` or the gated message.
+- **Archiver image `:4` (2026-10-12, AP-4):** adds `hf_snapshot` (`huggingface_hub==0.26.2`); GitHub path unchanged from `:3`. Worker env `REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:4`. `HF_TOKEN` in `hub-worker.env` is optional, only for gated models; it reaches the container through env, never argv.
+- **Index free text is scrubbed (2026-10-12, AP-4):** `index_writer.scrub_free_text()` redacts `ghp_` / `github_pat_` / `hf_` tokens, `Bearer` values and `token=` query strings from readme excerpts and model cards (GitHub and HF).
+- **Form kinds (2026-10-12, AP-4):** the Hub form offers "GitHub repo (TNAS archive)", "Hugging Face repo (TNAS archive)" and "Hugging Face files (to drive)" (legacy `hf`); search results queue the archive kinds; a files-mode HF pick with selected files stays `hf`.
+- **HF gated models (2026-10-12, Finn):** pasting an HF link is the main use case and must not dead-end at a gated licence. AP-4.1 (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`): gated jobs wait as `queued` with `gate.state = awaiting_licence` and re-check every 10 min for 7 days; the Hub shows Accept licence / Check now, so one click finishes the job. `huggingface_hub` has no user-side accept API (owner-side only), so Finn chose **one click** (2026-10-12): no auto-accept, no HF session cookie stored. Gated downloads always need `HF_TOKEN` from the same HF account.
+- **Pi restart command unknown (2026-10-12):** `sudo systemctl restart hub-form` reported "unit not found" in AP-4 r1. r1b finds the real unit/container and fixes `05-OPERATIONS-SSH-DEPLOY.md`. Until then a Pi deploy may leave old `app.py` running even when parity passes.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
 
 | Topic | Decision |
@@ -88,7 +95,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/` (API edit on Pi, 2026-10-12).
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
-- [ ] AP-4 `huggingface_repo` — **unblocked** (AP-3.1 QC r4 pass, 2026-10-12). PM implements on `pm/ap-4` from `main` once PR #5 is merged.
+- [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
+- [ ] AP-4.1 HF gated repos: detect gate, `awaiting_licence` wait + auto re-check, Hub Accept-licence / Check-now, one click (Finn, no auto-accept). Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`; after AP-4 QC pass.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -140,6 +148,10 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM review of AP-4 QC r1 (`AP-4-r1.json`): blocked on env only (F1, image `:4` not set); since fixed with Finn's OK. Legacy `hf` downloads had real weights, not LFS pointers (PM inference was wrong). Issued r1b: Pi app reload check, worker restart, smoke + disk checks. Finn's gated-licence requirement specced as AP-4.1. |
+| 2026-10-12 | **AP-4 QC r1b** (`docs/pm/2026-10/qc/AP-4-r1b.json`): **overall pass** — `hub-form.service` reload, worker restart, URL→`huggingface_repo`, smoke 7/7, `model.safetensors` 453864 B (not LFS). |
+| 2026-10-12 | **AP-4 QC r1** (`docs/pm/2026-10/qc/AP-4-r1.json`): 217 tests; draft PR #6 (base `pm/ap-3.1`); Pi/worker parity + image `:4` built; **blocked** on `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env — smoke not run. Legacy hf LFS check: real weights at SmokeTest. |
+| 2026-10-12 | PM implemented **AP-4** on `pm/ap-4`: `repo_archive_hf.py` (`huggingface_repo` lane), archiver `:4` `hf_snapshot`, `build_hf_entry` + `scrub_free_text`, form options, archive-root drive fix for legacy `hf`/`github` jobs; 193 → 217 tests; `scripts/smoke-ap4-hf.sh` (7 checks). Cursor round 1 issued. |
 | 2026-10-12 | **PM sign-off: AP-3.1 and AP-3 done** (QC r4 overall pass, 0 findings). PR #5 ready for Finn to merge. Next: AP-4 on `pm/ap-4` after the merge. Open P2: stale aria2 gid job stays `running` (no longer blocks lanes). |
 | 2026-10-12 | PM review of QC r3b: lane fix proven (Sintel 129 MB). Repo-drain fail root-caused: aria2 returns JSON-RPC errors as HTTP 400, `aria2()` let `HTTPError` escape, `find_resumable_aria2_job()` only caught `RuntimeError`, so every tick died before the repo claims (same cause as r1 F3). Round 4: `aria2()` converts to `RuntimeError`, housekeeping isolated in `main()`; 189 → 193 tests. |
 | 2026-10-12 | **AP-3.1 QC r4** (`docs/pm/2026-10/qc/AP-3.1-r4.json`): worker deploy; 193 tests; Sintel smoke 6/6; loop log clean. **overall pass**; PR #5 ready for review; AP-3 §T6 steps 2–3 ticked. |

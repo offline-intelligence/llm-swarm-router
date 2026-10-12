@@ -34,6 +34,9 @@ from index_writer import build_torrent_entry
 from job_kinds import REPO_META_KINDS, dispatch_route, is_aria2_job
 from repo_archive_github import configure as configure_repo_archive
 from repo_archive_github import run_github_repo_job
+from repo_archive_hf import configure as configure_repo_archive_hf
+from repo_archive_hf import metadata_api_url as hf_metadata_api_url
+from repo_archive_hf import run_huggingface_repo_job
 from repo_archive_paths import validate_archive_root
 from hub_torrent_parse import (
     classify_release_kind,
@@ -1007,6 +1010,22 @@ configure_repo_archive(
     fetch_metadata=_github_metadata_fetch,
     fetch_readme=_github_readme_fetch,
 )
+
+
+def _hf_metadata_fetch(repo_type: str, repo_id: str, revision: str) -> Any:
+    """HF Hub API repo info with per-file sizes, via Gluetun (``HF_TOKEN`` over stdin)."""
+    from repo_runner import ArchiverError
+
+    try:
+        return gluetun_http_json(hf_metadata_api_url(repo_type, repo_id, revision), timeout=40)
+    except subprocess.CalledProcessError as exc:
+        # curl -f exit 22 = HTTP >= 400; huggingface.co answers 401 for missing or private repos.
+        if exc.returncode == 22:
+            raise ArchiverError(f"huggingface.co refused {repo_type} {repo_id}", "not_found") from exc
+        raise
+
+
+configure_repo_archive_hf(fetch_metadata=_hf_metadata_fetch)
 
 
 def jackett_http_json(path_and_query: str, timeout: int = 40) -> Any:
@@ -3502,6 +3521,13 @@ def _submit_repo_job(job: dict[str, Any]) -> None:
         try:
             if kind == "github_repo":
                 run_github_repo_job(
+                    job,
+                    archive_root=HUB_REPO_ARCHIVE_ROOT,
+                    path_ready=repo_path_ready,
+                    update_job=update_job,
+                )
+            elif kind == "huggingface_repo":
+                run_huggingface_repo_job(
                     job,
                     archive_root=HUB_REPO_ARCHIVE_ROOT,
                     path_ready=repo_path_ready,

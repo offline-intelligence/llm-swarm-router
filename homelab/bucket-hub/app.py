@@ -24,7 +24,7 @@ import llm_ctl
 import machines_ctl
 from download_destinations import aria2_destination_catalog, validate_aria2_destination
 from index_writer import append_entry, entry_from_job
-from job_kinds import is_aria2_job, is_repo_download_kind, is_repo_meta_kind
+from job_kinds import is_archive_root_kind, is_aria2_job, is_repo_download_kind, is_repo_meta_kind
 from overnight_report import (
     build_last_night,
     list_run_summaries,
@@ -1962,7 +1962,7 @@ async def capture_url(
 class JobCreate(BaseModel):
     url: str = Field(min_length=3)
     title: str = ""
-    kind: str = "auto"  # auto | video | http | magnet | github | hf | website_archive
+    kind: str = "auto"  # auto | video | http | magnet | github_repo | huggingface_repo | github | hf | website_archive
     drive_id: str = ""
     folder_id: str = ""
     options: dict[str, Any] = Field(default_factory=dict)
@@ -1999,7 +1999,7 @@ def _detect_kind(url: str, source: str) -> str:
             return "github_release"
         return "github_repo"
     if "huggingface.co" in u:
-        return "hf"
+        return "huggingface_repo"
     if any(x in u for x in ("youtube.com", "youtu.be", "vimeo.com", "tiktok.com")):
         return "video"
     if u.endswith(".torrent"):
@@ -2114,8 +2114,9 @@ def jobs_summary_last_night() -> dict[str, Any]:
 @app.post("/api/jobs")
 async def create_job(body: JobCreate) -> JSONResponse:
     kind = body.kind if body.kind != "auto" else _detect_kind(body.url, body.source)
-    if is_repo_download_kind(kind) or is_repo_meta_kind(kind):
-        worker = "repo" if is_repo_download_kind(kind) else "repo"
+    # Archive-root kinds ignore drive/folder; legacy github/hf keep the drive path below.
+    if is_archive_root_kind(kind) or is_repo_meta_kind(kind):
+        worker = "repo"
         clean_tags: list[str] = []
         for t in body.tags:
             t = t.strip().lstrip("#").lower()

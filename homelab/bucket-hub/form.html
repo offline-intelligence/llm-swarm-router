@@ -1435,8 +1435,9 @@
           <option value="video">Video</option>
           <option value="http">HTTP file</option>
           <option value="magnet">Magnet / torrent</option>
-          <option value="github">GitHub repo</option>
-          <option value="hf">Hugging Face</option>
+          <option value="github_repo">GitHub repo (TNAS archive)</option>
+          <option value="huggingface_repo">Hugging Face repo (TNAS archive)</option>
+          <option value="hf">Hugging Face files (to drive)</option>
           <option value="website_archive">Website archive</option>
         </select>
         <div id="kindHint" class="kind-hint">All worker downloads use Proton VPN. YouTube often blocked on VPN — use a direct MP4 URL for video smoke tests.</div>
@@ -3638,8 +3639,8 @@ async function pickResult(item, opts) {
   document.getElementById('url').value = item.url;
   document.getElementById('title').value = item.title || '';
   let kind = 'http';
-  if (item.source === 'github') kind = 'github';
-  else if (item.source === 'hf') kind = 'hf';
+  if (item.source === 'github') kind = 'github_repo';
+  else if (item.source === 'hf') kind = 'huggingface_repo';
   else if (item.source === 'torrent' || item.kind_hint === 'torrent') kind = 'magnet';
   else if (item.source === 'youtube' || item.kind_hint === 'media') kind = 'video';
   else if (item.source === 'web') kind = 'http';
@@ -4115,7 +4116,9 @@ function shortTitle(j) {
 function kindLabel(j) {
   const k = (j.kind || '').toLowerCase();
   if (k === 'hf') return 'HF';
+  if (k === 'huggingface_repo') return 'HF archive';
   if (k === 'github') return 'GitHub';
+  if (k === 'github_repo') return 'GitHub archive';
   if (k === 'video') return 'Video';
   if (k === 'magnet') return 'Torrent';
   if (k === 'http') return 'HTTP';
@@ -4894,7 +4897,7 @@ function isDownloadJob(j) {
   if (!j) return false;
   if (isLillyJob(j)) return false;
   const k = (j.kind || '').toLowerCase();
-  return ['magnet', 'http', 'video', 'github', 'hf', 'website_archive', 'sync'].includes(k);
+  return ['magnet', 'http', 'video', 'github', 'hf', 'github_repo', 'huggingface_repo', 'website_archive', 'sync'].includes(k);
 }
 
 function miniQueueProgressBar(j) {
@@ -4991,7 +4994,11 @@ async function queueDownload(opts) {
     runSearch();
     return;
   }
-  if (!driveId || !folderId) { setMsg('Pick a drive and folder', false); return; }
+  let kindVal = document.getElementById('kind').value;
+  // "Select files" keeps the legacy drive download; whole repos go to the TNAS archive.
+  if (kindVal === 'huggingface_repo' && hfMode === 'files' && hfSelectedFiles.size) kindVal = 'hf';
+  const archiveRootKind = ['github_repo', 'huggingface_repo'].includes(kindVal);
+  if (!archiveRootKind && (!driveId || !folderId)) { setMsg('Pick a drive and folder', false); return; }
   const btn = document.getElementById('go');
   btn.disabled = true;
   setMsg('');
@@ -4999,9 +5006,9 @@ async function queueDownload(opts) {
   const body = {
     url: urlVal,
     title: document.getElementById('title').value.trim(),
-    kind: isArchive ? 'website_archive' : document.getElementById('kind').value,
-    drive_id: driveId,
-    folder_id: folderId,
+    kind: isArchive ? 'website_archive' : kindVal,
+    drive_id: driveId || '',
+    folder_id: folderId || '',
     tags: Array.from(new Set([...selectedTags, ...pendingTorrentTags])),
     high_priority: downloadForm.high_priority.checked,
     notify_on_complete: downloadForm.notify_on_complete.checked,

@@ -2,7 +2,7 @@
 
 Purpose: run ``bucket-hub-repo-archiver`` in Gluetun's network namespace.
 
-Inputs: mode (``github_mirror``), work directory mount, env dict (tokens).
+Inputs: mode (``github_mirror`` or ``hf_snapshot``), work directory mount, env dict (tokens).
 
 Outputs: parsed JSON result dict from the container entry script.
 
@@ -21,11 +21,33 @@ from pathlib import Path
 from typing import Any, Protocol
 
 
+HF_TIMEOUT_S = 12 * 3600
+GITHUB_TIMEOUT_S = 4 * 3600
+
+
+class ArchiverError(RuntimeError):
+    """Archiver failure; ``kind`` is ``gated``, ``not_found`` or ``failed``."""
+
+    def __init__(self, message: str, kind: str = "failed") -> None:
+        super().__init__(message)
+        self.kind = kind
+
+
 class RepoRunner(Protocol):
     def run_github_mirror(
         self,
         *,
         clone_url: str,
+        work_dir: Path,
+        env: dict[str, str],
+    ) -> dict[str, Any]:
+        ...
+
+    def run_hf_snapshot(
+        self,
+        *,
+        repo_id: str,
+        spec: dict[str, Any],
         work_dir: Path,
         env: dict[str, str],
     ) -> dict[str, Any]:
@@ -39,6 +61,14 @@ class RecordingRepoRunner:
     calls: list[dict[str, Any]] = field(default_factory=list)
     payload_bytes: int = 1024
     raise_error: str | None = None
+    raise_kind: str = "failed"
+    hf_files: dict[str, bytes] = field(
+        default_factory=lambda: {
+            "README.md": b"---\nlicense: mit\n---\n# tiny\n",
+            "config.json": b"{}",
+            "model.safetensors": b"w" * 2048,
+        }
+    )
 
     def run_github_mirror(
         self,
@@ -70,6 +100,36 @@ class RecordingRepoRunner:
             "commit_sha": "deadbeef",
             "readme_text": readme.read_text(encoding="utf-8"),
         }
+
+
+    def run_hf_snapshot(
+        self,
+        *,
+        repo_id: str,
+        spec: dict[str, Any],
+        work_dir: Path,
+        env: dict[str, str],
+    ) -> dict[str, Any]:
+        self.calls.append(
+            {
+                "mode": "hf_snapshot",
+                "repo_id": repo_id,
+                "spec": dict(spec),
+                "work_dir": str(work_dir),
+                "env_keys": sorted(env.keys()),
+            }
+        )
+        if self.raise_error:
+            raise ArchiverError(self.raise_error, self.raise_kind)
+        snap = work_dir / "snapshot"
+        snap.mkdir(parents=True, exist_ok=True)
+        for name, data in self.hf_files.items():
+            path = snap / name
+            path.parent.mkdir(parents=True, exist_ok=True)
+            path.write_bytes(data)
+        if self.payload_bytes:
+            (snap / "payload.bin").write_bytes(b"x" * self.payload_bytes)
+        return {"ok": True, "revision_sha": spec.get("revision")}
 
 
 def container_name_for(work_dir: Path) -> str:
@@ -107,6 +167,31 @@ class DockerRepoRunner:
         work_dir: Path,
         env: dict[str, str],
     ) -> dict[str, Any]:
+        return self._run(["github_mirror", clone_url], work_dir, env, GITHUB_TIMEOUT_S)
+
+    def run_hf_snapshot(
+        self,
+        *,
+        repo_id: str,
+        spec: dict[str, Any],
+        work_dir: Path,
+        env: dict[str, str],
+    ) -> dict[str, Any]:
+        # The spec carries patterns and the revision only; tokens stay in the env file.
+        return self._run(
+            ["hf_snapshot", repo_id, json.dumps(spec, separators=(",", ":"))],
+            work_dir,
+            env,
+            HF_TIMEOUT_S,
+        )
+
+    def _run(
+        self,
+        args: list[str],
+        work_dir: Path,
+        env: dict[str, str],
+        timeout: int,
+    ) -> dict[str, Any]:
         work_dir.mkdir(parents=True, exist_ok=True)
         name = container_name_for(work_dir)
         # A container left by a killed worker would race this clone for the same partial dir.
@@ -134,19 +219,34 @@ class DockerRepoRunner:
                 "-v",
                 f"{work_dir.resolve()}:/work",
                 self.image,
-                "github_mirror",
-                clone_url,
+                *args,
             ]
             proc = subprocess.run(
                 cmd,
                 capture_output=True,
                 text=True,
-                timeout=4 * 3600,
+                timeout=timeout,
             )
+            result = _last_json_line(proc.stdout)
             if proc.returncode != 0:
-                raise RuntimeError(proc.stderr or proc.stdout or "repo archiver failed")
-            line = (proc.stdout or "").strip().splitlines()[-1]
-            return json.loads(line)
+                if result and result.get("error"):
+                    raise ArchiverError(str(result["error"]), str(result.get("error_kind") or "failed"))
+                raise ArchiverError(proc.stderr or proc.stdout or "repo archiver failed")
+            if result is None:
+                raise ArchiverError("repo archiver printed no result")
+            return result
         finally:
             if env_path and os.path.isfile(env_path):
                 os.unlink(env_path)
+
+
+def _last_json_line(stdout: str | None) -> dict[str, Any] | None:
+    for line in reversed((stdout or "").strip().splitlines()):
+        line = line.strip()
+        if line.startswith("{"):
+            try:
+                data = json.loads(line)
+            except json.JSONDecodeError:
+                return None
+            return data if isinstance(data, dict) else None
+    return None

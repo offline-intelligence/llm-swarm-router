@@ -1,5 +1,25 @@
 # Changelog
 
+## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
+
+**Packet:** AP-4 (`pm/ap-4`), written by the PM; Cursor deploys.
+
+**Why:** Hugging Face models and datasets had no archive lane: the only option was the legacy `hf` job, a shallow `git clone` to a library drive with no index entry, no size guard and (inferred from code) LFS pointers instead of weights. Live bug found on the way: legacy `hf` / `github` jobs were created without a `destination_path`.
+
+**What changed:**
+
+- New `huggingface_repo` kind and `repo_archive_hf.py`: models and datasets (Spaces rejected), metadata pre-check, `prefer_safetensors` / `allow_patterns` / `ignore_patterns`, `max_size_mb` (pre-check, post-check at 110 %), snapshot pinned to the revision sha, model card as `README.md`, index entry (`source_id` `hf:<type>/<id>`, `file_summary`, licence, pipeline tag) and sidecars, dedupe unless `refresh`.
+- Archiver image `:4`: `hf_snapshot` via `huggingface_hub==0.26.2`; `HF_TOKEN` (optional, gated models) via env only. Readable errors for not found / gated.
+- `repo_runner`: `run_hf_snapshot`, `ArchiverError` kinds; Docker runner parses the archiver's JSON result line.
+- `index_writer`: `build_hf_entry`, `file_summary`, `scrub_free_text` (also on GitHub readme excerpts).
+- `app.py`: drive check skipped only for archive-root and repo-meta kinds (restores `destination_path` for legacy `hf`/`github`); huggingface.co URLs detect `huggingface_repo`.
+- `form.html`: "GitHub repo (TNAS archive)", "Hugging Face repo (TNAS archive)", "Hugging Face files (to drive)".
+- `repo_archive_hf.py` added to both deploy manifests. New `scripts/smoke-ap4-hf.sh`. Tests: 193 → 217 passed.
+
+Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1.json`): integrate + parity + image `:4` ok; `REPO_ARCHIVER_IMAGE=:4` not set; smoke not run.
+
+QC r1b **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1b.json`): Pi `hub-form.service` reload; worker restart; `smoke-ap4-hf.sh` 7/7; real weights on TNAS.
+
 ## 2026-10-12 — AP-3.1 repo lane fast-follow (PM)
 
 **Packet:** AP-3.1 (`pm/ap-3.1`), written by the PM; Cursor deploys.

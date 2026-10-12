@@ -1,0 +1,290 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-4",
+  "round": "1b",
+  "generated_at": "2026-10-12T16:25:00+10:00",
+  "git": {
+    "branch": "pm/ap-4",
+    "head": "5288074143e96ab96951f890ec138c9710c3202c",
+    "base": "offline-intelligence/main@ea1349f84d869cda40e75eb3316efa5b93589a89",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/6",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "info.pr5_state",
+      "status": "pass",
+      "value": { "state": "OPEN", "isDraft": false },
+      "expected": "from r1",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "info.legacy_hf_lfs",
+      "status": "pass",
+      "value": {
+        "job_id": "14835f682592",
+        "starts_with_lfs_pointer": false
+      },
+      "expected": "real weights",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "git.rebase",
+      "status": "skip",
+      "value": null,
+      "expected": "n/a r1b",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "217 passed, 97 warnings in 6.26s",
+      "expected": "217 passed",
+      "evidence": "carried from AP-4-r1.json",
+      "log": "/tmp/ap4r1-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "2f1b5ac0e5a08e5b7f46ab1aa7288fab6097d995",
+      "expected": "pushed",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/6",
+      "expected": "draft PR",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "parity ok pi",
+      "evidence": "carried from AP-4-r1.json",
+      "log": "/tmp/ap4r1-deploy.pi_parity.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "parity ok worker",
+      "evidence": "carried from AP-4-r1.json",
+      "log": "/tmp/ap4r1-deploy.worker_parity.log"
+    },
+    {
+      "id": "deploy.image_build",
+      "status": "pass",
+      "value": "sha256:d2f7c8b4a66945316bc497fc58d57daed6d4722dbcb413842d241aaf639b54ea",
+      "expected": "image :4",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.image_hf_version",
+      "status": "pass",
+      "value": "0.26.2",
+      "expected": "0.26.2",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.form_kinds",
+      "status": "pass",
+      "value": { "path": "http://100.85.42.0:3000/hub-form/", "count": 1 },
+      "expected": "huggingface_repo in form",
+      "evidence": "carried from AP-4-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_service",
+      "status": "pass",
+      "value": {
+        "how": "systemd user unit hub-form.service",
+        "restart_cmd": "ssh stackrise-pi 'systemctl --user restart hub-form.service'"
+      },
+      "expected": "restart exit 0",
+      "evidence": "unit active after restart",
+      "log": "/tmp/ap4r1b-s1-pi-discover.log"
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "process_lstart": "Mon Oct 12 16:16:09 2026",
+        "app_py_mtime": "2026-10-12 15:47:10 +1000",
+        "pid": 18648
+      },
+      "expected": "process newer than app.py mtime",
+      "evidence": "ps -o lstart vs stat app.py",
+      "log": "/tmp/ap4r1b-deploy.pi_app_reloaded.log"
+    },
+    {
+      "id": "deploy.env_image",
+      "status": "pass",
+      "value": 1,
+      "expected": "grep count 1",
+      "evidence": "closes r1 F1",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "active after restart",
+      "evidence": "systemctl --user restart hub-worker",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "pass",
+      "value": 0,
+      "expected": "0 loop error lines in 2 min",
+      "evidence": "journalctl grep after 120s",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_kind_detect",
+      "status": "pass",
+      "value": {
+        "kind": "huggingface_repo",
+        "id": "221125d392df",
+        "status": "done",
+        "note": null
+      },
+      "expected": "Auto URL -> huggingface_repo done",
+      "evidence": "POST tiny-random-gpt2 URL without kind",
+      "log": null
+    },
+    {
+      "id": "smoke.precheck",
+      "status": "pass",
+      "value": { "slot_repo": 1, "active_repo": 0 },
+      "evidence": "repo lane idle",
+      "expected": "active_repo 0",
+      "log": "/tmp/ap4r1b-smoke.log"
+    },
+    {
+      "id": "smoke.h1_done",
+      "status": "pass",
+      "value": {
+        "id": "b1fd5eb4294c",
+        "download_dir": "huggingface-daily/2026-10-12/models__hf-internal-testing__tiny-random-gpt2",
+        "note": "Complete"
+      },
+      "evidence": "hf-internal-testing/tiny-random-gpt2 done",
+      "expected": "done",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "smoke.h1_index",
+      "status": "pass",
+      "value": {
+        "source_id": "hf:model/hf-internal-testing/tiny-random-gpt2",
+        "revision_sha": "71034c5d8bde858ff824298bdedc65515b97d2b9",
+        "size_bytes": 489376
+      },
+      "evidence": "index entry complete",
+      "expected": "pass",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "smoke.h1_no_dup_weights",
+      "status": "pass",
+      "value": { ".safetensors": 1 },
+      "evidence": "safetensors only",
+      "expected": "pass",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "smoke.h2_dedupe",
+      "status": "pass",
+      "value": { "job": "79dd6f2b73ad", "note": "Already archived on 2026-10-12" },
+      "evidence": "dedupe",
+      "expected": "pass",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "smoke.space_rejected",
+      "status": "pass",
+      "value": "Hugging Face Spaces are not archived (models and datasets only)",
+      "evidence": "Space rejected",
+      "expected": "pass",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "smoke.missing_repo",
+      "status": "pass",
+      "value": "Repository not found or private",
+      "evidence": "readable not-found",
+      "expected": "pass",
+      "log": "/tmp/ap4r1b-smoke-qc.json"
+    },
+    {
+      "id": "live.hf_layout",
+      "status": "pass",
+      "value": [
+        "snapshot",
+        ".hub-provenance-b1fd5eb4294c.json",
+        ".hub-tags-b1fd5eb4294c.json"
+      ],
+      "expected": "snapshot, sidecars; README.md when card exists",
+      "evidence": "no README.md for tiny-random-gpt2 (no card file)",
+      "log": "/tmp/ap4r1b-live.hf_layout.log"
+    },
+    {
+      "id": "live.hf_real_weights",
+      "status": "pass",
+      "value": { "file": "model.safetensors", "bytes": 453864, "lfs_pointer": 0 },
+      "expected": ">10000 bytes, LFS grep 0",
+      "evidence": "head -c 40 git-lfs count 0",
+      "log": "/tmp/ap4r1b-live.hf_real_weights.log"
+    },
+    {
+      "id": "live.no_partials",
+      "status": "pass",
+      "value": 0,
+      "expected": "0",
+      "evidence": "wc partial dirs",
+      "log": "/tmp/ap4r1b-live.no_partials.log"
+    },
+    {
+      "id": "live.index_rows",
+      "status": "pass",
+      "value": [
+        { "kind": "huggingface_repo", "status": "archived", "source_id": "hf:model/hf-internal-testing/tiny-random-gpt2" }
+      ],
+      "expected": "tail includes hf tiny-random-gpt2",
+      "evidence": "tail -3 download-index.jsonl",
+      "log": "/tmp/ap4r1b-live.index_rows.log"
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "skip",
+      "value": null,
+      "expected": "0 only or skip",
+      "evidence": "HF_TOKEN unset",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "Pi hub-form runs as user unit hub-form.service (uvicorn :3020), not sudo systemctl hub-form"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1b.json",
+    "homelab/bucket-hub/docs/testing/AP-4-test-report.md",
+    "homelab/bucket-hub/docs/testing/AP-3-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/05-OPERATIONS-SSH-DEPLOY.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

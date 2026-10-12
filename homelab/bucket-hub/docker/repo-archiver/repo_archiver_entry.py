@@ -1,7 +1,9 @@
 #!/usr/bin/env python3
-"""Repo archiver container entry (GitHub mirror mode).
+"""Repo archiver container entry (GitHub mirror and Hugging Face snapshot modes).
 
-Reads mode from argv[1], clone URL from argv[2]. Prints one JSON line on stdout.
+``github_mirror <clone_url>`` or ``hf_snapshot <repo_id> <spec-json>``. Prints one JSON
+line on stdout; on a known failure prints ``{"ok": false, "error_kind", "error"}`` and
+exits 3. Tokens come from the environment (``--env-file``), never argv.
 
 The archive is a bare repo holding branches and tags only. ``git clone --mirror``
 also copies GitHub's ``refs/pull/*`` (every PR head, including fork commits), which
@@ -111,15 +113,60 @@ def github_mirror(clone_url: str) -> dict:
     }
 
 
+def _hf_error_kind(exc: BaseException) -> str:
+    """Map huggingface_hub errors to ``gated`` / ``not_found`` / ``failed`` by class name."""
+    names = {c.__name__ for c in type(exc).__mro__}
+    if "GatedRepoError" in names:
+        return "gated"
+    if names & {"RepositoryNotFoundError", "RevisionNotFoundError", "EntryNotFoundError"}:
+        return "not_found"
+    status = getattr(getattr(exc, "response", None), "status_code", None)
+    if status in (401, 403):
+        return "gated"
+    if status == 404:
+        return "not_found"
+    return "failed"
+
+
+def hf_snapshot(repo_id: str, spec: dict) -> dict:
+    """``snapshot_download`` into ``/work/snapshot`` and copy the card to ``/work/README.md``."""
+    from huggingface_hub import snapshot_download
+
+    work = Path("/work")
+    work.mkdir(parents=True, exist_ok=True)
+    snap = work / "snapshot"
+    snapshot_download(
+        repo_id=repo_id,
+        repo_type=spec.get("repo_type") or "model",
+        revision=spec.get("revision") or "main",
+        local_dir=str(snap),
+        allow_patterns=spec.get("allow_patterns"),
+        ignore_patterns=spec.get("ignore_patterns"),
+        token=os.environ.get("HF_TOKEN") or None,
+    )
+    card = snap / "README.md"
+    if card.is_file():
+        (work / "README.md").write_text(card.read_text(encoding="utf-8", errors="replace"), encoding="utf-8")
+    return {"ok": True, "revision_sha": spec.get("revision"), "card": card.is_file()}
+
+
 def main() -> int:
     mode = sys.argv[1] if len(sys.argv) > 1 else ""
-    if mode != "github_mirror":
-        print(json.dumps({"ok": False, "error": f"unknown mode {mode}"}))
-        return 2
-    url = sys.argv[2]
-    result = github_mirror(url)
-    print(json.dumps(result))
-    return 0
+    if mode == "github_mirror":
+        print(json.dumps(github_mirror(sys.argv[2])))
+        return 0
+    if mode == "hf_snapshot":
+        os.environ.setdefault("HF_HUB_DISABLE_TELEMETRY", "1")
+        os.environ.setdefault("HF_HUB_ENABLE_HF_TRANSFER", "0")
+        try:
+            result = hf_snapshot(sys.argv[2], json.loads(sys.argv[3]))
+        except Exception as exc:  # noqa: BLE001
+            print(json.dumps({"ok": False, "error_kind": _hf_error_kind(exc), "error": str(exc)[:500]}))
+            return 3
+        print(json.dumps(result))
+        return 0
+    print(json.dumps({"ok": False, "error": f"unknown mode {mode}"}))
+    return 2
 
 
 if __name__ == "__main__":
