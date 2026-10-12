@@ -4,6 +4,8 @@
 
 **Why:** Finn wants every download indexed for a person and for a machine, and the index to change when something is deleted. **What changed:** `download_record.py` merges the Pi journal (entries, note edits, delete tombstones); `/api/index/search`, `/card`, `PATCH` note, `/export?since=<cursor>`, `/sources`, `POST /entries`; finished jobs record `segment`/`preset`/`saves_to`; Storage delete and cancel + purge mark records `deleted`; deletes and syncs no longer appear as downloads; GitHub/HF archives get `ABOUT-THIS-DOWNLOAD.md`; `scripts/rebuild-download-index.py --from-jobs`. Tests 286 → 301. Doc `homelab/bucket-hub/docs/DOWNLOAD-INDEX.md`.
 
+Deployed 2026-10-12, QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r2.json`).
+
 ## 2026-10-12 — AP-4.2 Hugging Face access re-check schedule (PM)
 
 **Why:** Finn wanted the Hub to re-check a gated model soon after he accepts, not every 10 min. **What changed:** re-checks after 1, 5 and 30 min, then hourly (`HF_GATE_SCHEDULE_S`); Check now kept and does not reset the schedule; `gate.state = granted` while the download runs; manual gates say "Approval needed" / "Request access"; cards and the queue bar show "Next automatic check in N min". Tests 279 → 286. Spec `homelab/bucket-hub/docs/pm/2026-10/AP-4.2-gate-schedule.md`.

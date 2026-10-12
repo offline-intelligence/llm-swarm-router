@@ -36,8 +36,9 @@
 
 | Check | Result |
 |-------|--------|
-| Unit (integrator) | **fail** — 300 passed, 1 failed (`test_entry_hf_error_kinds` / `GatedRepoError` needs `response=`) |
-| Deploy + smoke X1–X7 | **skipped** (blocked on unit) |
+| Unit (integrator) r1 | **fail** — 300 passed, 1 failed (`test_entry_hf_error_kinds` / `GatedRepoError` needs `response=`) |
+| Unit (integrator) r2 | **pass** — 301 passed (`huggingface_hub==0.26.2`); `test_repo_archive_hf.py` on 2.2.0 |
+| Deploy + smoke X1–X7 r2 | **pass** — 7/7; X7 dry-run `to_write` 27 |
 | Finn card (S3) | **not run** |
 
-QC: `docs/pm/2026-10/qc/AP-5a1-r1.json` (**overall fail**).
+QC: `docs/pm/2026-10/qc/AP-5a1-r1.json` (**overall fail**); `docs/pm/2026-10/qc/AP-5a1-r2.json` (**overall pass**).

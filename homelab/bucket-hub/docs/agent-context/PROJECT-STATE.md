@@ -143,7 +143,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (`/ping` 000), so AP-UX-1 R0 compared Jellyfin only. Ops investigation.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
-- [ ] AP-5a.1 per-download record (Pi journal API: search, card, note, export cursor, sources, entries; delete tombstones; `ABOUT-THIS-DOWNLOAD.md` for GitHub/HF; back-fill dry run) — **code done** on `pm/ap-5a1` (301 tests); Cursor `docs/pm/2026-10/handoffs/AP-5a1.md`. Operator doc `docs/DOWNLOAD-INDEX.md`.
+- [x] AP-5a.1 per-download record (Pi journal API: search, card, note, export cursor, sources, entries; delete tombstones; `ABOUT-THIS-DOWNLOAD.md` for GitHub/HF; back-fill dry run) — QC r2 **pass** `docs/pm/2026-10/qc/AP-5a1-r2.json` (2026-10-12 deploy + smoke 7/7). Operator doc `docs/DOWNLOAD-INDEX.md`. PR #11 ready for merge.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
 - [ ] AP-5b Index panel + search proxy/fallback; AP-5c website/video builders and sidecars — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md`.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
@@ -197,6 +197,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-5a.1 QC r2** (`docs/pm/2026-10/qc/AP-5a1-r2.json`): **pass** — PM test fix `d39f4ea`; 301 unit tests (`huggingface_hub==0.26.2`); Pi/worker deploy + parity; smoke X1–X7 7/7; PR #11 marked ready (not merged). |
 | 2026-10-12 | **AP-5a.1 QC r1** (`docs/pm/2026-10/qc/AP-5a1-r1.json`): **fail** — rebase onto `main` ok; `unit.pytest` 300/301 (`test_entry_hf_error_kinds` vs newer `huggingface_hub`); deploy/smokes skipped. |
 | 2026-10-12 | PM confirmed AP-UX-1 r2 + AP-4.2 r1 pass (s_second_gap 369 s = 60 + poll + 300; s_granted_state skip covered by unit S4). Split AP-5a into **5a.1** (per-download record on the Pi) and **5a.2** (ai-server catalogue). Built AP-5a.1 on `pm/ap-5a1`: `download_record.py`, `/api/index/*` (search, card, note, export with byte cursor, sources, entries), tombstones on Storage delete and purge, housekeeping kinds no longer journalled, `ABOUT-THIS-DOWNLOAD.md` for GitHub/HF, `rebuild-download-index.py --from-jobs`; 301 tests. Cursor prompt `handoffs/AP-5a1.md`. |
 | 2026-10-12 | PM closed AP-UX-1 r2 and AP-4.2 r1 on integrator browser QC forwarded by Finn (`PM-PASTE-2026-10-12-browser-qc.md`). #queueLicenceBar "hidden" was the test view: the queue panel only renders with `?panel=hub` or `?panel=queue`. PRs #7, #8, #9 merged to main; #9 merged before its QC passed (rule restated: merge only after overall = pass). Next PM build: AP-5a per-download index. |
