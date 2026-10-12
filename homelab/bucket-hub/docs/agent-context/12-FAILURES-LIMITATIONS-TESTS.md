@@ -7,7 +7,7 @@ Audience: audit agent. QC runbook: [`QC-SYSTEM-PROCESSES.md`](../QC-SYSTEM-PROCE
 | Incident | Cause | Mitigation |
 |----------|-------|------------|
 | BB/Office complete packs failed | Size, dead swarms, HTTP 400 | Season-by-season; dismiss jobs; purge partials |
-| Jellyfin missing BB S01 | Sonarr import path / API unreachable | `SONARR_URL=127.0.0.1:8989` in Gluetun; manual DownloadedEpisodesScan |
+| Jellyfin missing BB S01 / Office S03 | Sonarr API unreachable from the host worker (`Connection reset by peer`, OPS-ARR2) | `arr_client.py --check`; transport per `docs/pm/2026-10/OPS-ARR2-arr-reachability.md` (`SONARR_VIA_DOCKER=sonarr` or a working URL); manual DownloadedEpisodesScan for one download |
 | Jobs visible after file delete | Job JSON persists until **dismiss** | `POST …/dismiss`, `dismiss-queue`; done jobs dismissable (2026-10) |
 | hub-form crash on deploy | `app.py` imports `job_health` without file on Pi | Deploy `job_health.py` with `app.py` |
 | TNAS WoL no response | NAS hard off or WoL disabled in TOS | Physical power; enable WoL in NAS UI |

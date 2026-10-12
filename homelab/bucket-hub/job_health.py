@@ -150,13 +150,16 @@ def evaluate_job_health(
             )
 
     pipeline = job.get("media_pipeline") or {}
-    if pipeline.get("sonarr") == "add_failed" and status == "running":
+    sonarr_code = pipeline.get("sonarr")
+    unreachable = "api_unreachable" in (sonarr_code, pipeline.get("sonarr_scan"))
+    if (unreachable or sonarr_code == "add_failed") and status == "running":
         return _review(
-            code="sonarr_import_failed",
+            code="sonarr_unreachable" if unreachable else "sonarr_import_failed",
             title="Sonarr import did not run",
             summary=(
-                f"“{title}” finished downloading but Sonarr ensure/scan failed "
-                "(worker could not reach Sonarr API on the host)."
+                f"“{title}” finished downloading but the worker could not reach the Sonarr API."
+                if unreachable
+                else f"“{title}” finished downloading but Sonarr refused to add the series."
             ),
             evidence={"media_pipeline": pipeline},
             playbook=_sonarr_playbook(),
@@ -275,7 +278,10 @@ def _complete_stuck_playbook(job: dict[str, Any]) -> list[str]:
 
 def _sonarr_playbook() -> list[str]:
     return [
-        "Call Sonarr API from inside the Gluetun network (`docker exec sonarr curl …`).",
-        "Set `SONARR_URL=http://127.0.0.1:8989` in `hub-worker.env` (not host LAN IP).",
-        "After import, trigger Jellyfin library refresh.",
+        "On ai-server run `python3 ~/homelab/scripts/arr_client.py --check` with `hub-worker.env` loaded "
+        "(the same path the worker uses).",
+        "If Sonarr is `api_unreachable` over HTTP, set `SONARR_VIA_DOCKER=sonarr` in `hub-worker.env` "
+        "and restart hub-worker (see `docs/MEDIA-JELLYFIN-PIPELINE.md` § Worker → Sonarr/Radarr).",
+        "Import this download now: Sonarr **Downloaded Episodes Scan** on its folder under `/data/torrents/`, "
+        "then a Jellyfin library refresh.",
     ]

@@ -31,6 +31,8 @@ from download_destinations import (
     validate_aria2_destination,
 )
 from index_writer import build_torrent_entry
+import arr_client
+from arr_client import ArrUnreachable
 from job_kinds import REPO_META_KINDS, dispatch_route, is_aria2_job
 from repo_archive_github import configure as configure_repo_archive
 from repo_archive_github import run_github_repo_job
@@ -81,6 +83,9 @@ SONARR_URL = os.environ.get("SONARR_URL", "http://127.0.0.1:8989").rstrip("/")
 SONARR_API_KEY = os.environ.get("SONARR_API_KEY", "")
 RADARR_URL = os.environ.get("RADARR_URL", "http://127.0.0.1:7878").rstrip("/")
 RADARR_API_KEY = os.environ.get("RADARR_API_KEY", "")
+# OPS-ARR2: transport (HTTP or `docker exec`) and error split live in arr_client.
+SONARR = arr_client.target("sonarr")
+RADARR = arr_client.target("radarr")
 METUBE_URL = os.environ.get("METUBE_URL", "http://127.0.0.1:8089").rstrip("/")
 POLL_S = float(os.environ.get("WORKER_POLL_S", "8"))
 SEARCH_POLL_DURING_DOWNLOAD_S = float(
@@ -2792,11 +2797,7 @@ def _sonarr_lookup_pick(term: str) -> dict[str, Any] | None:
     q = (term or "").strip()
     if not q or not SONARR_API_KEY:
         return None
-    data = _http_json(
-        f"{SONARR_URL}/api/v3/series/lookup?term={quote(q)}",
-        headers={"X-Api-Key": SONARR_API_KEY},
-        timeout=20.0,
-    )
+    data = arr_client.request(SONARR, "GET", f"/api/v3/series/lookup?term={quote(q)}", timeout=20.0)
     if not isinstance(data, list) or not data:
         return None
     pick = data[0]
@@ -2815,15 +2816,13 @@ def _sonarr_series_in_library(tvdb_id: Any) -> bool:
     if tvdb_id is None or not SONARR_API_KEY:
         return False
     try:
-        lib = _http_json(
-            f"{SONARR_URL}/api/v3/series",
-            headers={"X-Api-Key": SONARR_API_KEY},
-            timeout=20.0,
-        )
+        lib = arr_client.request(SONARR, "GET", "/api/v3/series", timeout=20.0)
         if isinstance(lib, list):
             return any(
                 isinstance(s, dict) and s.get("tvdbId") == tvdb_id for s in lib
             )
+    except ArrUnreachable:
+        raise
     except Exception:  # noqa: BLE001
         pass
     return False
@@ -2837,16 +2836,8 @@ def _sonarr_profile_ids() -> tuple[int, int]:
     global _sonarr_profile_cache
     if _sonarr_profile_cache is not None:
         return _sonarr_profile_cache
-    qp = _http_json(
-        f"{SONARR_URL}/api/v3/qualityprofile",
-        headers={"X-Api-Key": SONARR_API_KEY},
-        timeout=15.0,
-    )
-    lp = _http_json(
-        f"{SONARR_URL}/api/v3/languageprofile",
-        headers={"X-Api-Key": SONARR_API_KEY},
-        timeout=15.0,
-    )
+    qp = arr_client.request(SONARR, "GET", "/api/v3/qualityprofile", timeout=15.0)
+    lp = arr_client.request(SONARR, "GET", "/api/v3/languageprofile", timeout=15.0)
     qid = 1
     lid = 1
     if isinstance(qp, list) and qp:
@@ -2861,11 +2852,7 @@ def _radarr_quality_profile_id() -> int:
     global _radarr_quality_cache
     if _radarr_quality_cache is not None:
         return _radarr_quality_cache
-    qp = _http_json(
-        f"{RADARR_URL}/api/v3/qualityprofile",
-        headers={"X-Api-Key": RADARR_API_KEY},
-        timeout=15.0,
-    )
+    qp = arr_client.request(RADARR, "GET", "/api/v3/qualityprofile", timeout=15.0)
     qid = 1
     if isinstance(qp, list) and qp:
         qid = int(qp[0].get("id") or 1)
@@ -2969,27 +2956,20 @@ def ensure_sonarr_series_for_job(job: dict[str, Any]) -> str:
             language_profile_id=lp,
             release_kind=str(meta.get("release_kind") or ""),
         )
-        _http_post_json(
-            f"{SONARR_URL}/api/v3/series",
-            body,
-            headers={"X-Api-Key": SONARR_API_KEY},
-        )
+        arr_client.request(SONARR, "POST", "/api/v3/series", body)
         print(f"sonarr added series: {body.get('title')}", flush=True)
         return "added"
     except Exception as exc:  # noqa: BLE001
-        print(f"sonarr ensure series failed: {exc}", flush=True)
-        return "add_failed"
+        code = arr_client.classify(exc)
+        print(f"sonarr ensure series failed ({code}): {exc}", flush=True)
+        return code
 
 
 def _radarr_lookup_pick(term: str) -> dict[str, Any] | None:
     q = (term or "").strip()
     if not q or not RADARR_API_KEY:
         return None
-    data = _http_json(
-        f"{RADARR_URL}/api/v3/movie/lookup?term={quote(q)}",
-        headers={"X-Api-Key": RADARR_API_KEY},
-        timeout=20.0,
-    )
+    data = arr_client.request(RADARR, "GET", f"/api/v3/movie/lookup?term={quote(q)}", timeout=20.0)
     if not isinstance(data, list) or not data:
         return None
     pick = data[0]
@@ -3002,15 +2982,13 @@ def _radarr_movie_in_library(tmdb_id: Any) -> bool:
     if tmdb_id is None or not RADARR_API_KEY:
         return False
     try:
-        lib = _http_json(
-            f"{RADARR_URL}/api/v3/movie",
-            headers={"X-Api-Key": RADARR_API_KEY},
-            timeout=20.0,
-        )
+        lib = arr_client.request(RADARR, "GET", "/api/v3/movie", timeout=20.0)
         if isinstance(lib, list):
             return any(
                 isinstance(m, dict) and m.get("tmdbId") == tmdb_id for m in lib
             )
+    except ArrUnreachable:
+        raise
     except Exception:  # noqa: BLE001
         pass
     return False
@@ -3034,16 +3012,27 @@ def ensure_radarr_movie_for_job(job: dict[str, Any]) -> str:
             root_folder="/data/movies",
             quality_profile_id=qid,
         )
-        _http_post_json(
-            f"{RADARR_URL}/api/v3/movie",
-            body,
-            headers={"X-Api-Key": RADARR_API_KEY},
-        )
+        arr_client.request(RADARR, "POST", "/api/v3/movie", body)
         print(f"radarr added movie: {body.get('title')}", flush=True)
         return "added"
     except Exception as exc:  # noqa: BLE001
-        print(f"radarr ensure movie failed: {exc}", flush=True)
-        return "add_failed"
+        code = arr_client.classify(exc)
+        print(f"radarr ensure movie failed ({code}): {exc}", flush=True)
+        return code
+
+
+def _arr_scan(t: "arr_client.ArrTarget", command: str, path: str, ensure_code: str) -> str:
+    """Ask Sonarr/Radarr to import ``path``; ``requested``, ``api_unreachable`` or ``failed``."""
+    if ensure_code == "api_unreachable":
+        return "api_unreachable"  # same API, already failed to answer; do not wait again
+    try:
+        arr_client.request(t, "POST", "/api/v3/command", {"name": command, "path": path})
+        print(f"{t.name} scan requested ({t.transport}): {path}", flush=True)
+        return "requested"
+    except Exception as exc:  # noqa: BLE001
+        code = arr_client.classify(exc)
+        print(f"{t.name} scan failed ({code}): {exc}", flush=True)
+        return "api_unreachable" if code == "api_unreachable" else "failed"
 
 
 def notify_media_libraries_after_torrent(job: dict[str, Any], gid: str) -> None:
@@ -3066,27 +3055,11 @@ def notify_media_libraries_after_torrent(job: dict[str, Any], gid: str) -> None:
 
     if SONARR_API_KEY and _job_is_tv(job):
         pipeline["sonarr"] = ensure_sonarr_series_for_job(job)
-        try:
-            _http_post_json(
-                f"{SONARR_URL}/api/v3/command",
-                {"name": "DownloadedEpisodesScan", "path": sonarr_path},
-                headers={"X-Api-Key": SONARR_API_KEY},
-            )
-            print(f"sonarr scan requested: {sonarr_path}", flush=True)
-        except Exception as exc:  # noqa: BLE001
-            print(f"sonarr scan failed: {exc}", flush=True)
+        pipeline["sonarr_scan"] = _arr_scan(SONARR, "DownloadedEpisodesScan", sonarr_path, pipeline["sonarr"])
 
     if RADARR_API_KEY and _job_is_movie(job):
         pipeline["radarr"] = ensure_radarr_movie_for_job(job)
-        try:
-            _http_post_json(
-                f"{RADARR_URL}/api/v3/command",
-                {"name": "DownloadedMoviesScan", "path": sonarr_path},
-                headers={"X-Api-Key": RADARR_API_KEY},
-            )
-            print(f"radarr scan requested: {sonarr_path}", flush=True)
-        except Exception as exc:  # noqa: BLE001
-            print(f"radarr scan failed: {exc}", flush=True)
+        pipeline["radarr_scan"] = _arr_scan(RADARR, "DownloadedMoviesScan", sonarr_path, pipeline["radarr"])
 
     if JELLYFIN_API_KEY:
         try:
