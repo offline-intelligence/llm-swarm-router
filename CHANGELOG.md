@@ -1,5 +1,19 @@
 # Changelog
 
+## 2026-10-12 — AP-4.1 gated Hugging Face repos: one-click licence (PM)
+
+**Packet:** AP-4.1 (`pm/ap-4.1`, on top of `pm/ap-4`), written by the PM; Cursor deploys.
+
+**Why:** pasting HF links is the main use case (Finn). A gated model ended in "accept the licence and retry". Hugging Face has no user-side accept API, so Finn chose one click: the Hub waits and downloads by itself after he accepts.
+
+**What changed:**
+
+- Gated repos are probed after metadata (`HEAD …/resolve/<sha>/<file>`, token over stdin). No access → job `queued` with a `gate` record and `not_before` (`HF_GATE_RECHECK_S`, 600 s); no `HF_TOKEN` → `needs_token`; expires after `HF_GATE_MAX_WAIT_H` (168 h).
+- `POST /api/jobs/{id}/gate-check` ("Check now"); `PATCH` accepts `gate` (null clears); Retry clears it.
+- Hub UI: "Licence needed" pill, Accept licence + Check now on the job, "Waiting for a licence (N)" bar.
+- Index entries: `licence_accepted_by`, `gate_wait_s`.
+- New `scripts/smoke-ap41-gate.sh` (two phases around Finn's click). Tests: 217 → 239 passed.
+
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 
 **Packet:** AP-4 (`pm/ap-4`), written by the PM; Cursor deploys.

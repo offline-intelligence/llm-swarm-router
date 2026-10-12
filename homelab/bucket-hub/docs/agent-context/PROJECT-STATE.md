@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-4 QC r1 blocked on env only; r1b resume issued `docs/pm/2026-10/handoffs/AP-4-r1b.md`; AP-4.1 gated-licence spec drafted)
+**Last updated:** 2026-10-12 (AP-4.1 code on `pm/ap-4.1`; one Cursor prompt `docs/pm/2026-10/handoffs/AP-4.1.md` = AP-4 r1b then AP-4.1 r1)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -42,6 +42,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Index free text is scrubbed (2026-10-12, AP-4):** `index_writer.scrub_free_text()` redacts `ghp_` / `github_pat_` / `hf_` tokens, `Bearer` values and `token=` query strings from readme excerpts and model cards (GitHub and HF).
 - **Form kinds (2026-10-12, AP-4):** the Hub form offers "GitHub repo (TNAS archive)", "Hugging Face repo (TNAS archive)" and "Hugging Face files (to drive)" (legacy `hf`); search results queue the archive kinds; a files-mode HF pick with selected files stays `hf`.
 - **HF gated models (2026-10-12, Finn):** pasting an HF link is the main use case and must not dead-end at a gated licence. AP-4.1 (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`): gated jobs wait as `queued` with `gate.state = awaiting_licence` and re-check every 10 min for 7 days; the Hub shows Accept licence / Check now, so one click finishes the job. `huggingface_hub` has no user-side accept API (owner-side only), so Finn chose **one click** (2026-10-12): no auto-accept, no HF session cookie stored. Gated downloads always need `HF_TOKEN` from the same HF account.
+- **Gated HF jobs are not errors (2026-10-12, AP-4.1):** a gated repo without access is `queued` + `gate` + `not_before`; the worker re-probes with one `HEAD` per `HF_GATE_RECHECK_S`; it errors only after `HF_GATE_MAX_WAIT_H`. The Pi never calls huggingface.co (all HF traffic via the worker's Gluetun), so there is no paste-time licence check; the job shows the state within one claim.
 - **Pi restart command unknown (2026-10-12):** `sudo systemctl restart hub-form` reported "unit not found" in AP-4 r1. r1b finds the real unit/container and fixes `05-OPERATIONS-SSH-DEPLOY.md`. Until then a Pi deploy may leave old `app.py` running even when parity passes.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
 
@@ -96,7 +97,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
 - [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
-- [ ] AP-4.1 HF gated repos: detect gate, `awaiting_licence` wait + auto re-check, Hub Accept-licence / Check-now, one click (Finn, no auto-accept). Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`; after AP-4 QC pass.
+- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). Cursor QC `AP-4.1-r1.json`; needs Finn: `HF_TOKEN`, gated `GATE_REPO`, Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -148,6 +149,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM implemented **AP-4.1** (one-click gated HF licence, Finn's choice) on `pm/ap-4.1`: gate probe + `awaiting_licence`/`needs_token` waits, `gate-check` endpoint, Hub Licence-needed UI, index `licence_accepted_by`; 217 → 239 tests; `smoke-ap41-gate.sh` 7/7 on a local Hub. One Cursor prompt issued: AP-4 r1b, then AP-4.1 r1. |
 | 2026-10-12 | PM review of AP-4 QC r1 (`AP-4-r1.json`): blocked on env only (F1, image `:4` not set); since fixed with Finn's OK. Legacy `hf` downloads had real weights, not LFS pointers (PM inference was wrong). Issued r1b: Pi app reload check, worker restart, smoke + disk checks. Finn's gated-licence requirement specced as AP-4.1. |
 | 2026-10-12 | **AP-4 QC r1b** (`docs/pm/2026-10/qc/AP-4-r1b.json`): **overall pass** — `hub-form.service` reload, worker restart, URL→`huggingface_repo`, smoke 7/7, `model.safetensors` 453864 B (not LFS). |
 | 2026-10-12 | **AP-4 QC r1** (`docs/pm/2026-10/qc/AP-4-r1.json`): 217 tests; draft PR #6 (base `pm/ap-3.1`); Pi/worker parity + image `:4` built; **blocked** on `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env — smoke not run. Legacy hf LFS check: real weights at SmokeTest. |

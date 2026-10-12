@@ -48,3 +48,16 @@ Enqueue a GitHub mirror archive (worker owns destination; `drive_id` / `folder_i
 ```
 
 **Response (200):** `{ "ok": true, "job": { ... } }` with `options` persisted on the job.
+
+## `POST /api/jobs/{id}/gate-check` (AP-4.1)
+
+"Check now" for a `huggingface_repo` job waiting on a licence: clears `not_before` so the next worker claim re-probes access.
+
+- **200:** `{ "ok": true, "job": { ..., "gate": { "state": "awaiting_licence", "gated": "auto", "url": "https://huggingface.co/<id>", "since": "…", "checks": 3, "next_check": "…" } } }`
+- **404:** job missing, or not `queued` with a `gate`.
+
+Job field `gate` is written by the worker via `PATCH /api/jobs/{id}` (`"gate": null` clears it); `POST /api/jobs/{id}/retry` drops it.
+
+```bash
+curl -s -X POST http://100.85.42.0:3000/api/jobs/<id>/gate-check | jq '{ok, gate: .job.gate}'
+```
