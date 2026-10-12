@@ -2,10 +2,10 @@
   "schema": "bucket-hub-qc/v1",
   "packet": "AP-4.1",
   "round": 3,
-  "generated_at": "2026-10-12T19:05:00+10:00",
+  "generated_at": "2026-10-12T19:10:00+10:00",
   "git": {
     "branch": "pm/ap-4.1",
-    "head": "c50f382dff2e9c9c4bc90a84f25769e6e652ebd1",
+    "head": "619fe633bf9dc24e93084238747a86f88c57d46f",
     "base": "main@872dcb4",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/7",
     "rebase_conflicts": []
@@ -36,7 +36,7 @@
       "id": "deploy.gate_endpoint",
       "status": "pass",
       "value": { "http_code": 404, "body": "Job not found" },
-      "expected": "404 detail Job not found",
+      "expected": "404 Job not found",
       "evidence": "carried from AP-4.1-r2.json",
       "log": null
     },
@@ -52,7 +52,7 @@
       "id": "deploy.env_hf_token",
       "status": "pass",
       "value": 1,
-      "expected": "grep '^HF_TOKEN=hf_' count 1",
+      "expected": "count 1",
       "evidence": "carried from AP-4.1-r2.json",
       "log": null
     },
@@ -61,14 +61,14 @@
       "status": "pass",
       "value": "active",
       "expected": "active",
-      "evidence": "carried from AP-4.1-r2.json (no worker restart this round)",
+      "evidence": "carried from AP-4.1-r2.json",
       "log": null
     },
     {
       "id": "deploy.worker_log",
       "status": "pass",
       "value": 0,
-      "expected": "0 error lines",
+      "expected": "0 errors",
       "evidence": "carried from AP-4.1-r2.json",
       "log": null
     },
@@ -87,51 +87,54 @@
         "repo": "google/gemma-2-9b-it",
         "gated": "manual",
         "st_bytes": 18483466448,
-        "head_before": null,
-        "head_before_note": "not run: ai-server-ts SSH timeout; required before phase 1"
+        "head_before": 403
       },
-      "expected": "PM GATE_REPO; manual gating allowed",
-      "evidence": "HF public API from Mac; HEAD probe deferred to resume",
-      "log": null
+      "expected": "GATE_REPO; HEAD 403/401 before accept",
+      "evidence": "HF API + HEAD via ai-server-ts stdin token",
+      "log": "/tmp/ap41r3-head-before.log"
     },
     {
       "id": "smoke.gate_precheck",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": { "gate_repo": "google/gemma-2-9b-it" },
       "expected": "pass",
-      "evidence": "not reached: OPS-HF1-r2 gateway.escape_js fail; Hub unreachable",
-      "log": null
+      "evidence": "PHASE=1 smoke-ap41-gate.sh",
+      "log": "/tmp/ap41r3-p1.log"
     },
     {
       "id": "smoke.gate_check_404",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": 404,
       "expected": "pass",
-      "evidence": "not reached",
-      "log": null
+      "evidence": "PHASE=1",
+      "log": "/tmp/ap41r3-p1.json"
     },
     {
       "id": "smoke.g_waiting",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": {
+        "id": "7407b085aa83",
+        "status": "queued",
+        "gate": { "state": "awaiting_licence", "gated": "manual" }
+      },
       "expected": "pass",
-      "evidence": "not reached",
-      "log": null
+      "evidence": "job parked awaiting_licence",
+      "log": "/tmp/ap41r3-p1.json"
     },
     {
       "id": "smoke.g_waiting_stable",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": { "status": "queued", "checks": 1 },
       "expected": "pass",
-      "evidence": "not reached",
-      "log": null
+      "evidence": "PHASE=1",
+      "log": "/tmp/ap41r3-p1.json"
     },
     {
       "id": "ui.licence_needed",
       "status": "blocked",
       "value": null,
       "expected": "Finn confirms Licence needed UI",
-      "evidence": "phase 1 smoke not run; awaiting Finn accept after resume",
+      "evidence": "awaiting Finn: hard refresh http://100.85.42.0:3000/, Accept licence on HF, reply accepted",
       "log": null
     },
     {
@@ -139,7 +142,7 @@
       "status": "skip",
       "value": null,
       "expected": "HEAD 200 after accept",
-      "evidence": "not reached",
+      "evidence": "awaiting Finn accepted",
       "log": null
     },
     {
@@ -170,7 +173,7 @@
       "id": "info.gate_wait_s",
       "status": "skip",
       "value": null,
-      "expected": "from index row",
+      "expected": "from index",
       "evidence": "not reached",
       "log": null
     },
@@ -211,8 +214,8 @@
       "status": "skip",
       "value": null,
       "expected": "hf_ counts 0 only",
-      "evidence": "not reached",
-      "log": null
+      "evidence": "sampler running; evaluate after phase 2",
+      "log": "/tmp/ap41r3-token-sampler.log"
     },
     {
       "id": "merge.pr5",
@@ -236,30 +239,20 @@
       "value": {
         "base": "main",
         "merged": false,
-        "reason": "OPS-HF1-r2 and AP-4.1-r3 overall not pass"
+        "reason": "AP-4.1-r3 overall blocked (awaiting Finn accept)"
       },
       "expected": "merge if both QC pass",
       "evidence": "gh pr merge skipped",
       "log": null
     }
   ],
-  "findings": [
-    {
-      "id": "F1",
-      "severity": "blocker",
-      "check": "smoke.gate_precheck",
-      "where": "integrator network",
-      "observed": "Pi HTTP and SSH timeout from Mac; ai-server-ts SSH timeout",
-      "expected": "Reach stackrise-pi and ai-server-ts via Tailscale before deploy/smoke",
-      "repro": "ssh -o ConnectTimeout=15 stackrise-pi 'echo ok'; curl --connect-timeout 10 http://100.85.42.0:3000/hub-form/"
-    }
-  ],
+  "findings": [],
   "needs_finn": [
-    "Tailscale on Mac + Pi online; then ask Cursor to resume OPS-HF1 r2 Part A and AP-4.1 r3 from phase 1",
-    "After phase 1 smoke: confirm Licence needed UI and reply accepted (google/gemma-2-9b-it)"
+    "Open http://100.85.42.0:3000/ (hard refresh), confirm job 7407b085aa83 shows Licence needed, Accept licence button, Waiting for a licence (1) bar — reply verbatim",
+    "Accept Gemma licence at https://huggingface.co/google/gemma-2-9b-it (worker HF account), then reply accepted for phase 2"
   ],
   "deviations": [
-    "No worker restart per handoff; homelab unreachable so Part D/E not started"
+    "QC r3 first attempt blocked on network; resumed with Tailscale. Token sampler started before phase 1 (background)."
   ],
   "docs_updated": [
     "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json",

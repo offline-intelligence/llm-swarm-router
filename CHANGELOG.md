@@ -8,7 +8,7 @@
 
 Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r1.json`): glance.yml live drift blocked copy; `hub-escape.js` still 404 on :3000; worker parity ok.
 
-QC r2 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r2.json`): gateway deploy not run — Pi/ai-server unreachable from integrator (SSH/HTTP timeout); resume when Tailscale path works.
+QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r2.json`): gateway Caddy+glance deployed via Tailscale; `hub-escape.js` 200 on :3000.
 
 ## 2026-10-12 — AP-4.1 gated Hugging Face repos: one-click licence (PM)
 
@@ -28,7 +28,7 @@ Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/A
 
 QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r2.json`): `HF_TOKEN` present, worker restarted; PM `GATE_REPO` list exhausted (`gated: manual`); smoke not run; PR #7 retargeted to `main`, not merged.
 
-QC r3 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json`): `GATE_REPO=google/gemma-2-9b-it`; phase 1 not run (depends on OPS-HF1 r2 deploy + network).
+QC r3 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json`): phase 1 smoke 4/4 (`google/gemma-2-9b-it`, job `7407b085aa83`); awaiting Finn licence UI + accepted for phase 2.
 
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 
