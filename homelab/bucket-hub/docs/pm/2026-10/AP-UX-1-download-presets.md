@@ -24,6 +24,7 @@ So a magnet sent from the Firefox add-on lands in `nas/inbox`, while the same ma
 3. **Back-compat:** an old client that sends `drive_id` + `folder_id` and no `preset` is treated as manual (today's behaviour). A client that sends neither gets the preset for its detected kind (today's capture behaviour, now consistent).
 4. **Film torrents use the same flat inbox as TV** (`torrents/` on the Expansion HDD); Radarr imports into `movies/`. Today the form picks `movies/` directly, which bypasses the inbox rule. Cursor confirms Radarr's download-client path matches `torrents/` before deploy (check `R0` below); if it does not, the film preset keeps `movies/` and this row is revisited.
 5. **The Hub never invents `Show/Season` folders** (AP-1 decision stands): presets only pick an existing inbox or library folder.
+6. **Existing connections keep working** (Finn, 2026-10-12). AP-UX-1 changes only where the Hub *sends* new jobs. It does not edit Sonarr, Radarr, aria2, Jellyfin, Jackett or Firefox add-on config, and does not move existing files or jobs. Queued and running jobs keep their stored destination. R0 reads the current Sonarr and Radarr download-client paths and Jellyfin library paths before deploy and again after; any difference is a blocker.
 
 ## Preset registry v1
 
@@ -82,7 +83,8 @@ Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveI
 
 | id | check |
 |----|-------|
-| R0 | Radarr download-client path = Expansion HDD `torrents/` (`curl` Radarr `/api/v3/downloadclient` on ai-server; records the path, no key printed) |
+| R0 | Read-only, before and after deploy: Radarr and Sonarr download-client paths (`/api/v3/downloadclient`) and Jellyfin library paths; Radarr path = Expansion HDD `torrents/` (else film keeps `movies/`); before = after. No key printed |
+| R0b | Existing queued/running jobs keep `destination_path` unchanged after deploy (compare `GET /api/jobs` before/after) |
 | R1 | `GET /api/presets`: every preset `available` (or a reason naming an offline drive) |
 | R2 | `POST /api/presets/resolve` for 5 sample URLs → expected presets |
 | R3 | `POST /api/jobs {preset:"hf_repo"}` for the tiny test model → `done` "Already archived" (no download) |

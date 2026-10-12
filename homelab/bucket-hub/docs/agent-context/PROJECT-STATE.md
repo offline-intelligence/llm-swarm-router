@@ -59,8 +59,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Website archive | “Website copy” = clone-to-disk system ([09-WEBSITE-ARCHIVE-SYSTEM.md](09-WEBSITE-ARCHIVE-SYSTEM.md)); local Docker preview **not built**. |
 | Gateway deploy | `Caddyfile` + `glance.yml` live in `~/homelab/glance/` on the Pi (not `hub-form/`); shipped via the `[gateway]` manifest section, checked by `verify-deploy-parity.sh gateway`. Every `/assets/` file a page uses needs a Caddy route (test enforces it). (2026-10-12) |
 | Pi restart | `ssh stackrise-pi 'systemctl --user restart hub-form.service'` (user unit). (2026-10-12) |
-| Download destinations | One server-side preset registry (`download_presets.py`, AP-UX-1) decides type → place for form, capture, Requests and API; drive/folder only behind "Manually set path". Film torrents default to the flat `torrents/` inbox like TV (Radarr imports), pending R0 check. (PM default 2026-10-12; Finn can change) |
-| Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (PM default 2026-10-12; Finn can change) |
+| Download destinations | One server-side preset registry (`download_presets.py`, AP-UX-1) decides type → place for form, capture, Requests and API; drive/folder only behind "Manually set path". Film torrents default to the flat `torrents/` inbox like TV (Radarr imports). Finn agreed 2026-10-12 provided existing connections keep working: no *arr/aria2/Jellyfin config changes, R0 read-only before/after check. |
+| Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (Finn agreed 2026-10-12) |
 | Priority (2026-10-12) | OPS-HF1 → AP-4.1 QC → MERGE-1 (parallel) → AP-UX-1 → AP-5a/b → hygiene. `docs/pm/2026-10/ROADMAP-2026-10.md`. |
 
 ---
@@ -102,9 +102,10 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
 - [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
-- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; needs Finn: `GATE_REPO`, Accept-licence click (rotated `HF_TOKEN` set). Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
+- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; `GATE_REPO` = `google/gemma-2-9b` (~18 GB, PM choice per Finn); needs Finn's Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
-- [ ] MERGE-1: Finn merges #5 → retarget/merge #6 → retarget #7, merge after AP-4.1 QC passes.
+- [ ] MERGE-1: **Cursor** (Finn authorised 2026-10-12) merges #5 → retarget/merge #6 → retarget #7, merge after OPS-HF1 + AP-4.1 QC pass. Merge commits only.
+- [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
 - [ ] AP-UX-1 download presets + "Manually set path" — **spec** `docs/pm/2026-10/AP-UX-1-download-presets.md`; Finn to review preset table; PM codes after MERGE-1.
 - [ ] AP-5a/5b/5c index on ai-server cache — **spec** `docs/pm/2026-10/AP-5-index-architecture-v2.md`; Finn to confirm architecture.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
@@ -158,6 +159,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | Finn: PM picks a ~20 GB gated model (→ `google/gemma-2-9b`), HF token stays active during testing, film inbox OK if existing connections keep working, Cursor does MERGE-1. Prompt `OPS-HF1-AP-4.1-r2.md` updated (Part F merges, `WAIT_S=14400`). |
 | 2026-10-12 | PM: Glance queue P0 root-caused (no Caddy route for `hub-escape.js`; gateway files never in manifest/parity) → **OPS-HF1** `4458018`, 241 tests. Restored an indentation-damaged uncommitted `hub-worker.py` in the Mac checkout (patch saved in `.tmp-hub-ui/`). Specs: AP-UX-1 presets, AP-5 index v2, ROADMAP-2026-10. Cursor prompt `handoffs/OPS-HF1-AP-4.1-r2.md` (gateway deploy, worker check, AP-4.1 QC r2). |
 | 2026-10-12 | PM implemented **AP-4.1** (one-click gated HF licence, Finn's choice) on `pm/ap-4.1`: gate probe + `awaiting_licence`/`needs_token` waits, `gate-check` endpoint, Hub Licence-needed UI, index `licence_accepted_by`; 217 → 239 tests; `smoke-ap41-gate.sh` 7/7 on a local Hub. One Cursor prompt issued: AP-4 r1b, then AP-4.1 r1. |
 | 2026-10-12 | PM review of AP-4 QC r1 (`AP-4-r1.json`): blocked on env only (F1, image `:4` not set); since fixed with Finn's OK. Legacy `hf` downloads had real weights, not LFS pointers (PM inference was wrong). Issued r1b: Pi app reload check, worker restart, smoke + disk checks. Finn's gated-licence requirement specced as AP-4.1. |

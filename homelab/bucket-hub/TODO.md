@@ -172,10 +172,11 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [x] AP-3 / AP-3.1 GitHub repo archive to TNAS (QC r4 pass; PR #5 awaiting merge)
 - [x] AP-4 `huggingface_repo` archive lane (QC r1b pass)
 - [ ] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`)
-- [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (rotated 2026-10-12; presence checked in AP-4.1 r2)
+- [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (presence checked in AP-4.1 r2)
+- [ ] Finn: revoke and replace the HF token (it was pasted in chat) once the gated tests are done, in a few days
 - [ ] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy (Glance queue broken) — `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`
-- [ ] Finn: name `GATE_REPO` (small gated model not yet accepted) and click Accept licence during AP-4.1 r2
-- [ ] MERGE-1: merge #5, retarget + merge #6, retarget #7
+- [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b`, ~18 GB, PM choice; fallback `-it`)
+- [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
 - [ ] AP-UX-1 download presets; drive/folder only behind "Manually set path" (`docs/pm/2026-10/AP-UX-1-download-presets.md`)
 - [ ] AP-5a/5b index: ai-server SQLite catalogue + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
