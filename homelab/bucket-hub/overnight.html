@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en-GB">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Overnight plan — Bucket-HUB</title>
+  <link rel="stylesheet" href="/assets/hub-design.css?v=20261012" />
+  <style>
+    body {
+      margin: 0;
+      font-family: var(--hub-font);
+      background: var(--hub-bg);
+      color: var(--hub-text);
+      min-height: 100vh;
+    }
+    header {
+      display: flex;
+      flex-wrap: wrap;
+      align-items: center;
+      gap: var(--hub-space-2) var(--hub-space-4);
+      padding: var(--hub-space-3) var(--hub-space-4);
+      border-bottom: 1px solid var(--hub-border);
+      background: var(--hub-raised);
+    }
+    header h1 { margin: 0; font-size: 1.1rem; }
+    header a.back { color: var(--hub-muted); text-decoration: none; font-size: 0.88rem; }
+    .toolbar { margin-left: auto; display: flex; gap: var(--hub-space-2); flex-wrap: wrap; align-items: center; }
+    .btn {
+      border: 1px solid var(--hub-border);
+      background: var(--hub-raised-2);
+      color: var(--hub-text);
+      padding: 0.35rem 0.75rem;
+      border-radius: var(--hub-radius-sm);
+      cursor: pointer;
+      font-size: 0.85rem;
+    }
+    .btn.primary { border-color: var(--hub-accent); color: var(--hub-accent); }
+    .btn[hidden] { display: none; }
+    .mode-note { font-size: 0.75rem; color: var(--hub-muted); }
+    main { max-width: 1100px; margin: 0 auto; padding: var(--hub-space-4); }
+    .panel {
+      background: var(--hub-raised);
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius);
+      padding: var(--hub-space-4);
+      margin-bottom: var(--hub-space-4);
+    }
+    .panel h2 {
+      margin: 0 0 var(--hub-space-3);
+      font-size: 0.78rem;
+      text-transform: uppercase;
+      letter-spacing: 0.05em;
+      color: var(--hub-muted);
+    }
+    .hint { font-size: 0.8rem; color: var(--hub-muted); margin: 0 0 var(--hub-space-3); line-height: 1.45; }
+    .strip {
+      display: flex;
+      height: 1.25rem;
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      overflow: hidden;
+      margin-bottom: var(--hub-space-2);
+    }
+    .strip-seg {
+      min-width: 2px;
+      background: var(--hub-accent-dim);
+      border-right: 1px solid var(--hub-border);
+      font-size: 0;
+    }
+    .strip-seg:last-child { border-right: none; }
+    .strip-caption { font-size: 0.78rem; color: var(--hub-muted); }
+    table.last-run {
+      width: 100%;
+      border-collapse: collapse;
+      font-size: 0.82rem;
+    }
+    table.last-run th, table.last-run td {
+      text-align: left;
+      padding: 0.35rem 0.5rem;
+      border-bottom: 1px solid var(--hub-border);
+    }
+    table.last-run th { color: var(--hub-muted); font-weight: 500; }
+    .result-fail { color: var(--hub-fail); }
+    .result-ok { color: var(--hub-ok); }
+    .layout { display: grid; grid-template-columns: 180px 1fr; gap: var(--hub-space-4); }
+    @media (max-width: 800px) { .layout { grid-template-columns: 1fr; } }
+    .palette-item {
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      padding: 0.45rem 0.6rem;
+      margin-bottom: 0.4rem;
+      background: var(--hub-raised-2);
+      cursor: pointer;
+      font-size: 0.82rem;
+    }
+    .palette-item:hover { border-color: var(--hub-accent); }
+    .step-row {
+      border: 1px solid var(--hub-border);
+      border-radius: var(--hub-radius-sm);
+      padding: 0.55rem 0.65rem;
+      margin-bottom: 0.45rem;
+      background: var(--hub-raised-2);
+      cursor: grab;
+      font-size: 0.85rem;
+    }
+    .step-row.disabled { opacity: 0.5; }
+    .step-row .meta { font-size: 0.75rem; color: var(--hub-muted); margin-top: 0.25rem; display: flex; flex-wrap: wrap; gap: 0.5rem; align-items: center; }
+    .step-row input[type="number"] {
+      width: 3rem;
+      background: var(--hub-input);
+      border: 1px solid var(--hub-border);
+      color: var(--hub-text);
+      border-radius: 6px;
+      padding: 0.1rem 0.3rem;
+    }
+    details.not-scheduled summary { cursor: pointer; color: var(--hub-muted); font-size: 0.82rem; margin-bottom: 0.5rem; }
+    .warn-banner {
+      margin: 0 0 var(--hub-space-4);
+      padding: 0.55rem 0.75rem;
+      border-radius: var(--hub-radius-sm);
+      border: 1px solid var(--hub-warn);
+      color: var(--hub-warn);
+      font-size: 0.85rem;
+      display: none;
+    }
+    .warn-banner.show { display: block; }
+    .run-status {
+      margin-top: var(--hub-space-3);
+      padding: 0.5rem 0.65rem;
+      border-radius: var(--hub-radius-sm);
+      border: 1px solid var(--hub-border);
+      font-size: 0.82rem;
+      display: none;
+    }
+    .run-status.show { display: block; }
+    .run-status.running { border-color: var(--hub-accent); color: var(--hub-accent); }
+    .run-status.done { border-color: var(--hub-ok); color: var(--hub-ok); }
+    .sortable-ghost { opacity: 0.35; }
+  </style>
+  <script src="https://cdn.jsdelivr.net/npm/sortablejs@1.15.6/Sortable.min.js" defer></script>
+</head>
+<body>
+  <header>
+    <a class="back" href="/">← Hub</a>
+    <h1>Overnight plan</h1>
+    <span class="mode-note">Done or timeout → next step</span>
+    <div class="toolbar">
+      <button type="button" class="btn" id="btnSave" hidden>Save changes</button>
+      <div>
+        <button type="button" class="btn primary" id="btnRun">Run now</button>
+        <div class="mode-note">Runs the saved plan</div>
+      </div>
+    </div>
+  </header>
+  <main>
+    <div id="warnBanner" class="warn-banner"></div>
+    <section class="panel">
+      <h2>Last run</h2>
+      <p class="hint" id="lastRunMeta">Loading…</p>
+      <table class="last-run" id="lastRunTable">
+        <thead><tr><th>Time</th><th>Step</th><th>Result</th><th>Took</th></tr></thead>
+        <tbody id="lastRunBody"></tbody>
+      </table>
+    </section>
+    <section class="panel">
+      <h2>Night window</h2>
+      <p class="strip-caption" id="windowLabel">22:00 → 06:00</p>
+      <div class="strip" id="budgetStrip" aria-hidden="true"></div>
+      <p class="strip-caption" id="limitsLine">Limits total — of a — window</p>
+    </section>
+    <div class="layout">
+      <section class="panel">
+        <h2>Add step</h2>
+        <div id="palette"></div>
+      </section>
+      <section class="panel">
+        <h2>Plan</h2>
+        <div id="enabledSteps"></div>
+        <details class="not-scheduled" id="disabledWrap" hidden>
+          <summary id="notScheduledSummary">Not scheduled (0)</summary>
+          <div id="disabledSteps"></div>
+        </details>
+      </section>
+    </div>
+    <div id="runStatus" class="run-status"></div>
+  </main>
+  <script src="/assets/hub-overnight.js?v=20261012" defer></script>
+</body>
+</html>

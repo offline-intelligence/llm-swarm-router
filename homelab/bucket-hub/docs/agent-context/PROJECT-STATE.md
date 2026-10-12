@@ -1,0 +1,162 @@
+# PROJECT-STATE — living context (Homelab integration)
+
+**Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
+**Last updated:** 2026-10-12 (TNAS back at `.187`; AP-3 §T6 1, 4, 5 pass, 3 partial, 2 not run; **AP-3 live for manual single-repo use, not done**; README.md defect found; **AP-3.1 next, then AP-4**)
+
+Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
+
+---
+
+## Current decisions
+
+- **TV folder model:** Hub stops creating `torrents/<Show>/Season NN`. `torrents/` is the aria2 inbox (`torrents/<release folder>/`); `tv/<Show>/Season N` is the Sonarr-owned library. (Audit 2026-10, C1/C2.)
+- **Deploy parity is mandatory:** every packet's deploy runs `scripts/verify-deploy-parity.sh` for Pi and worker, driven by `scripts/deploy-manifest.txt`.
+- **Job-kind routing:** a job is aria2 only when `worker == "aria2"`, or no worker and `kind` in {http, magnet}. Shared rule in `job_kinds.py`.
+- **Repo archive is segmented from media:** GitHub and HuggingFace downloads get their own job kinds, claim lane and destination roots (spec: `cursor-github-hf-downloader.md`, after AP-1 and AP-2).
+- **Testing evidence:** each packet ships `docs/testing/AP-n-test-report.md`.
+- **Download index is the top priority:** shared `index_writer.py` (schema v1); every finished job of every kind appends to `$JOBS_DIR/download-index.jsonl` (rich entry for torrents from AP-1, minimal fallback for other kinds until AP-5).
+- **Review loop:** Cursor opens a draft PR per packet (`cursor/ap-N`) and posts a "Handoff to PM" comment (also saved to `docs/pm/2026-10/handoffs/AP-N.md`); the PM replies go or no-go before the next packet.
+- **Merge order (2026-10-12):** AP-1 → AP-2 → AP-3 (rebased onto `hub/audit-handoff-2026-10`). #1 and #2 merged; `cursor/ap-3` rebased to `71b7323`.
+- **PR #3 merges now (2026-10-12, supersedes "fast-follow before merge"):** AP-3 bytes are already live on Pi and worker, so holding the PR only leaves git behind production. The §T6 gaps are ops (connectivity, TNAS, image, env), not code. Fast-follow ships as **AP-3.1**, a separate PR on top.
+- **§T6 is a deploy gate, not a merge gate:** a packet's PR may merge with §T6 incomplete when the cause is environment-only and the code is already deployed; the packet is not *done* until §T6 passes.
+- **AP-4 implementer (2026-10-12):** PM Claude writes AP-3.1 and AP-4 in the folder thread; Cursor deploys and runs SSH smokes only.
+- **Go with partial coverage (2026-10-12):** a packet may get GO with deferred tests when those tests are integration-shaped and do not cover the packet's core bug fix (e.g. AP-3 §T2).
+- **Role shift (2026-10-12):** PM Claude writes code directly in this repo via a folder thread; Cursor's role is deployment and SSH smoke tests only.
+- **AP-3 status (2026-10-12, after TNAS restore):** live for manual, one-at-a-time public `github_repo` jobs. **Not done:** §T6 step 2 (repo + torrent in parallel) was not run, and step 3 fails the spec because `README.md` is missing. Until AP-3.1 deploys, do not leave `github_repo` jobs queued while torrents are queued.
+- **README.md beside `repo.git` is required, not a spec gap (2026-10-12):** spec A3 layout, A5 step 7 and §T6 step 3 all require it. Cause: `docker/repo-archiver/repo_archiver_entry.py` only tries `git show HEAD:README.md`; `octocat/Hello-World` has `README` (no extension), so nothing is written and `readme_excerpt` is empty. Fix in AP-3.1: resolve the README case-insensitively from `git ls-tree HEAD` (`README`, `README.md`, `.rst`, `.txt`, `.markdown`), always write it as `README.md`; then re-queue Hello-World with `options.refresh: true`.
+- **AP-3.1 before AP-4 (2026-10-12):** the lane-blind claim is a live production bug now that the repo lane works: while a repo job occupies `HUB_SLOT_REPO`, any queued repo job sorted ahead of torrents is claimed by the aria2 loop, re-queued, and the loop `break`s, so torrents stall for the whole clone (up to 4 h). AP-4 adds more long repo jobs and would make it worse. AP-4 starts after AP-3.1 passes §T6 step 2.
+- **`HUB_GITHUB_TOKEN` (2026-10-12):** not required for public clones (proved by `694e010971e2`); required before AP-6/AP-7 volume, because unauthenticated metadata calls share the Proton exit IP's 60 req/h limit.
+- **TNAS LAN IP (2026-10-12):** NAS is at `192.168.50.187` after DHCP drift from `.186`. Finn to add a router DHCP reservation, then update hard-coded `.186` references (list in backlog).
+- **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
+
+| Topic | Decision |
+|-------|----------|
+| TV torrents | **Season-by-season** preferred; **discourage** full-series complete packs (size, aria2, Sonarr). Flat `torrents/` inbox. |
+| Breaking Bad S01 | Shipped via **season pack** + manual Sonarr scan; Jellyfin **TV Shows (Sonarr)**. |
+| Training Day / metadata | Magnet-only dead swarms → use Jackett **`.torrent` URL**; metadata stall = `metadata_stuck` in `job_health.py`. |
+| Resume vs Retry | After aria2 restart, **Retry** (clears dead `aria2_gid`); Resume keeps stale gid. |
+| Implementer | PM Claude writes code via folder thread (from 2026-10-12); Cursor deploys + SSH smoke tests. Deploy Pi `~/homelab/hub-form/`, ai-server `~/homelab/scripts/hub-worker.py`. |
+| Claude PM | ~~Specs and Action Packets only~~ (superseded 2026-10-12: also writes code); no secrets in docs. |
+| Job UI cleanup | **Dismiss** `error`/`done` jobs; `dismiss-queue` clears failed strip; cancel+purge removes disk, not JSON until dismiss. |
+| TNAS power | WoL from Pi **best-effort**; hard-off NAS needs physical power or TOS WoL enabled. |
+| Website archive | “Website copy” = clone-to-disk system ([09-WEBSITE-ARCHIVE-SYSTEM.md](09-WEBSITE-ARCHIVE-SYSTEM.md)); local Docker preview **not built**. |
+
+---
+
+## Audit handoff (2026-10-12)
+
+- **Master brief:** [AUDIT-BRIEF-2026.md](AUDIT-BRIEF-2026.md) — live probe snapshot, technology rationale, Claude first message.
+- **Deep dives:** `08`–`14` in this folder; index in [00-README.md](00-README.md).
+- **pytest (compile):** 54 passed, 2 failed — see [12-FAILURES-LIMITATIONS-TESTS.md](12-FAILURES-LIMITATIONS-TESTS.md).
+- **Pi deploy parity:** 2026-10-12 manifest rsync — **22/22** Pi files + **worker parity ok** (`verify-deploy-parity.sh worker`). Use `bucket@100.85.42.0` until `stackrise-pi` SSH HostName fixed.
+- **Awaiting Claude auditor:** findings + first Action Packet. Extra required topics: **overnight UI** (`overnight.html`) and **TV folder auto-creation** (`ensureTorrentShowFolder`).
+- ~~**Claude is not self-sufficient:** no MCP writes the Mac repo.~~ Superseded 2026-10-12: PM Claude now edits the repo via folder thread. See [15-CLAUDE-AUDITOR-WORKFLOW.md](15-CLAUDE-AUDITOR-WORKFLOW.md). Cursor still merges CONTEXT UPDATE and SSH-deploys via [SSH-PASTE.txt](SSH-PASTE.txt).
+- **Recommended auditor model:** Sonnet 4.6 (not Opus for the full read).
+
+---
+
+## Backlog (ordered)
+
+- [x] AP-1 (P0) TV flat inbox + deploy parity + XSS sweep (H1) + `_is_aria2_job` fix (L2) + `index_writer.py` on torrent completion. Accepted (110 tests); **deployed** 2026-10-12 (manual smokes remain).
+- [x] AP-1 (#1) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
+- [x] AP-2 (#2) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
+- [ ] AP-3 (#3) — **merged**, deployed. §T6 2026-10-12: 1 pass (worker), 3 partial (no `README.md`), 4 pass, 5 pass, **2 not run**. Done when AP-3.1 makes 2 and 3 pass. Evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md` §T6 success.
+- [ ] AP-3.1 fast-follow (PM implements, PR on top of #3):
+  - [ ] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
+  - [ ] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
+  - [ ] Deferred §T2 tests: mirror argv and `--network container:gluetun`.
+  - [ ] `gluetun_http_json` puts `Authorization: Bearer <HUB_GITHUB_TOKEN>` in `docker run` argv (visible in `ps`); pass via env/file instead.
+  - [ ] Add `docker/repo-archiver/` to the deploy path (manifest or deploy script) so the image can be built on ai-server.
+  - [ ] **README.md not written** for repos whose README is not exactly `README.md` (see decision). Rebuild image as `bucket-hub-repo-archiver:2`; test with a fake `ls-tree` listing `README` and `readme.rst`.
+  - [ ] §T6 step 2 re-run as AP-3.1 acceptance: queue a torrent, then two `github_repo` jobs; torrent claims and progresses while the first clone runs.
+- [ ] §T6 ops blockers (Finn; checklist in PM reply 2026-10-12):
+  - [ ] Worker → Pi heartbeat/claim timeouts (cause unconfirmed; see P2).
+  - [x] TNAS mounted at `/mnt/tnas` on ai-server (`//192.168.50.187/public`), `repo-archive/` root created (2026-10-12).
+  - [x] `bucket-hub-repo-archiver:1` built on ai-server.
+  - [x] `hub-worker.env`: `HUB_REPO_ARCHIVE_ROOT`, `HUB_SLOT_REPO=1`, `REPO_ARCHIVER_IMAGE`.
+  - [ ] `hub-worker.env`: `HUB_GITHUB_TOKEN` (fine-grained, public read only). Needed before AP-6/AP-7.
+  - [ ] Router DHCP reservation for TNAS MAC → `192.168.50.187`.
+  - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma monitor URL: **Finn UI** (bootstrap only creates missing monitors).
+  - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
+  - [ ] Re-run §T6 step **2** after AP-3.1 (2026-10-12 baseline **fail** — torrent errored, repo slot busy; see test report). Steps 1/3–5 recorded.
+- [ ] AP-4 `huggingface_repo` — cleared; **PM implements after AP-3.1 deploys and §T6 step 2 passes**. TNAS and image prerequisites now met.
+- [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
+
+### P0 — TV season-first UX
+
+- [ ] Show-only TV search → Sonarr lookup → **clickable season pips** → Jackett query `{Show} season N}` only.
+- [ ] **Hide or demote** `release_kind: full_show` on TV chip (optional “Advanced” override).
+- [ ] One season = one queue job; Expansion HDD `torrents/<release>/` (not Show/Season folders).
+- [ ] Verify `SONARR_URL=http://127.0.0.1:8989` in `hub-worker.env` (Gluetun network).
+
+### P1 — Automation
+
+- [ ] Daily GitHub top repos: `scripts/github-daily-discover.py` + `github-daily-enqueue.py` (see `07-DAILY-GITHUB-TOP-REPOS.md`).
+- [ ] Pi systemd timer (Brisbane); `GITHUB_TOKEN` in worker env (human).
+
+### P2 — Reliability
+
+- [x] Deploy `job_health.py` to Pi with `app.py` (2026-10-12); verify `agent_review` UI end-to-end.
+- [ ] aria2 error 13 (partial without `.aria2`): worker policy or user doc for Retry after cleanup.
+- [ ] Reduce Pi ↔ worker heartbeat timeouts under load. Now blocking §T6. Code facts: worker `hub_call` tries `HUB_URL` entries in order (default LAN `192.168.50.138:3020` then Tailscale `100.85.42.0:3020`), 30 s timeout each, and only logs `heartbeat failed` when all fail; Pi `/api/worker/heartbeat` synchronously re-reads every job JSON (`_scan_running_jobs_health`) and merges the library on each 12 s beat. Need the worker log line and job count to confirm which.
+
+### P3 — Later
+
+- [ ] “Missing seasons” batch enqueue (Sonarr episode counts vs queue history).
+- [ ] TVMaze fallback if Sonarr lookup fails.
+
+---
+
+## Shipped in repo (not necessarily deployed)
+
+- `docs/agent-context/*` pack
+- `job_health.py`, tests, `GET /api/jobs/agent-review`, UI hints (verify deploy)
+- `hub_torrent_parse.py` season query filters (deployed earlier for BB S01 search)
+
+---
+
+## Known pain (ops)
+
+- **Office** large complete pack: failed / 0 seeders — prefer per-season.
+- **HTTP 400** on worker `PATCH` jobs: Pi API / token / payload; check hub-worker log.
+- **TNAS offline**: NAS destinations fail; Expansion HDD is primary for torrents/TV. 2026-10-12 outage was an unplugged cable plus DHCP moving the NAS to `.187`.
+- **NAS offline** in Hub UI does not block `ext_movies` torrents.
+- **Smoke job `c8a5b6f8b306`** (`github_repo`, Hello-World) is `queued`. Until TNAS is mounted and AP-3.1 lands, dismiss it so it cannot starve torrents queued behind it once the worker reaches the Pi again.
+
+---
+
+## Session log (newest first)
+
+| Date | Note |
+|------|------|
+| 2026-10-12 | Home ops (`cursor/ops-2026-10-12-home`): `stackrise-pi` → `100.85.42.0`; TNAS `.187` in repo + Pi deploy; parity pi/worker **0**; §T6 step 2 baseline **fail** (torrent error, repo slot). `HUB_GITHUB_TOKEN` still unset. |
+| 2026-10-12 | TNAS cable restored, NAS at `.187`; job `694e010971e2` Hello-World done, indexed, idempotent re-queue ok. PM: AP-3 live for manual use but not done (§T6 2 not run; `README.md` missing because the archiver only reads `HEAD:README.md`). Priority AP-3.1 → AP-4. Finn: DHCP reservation, `.186` clean-up, `HUB_GITHUB_TOKEN`. |
+| 2026-10-12 | PM reconciliation of Cursor merge + deploy pass: #1/#2 merged, `cursor/ap-3` at `71b7323` (3 commits on `5823319`), AP-3 live on both hosts. **PR #3 GO to merge now**; §T6 blockers are ops. PM found a lane-blind claim starvation bug and dropped `error_display` → AP-3.1 (PM implements). |
+| 2026-10-12 | AP-3 reviewed: GO for AP-4. Merge order set: AP-1 → AP-2 → rebase AP-3. §T2 integration tests deferred as fast-follow, not a go-blocker. Deploy steps issued for ai-server worker. |
+| 2026-10-12 | Live deploy: Pi + worker manifest rsync; parity worker OK, Pi 22/22; overnight dry-run OK; follow-up commit `9310d1b` (encoding + `ssh -n` in parity script). PM paste: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12.md`. |
+| 2026-10-11 | AP-1 accepted (54→110 tests, 0 fail). GO for AP-2. GitHub review via offline-intelligence fork PRs / handoff files. |
+| 2026-10-11 | PM issued Cursor prompts: audit AP-1/AP-2 with test plan and test reports; GitHub + HF repo archive spec (segmented lane, stars-to-queue, searchable index). |
+| 2026-10-12 | Audit handoff pack: AUDIT-BRIEF-2026 + docs 08–14; live probes; dismiss UX on Pi. |
+| 2026-10-11 | Claude PM workflow defined; PROJECT-STATE created; user uses Tailscale Hub. |
+
+---
+
+## CONTEXT UPDATE template (for Claude PM)
+
+When appending session log or changing backlog, use this shape in replies:
+
+```markdown
+## CONTEXT UPDATE
+
+### Last updated
+YYYY-MM-DD
+
+### Decisions changed
+- (bullet or "none")
+
+### Backlog changes
+- [ ] New item / mark [x] done with one-line note
+
+### Session log entry
+| YYYY-MM-DD | what happened |
+```
