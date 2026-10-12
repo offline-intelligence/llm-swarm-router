@@ -5,11 +5,11 @@
   "generated_at": "2026-10-13T00:15:00+10:00",
   "git": {
     "branch": "pm/ap9-spec",
-    "head": "pending-commit",
+    "head": "85e31c3",
     "base": "offline-intelligence/main@c96e8af",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/13",
     "rebase_conflicts": [],
-    "merged": null
+    "merged": "c71bb69"
   },
   "overall": "pass",
   "checks": [
@@ -36,7 +36,7 @@
     {
       "id": "git.push",
       "status": "pass",
-      "value": "15864ab",
+      "value": "85e31c3",
       "expected": "PR #13 head at backlog audit or QC commit on top",
       "evidence": "git push offline-intelligence pm/ap9-spec; gh pr view 13 headRefOid",
       "log": null
@@ -60,18 +60,18 @@
     },
     {
       "id": "git.pr_comment",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/13#issuecomment-6126011893",
       "expected": "QC summary comment on PR #13",
-      "evidence": "pending before merge",
+      "evidence": "gh pr comment 13 before merge",
       "log": null
     },
     {
       "id": "git.merged",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": "c71bb69",
       "expected": "PR #13 merge SHA",
-      "evidence": "pending gh pr merge 13 --merge",
+      "evidence": "gh pr merge 13 --merge",
       "log": null
     }
   ],

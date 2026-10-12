@@ -204,7 +204,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
-| 2026-10-13 | **DOCS-1 QC r1** (`docs/pm/2026-10/qc/DOCS-1-r1.json`): **pass** — backlog audit FF merge; PR **#13** merged (merge SHA in QC). |
+| 2026-10-13 | **DOCS-1 QC r1** (`docs/pm/2026-10/qc/DOCS-1-r1.json`): **pass** — backlog audit FF merge; PR **#13** merged **`c71bb69`**. |
 | 2026-10-12 | PM backlog audit (Finn: "review the docs, my initial messaging … to see if there are any other requests which you missed"). Read the project chat from 2026-10-11, every PM-PASTE handoff and the audit. Added ROADMAP rows 28–42: REPO-SYNC as its own project (AP-8 excludes mirror refresh), parked social downloader, Looping Jobs tab, overnight visual workflow, archive preview, final Claude QC, four audit phases never ticketed, ops/hygiene items, PR-comment audit trail; row 26 local agent marked as asked for. 5 TB drive idea parked (TNAS holds archives). Branch `pm/backlog-audit`. |
 | 2026-10-12 | **AP-9.0 QC r3** (`docs/pm/2026-10/qc/AP-9.0-r3.json`): **pass** — FF merge PM AP-9 rescope docs; `METUBE_IMAGE` has ffmpeg 7.1.5 + yt-dlp 2026.08.19; docs PR opened. |
 | 2026-10-12 | Finn: mainly wants YouTube, so **AP-9.1 slimmed** to resolution chips (Best/1080p/720p), X links → video, and all video jobs in `METUBE_IMAGE` (ffmpeg). Per-site cookies, platform registry, Social segment and Instagram/Facebook/Reddit dropped. |

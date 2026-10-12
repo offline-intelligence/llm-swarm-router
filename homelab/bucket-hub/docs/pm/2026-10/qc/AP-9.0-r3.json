@@ -9,7 +9,7 @@
     "base": "main@c96e8af",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/13",
     "rebase_conflicts": [],
-    "merged": null
+    "merged": "c71bb69"
   },
   "overall": "pass",
   "checks": [
@@ -55,10 +55,10 @@
     },
     {
       "id": "git.merged",
-      "status": "skip",
-      "value": "pending PM merge",
+      "status": "pass",
+      "value": "c71bb69",
       "expected": "docs PR merge SHA after gh pr merge",
-      "evidence": "integrator opens PR; PM merges when ready",
+      "evidence": "gh pr merge 13 --merge (DOCS-1 r1)",
       "log": null
     }
   ],
