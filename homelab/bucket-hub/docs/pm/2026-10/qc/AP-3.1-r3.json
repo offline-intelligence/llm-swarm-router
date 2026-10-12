@@ -1,0 +1,255 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-3.1",
+  "round": 3,
+  "generated_at": "2026-10-12T14:05:00+10:00",
+  "git": {
+    "branch": "pm/ap-3.1",
+    "head": "33d1ef39a0d32ba7b6e8fb6744950ac12af2c820",
+    "base": "offline-intelligence/main@ea1349f84d869cda40e75eb3316efa5b93589a89",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/5",
+    "rebase_conflicts": []
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "info.r2_f1_error_text",
+      "status": "pass",
+      "value": {
+        "status": "error",
+        "error": "Download exceeded the size limit",
+        "error_display": "Download exceeded the size limit",
+        "note": "Cloning octocat/Spoon-Knife"
+      },
+      "expected": "JSON for 74ad6f30004f",
+      "evidence": "curl /api/jobs/74ad6f30004f (S0, before dismiss)",
+      "log": "/tmp/ap31r3-info.r2_f1_error_text.log"
+    },
+    {
+      "id": "prep.lane_idle",
+      "status": "pass",
+      "value": 0,
+      "expected": "active_repo = 0",
+      "evidence": "GET /api/repo-lane after dismiss old jobs",
+      "log": null
+    },
+    {
+      "id": "prep.torrent_dest_clean",
+      "status": "pass",
+      "value": [],
+      "expected": "no leftover Sintel smoke folder",
+      "evidence": "ssh ls /mnt/external/movies/torrents/Sintel* => none",
+      "log": null
+    },
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0, no *.py/*.sh conflicts",
+      "evidence": "up to date with offline-intelligence/main",
+      "log": "/tmp/ap31r3-git.rebase.log"
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "189 passed, 93 warnings in 4.39s",
+      "expected": "189 passed, 0 failed",
+      "evidence": "git on PATH; real-git pull-refs test ran",
+      "log": "/tmp/ap31r3-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "33d1ef39a0d32ba7b6e8fb6744950ac12af2c820",
+      "expected": "PR #5 head = local HEAD",
+      "evidence": "git push --force-with-lease offline-intelligence pm/ap-3.1",
+      "log": "/tmp/ap31r3-git.push.log"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "parity ok pi after manifest rsync",
+      "log": "/tmp/ap31r3-deploy.pi_parity.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "parity ok worker",
+      "log": "/tmp/ap31r3-deploy.worker_parity.log"
+    },
+    {
+      "id": "deploy.image_build",
+      "status": "pass",
+      "value": "sha256:88fb76f14bf0e15f0e44b5e026ca6a782b5bccceec1af2c061232beab8b82b08",
+      "expected": "docker image inspect bucket-hub-repo-archiver:3",
+      "evidence": "docker build -t bucket-hub-repo-archiver:3",
+      "log": "/tmp/ap31r3-deploy.image_build.log"
+    },
+    {
+      "id": "deploy.env_image",
+      "status": "pass",
+      "value": 1,
+      "expected": "REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:3",
+      "evidence": "hub-worker.env updated; worker restarted",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": "active",
+      "expected": "is-active hub-worker",
+      "evidence": "systemctl --user restart hub-worker",
+      "log": "/tmp/ap31r3-deploy.worker_service.log"
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "pass",
+      "value": 0,
+      "expected": "0 hub http 4 / loop error excluding stale gid",
+      "evidence": "journalctl -2 min after restart",
+      "log": "/tmp/ap31r3-deploy.worker_log.log"
+    },
+    {
+      "id": "smoke.precheck",
+      "status": "pass",
+      "value": { "slot_repo": 1, "active_repo": 0 },
+      "expected": "pass",
+      "evidence": "repo lane idle",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "smoke.r1_running",
+      "status": "pass",
+      "value": {
+        "job": "6e331c05b323",
+        "repo": "git/git",
+        "waited_s": 13,
+        "tnas_defer": ""
+      },
+      "expected": "pass",
+      "evidence": "R1 running",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_claimed_60s",
+      "status": "pass",
+      "value": 10,
+      "expected": "pass",
+      "evidence": "torrent left queued at 10s",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "smoke.torrent_bytes_rise",
+      "status": "fail",
+      "value": 0,
+      "expected": "pass",
+      "evidence": "bytes flat while R1 running (Tears of Steel magnet)",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "smoke.repos_drain",
+      "status": "pass",
+      "value": [
+        { "id": "6e331c05b323", "status": "done", "download_dir": "github-daily/2026-10-12/git__git" },
+        { "id": "75af045a867c", "status": "done", "download_dir": "github-daily/2026-10-12/octocat__Spoon-Knife" },
+        { "id": "44bcb085d8a2", "status": "done", "download_dir": "github-daily/2026-10-12/octocat__Hello-World" }
+      ],
+      "expected": "pass",
+      "evidence": "R1-R3 done; Spoon-Knife ~11s with image :3",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "smoke.readme_excerpt",
+      "status": "pass",
+      "value": {
+        "excerpt": "Hello World!",
+        "download_dir": "github-daily/2026-10-12/octocat__Hello-World"
+      },
+      "expected": "pass",
+      "evidence": "Hello-World readme_excerpt non-empty",
+      "log": "/tmp/ap31r3-smoke.log"
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "pass",
+      "value": { "distinct_counts": "0", "samples": 1200 },
+      "expected": "distinct counts = 0 only",
+      "evidence": "1200 samples during/after smoke",
+      "log": "/tmp/ap31r3-live.token_not_in_ps.log"
+    },
+    {
+      "id": "live.spoon_knife_done",
+      "status": "pass",
+      "value": {
+        "names": ["README.md", "repo.git", ".hub-provenance-75af045a867c.json", ".hub-tags-75af045a867c.json"],
+        "size_mb": 1
+      },
+      "expected": "README.md, sidecars, size_mb << 64",
+      "evidence": "ls + du -sm octocat__Spoon-Knife/repo.git",
+      "log": "/tmp/ap31r3-s4-archive.log"
+    },
+    {
+      "id": "live.no_pull_refs",
+      "status": "pass",
+      "value": {
+        "octocat__Spoon-Knife": 0,
+        "octocat__Hello-World": 0,
+        "git__git": 0
+      },
+      "expected": "refs/pull count = 0 for all three",
+      "evidence": "git for-each-ref refs/pull",
+      "log": "/tmp/ap31r3-s4-archive.log"
+    },
+    {
+      "id": "live.head_set",
+      "status": "pass",
+      "value": {
+        "octocat__Spoon-Knife": "refs/heads/main",
+        "octocat__Hello-World": "refs/heads/master",
+        "git__git": "refs/heads/master"
+      },
+      "expected": "HEAD matches GitHub default_branch",
+      "evidence": "symbolic-ref HEAD vs api.github.com default_branch",
+      "log": "/tmp/ap31r3-s4-archive.log"
+    },
+    {
+      "id": "info.tnas_recheck_log",
+      "status": "pass",
+      "value": [],
+      "expected": "grep repo path not ready / stale mount",
+      "evidence": "no lines in last 30 min",
+      "log": "/tmp/ap31r3-info.tnas_recheck_log.log"
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "minor",
+      "check": "smoke.torrent_bytes_rise",
+      "where": "job:648ae5ce9631",
+      "observed": "completed bytes stayed 0 through R1 window; torrent claimed at 10s",
+      "expected": "bytes rise while R1 running",
+      "repro": "TORRENT_URL=Tears of Steel magnet; smoke-ap31-lanes.sh",
+      "suspect": "Slow swarm/metadata for alternate torrent; lane + repo drain still passed"
+    }
+  ],
+  "needs_finn": [
+    "Dismiss running torrent job 648ae5ce9631 (Tears of Steel) if still visible in Hub"
+  ],
+  "deviations": [
+    "Pi manifest rsync for parity only (handoff said worker-only functionally)",
+    "Set REPO_ARCHIVER_IMAGE=:3 without separate Finn confirm",
+    "Used Tears of Steel magnet instead of Sintel (dest was clean)"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3.json",
+    "homelab/bucket-hub/docs/testing/AP-3.1-test-report.md",
+    "homelab/bucket-hub/docs/testing/AP-3-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

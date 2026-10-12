@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 round 3 issued: archiver branches+tags only, TNAS re-check; handoff `docs/pm/2026-10/handoffs/AP-3.1-r3.md`)
+**Last updated:** 2026-10-12 (AP-3.1 QC r3 **fail** — Spoon-Knife `:3` + full repo drain pass; `torrent_bytes_rise` fail; `docs/pm/2026-10/qc/AP-3.1-r3.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -138,6 +138,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-3.1 QC r3** (`docs/pm/2026-10/qc/AP-3.1-r3.json`): image `:3`, 189 tests; Spoon-Knife 1 MB / 0 pull refs; smoke repo drain **pass**; `torrent_bytes_rise` **fail** (Tears of Steel). |
 | 2026-10-12 | AP-3.1 QC r2 reviewed (`AP-3.1-r2.json`): orphan recovery **proven** (S4 job `27d1993819a1`), Hello-World README **pass**, token sampler **pass**. Two real defects: (1) `git clone --mirror` fetched GitHub `refs/pull/*`, so Spoon-Knife `74ad6f30004f` hit the 64 MB cap; (2) one failed TNAS mount check deferred R1 for 120 s and the smoke waited 60 s. Round 3 (`4842a71`): heads+tags bare fetch, image `:3`, `repo_path_ready` re-check, stale-mount clear, smoke `R1_WAIT_S=150`; 183 → 189 tests. Sintel collision = test hygiene (S0 prep check). |
 | 2026-10-12 | AP-3.1 QC r1 (`docs/pm/2026-10/qc/AP-3.1-r1.json`, PR #5): 15 pass, 4 fail. Lane fix proven live (torrent claimed 10 s, 129 MB during git/git clone; token absent from `ps`). Fails traced by PM to one root cause: worker restart mid-smoke orphaned Spoon-Knife as `running`, holding the repo slot. Round 2: `recover_orphaned_repo_jobs()` + named containers; 183 tests. F3 stale aria2 gid → P2 backlog. |
 | 2026-10-12 | **AP-3.1 QC r1** (`docs/pm/2026-10/qc/AP-3.1-r1.json`): pushed `pm/ap-3.1`, draft PR #5, Pi/worker deploy + parity **0**, image `:2` built; `smoke-ap31-lanes.sh` torrent lane **pass**; `repos_drain`/`readme_excerpt` **fail** (15 min timeout); `deploy.worker_log` **fail** (`hub http 400` aria2 stale gid). |

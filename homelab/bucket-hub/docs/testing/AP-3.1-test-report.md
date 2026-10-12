@@ -78,6 +78,19 @@ Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy (emits `QC {json}` lines 
 
 QC: `docs/pm/2026-10/qc/AP-3.1-r2.json` (**overall fail**).
 
+## Round 3 (2026-10-12)
+
+| Check | Result |
+|-------|--------|
+| Unit tests | **189 passed** (archiver branches+tags only) |
+| Image `:3` + deploy parity | **pass** |
+| `smoke.repos_drain` + Spoon-Knife | **pass** (1 MB `repo.git`, 0 `refs/pull`) |
+| `smoke.torrent_bytes_rise` | **fail** (Tears of Steel bytes flat during R1) |
+| Token not in `ps` (1200) | **pass** |
+| TNAS defer / stale mount log | **none** in 30 min |
+
+QC: `docs/pm/2026-10/qc/AP-3.1-r3.json` (**overall fail** — one smoke byte-rise check).
+
 ## Round 3 (PM fixes, 2026-10-12)
 
 | Finding (r2) | Fix | Tests |
