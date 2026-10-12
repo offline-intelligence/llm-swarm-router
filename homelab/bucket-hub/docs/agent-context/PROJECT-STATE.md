@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 QC r3b **fail** — Sintel bytes pass; repo drain fail, `docs/pm/2026-10/qc/AP-3.1-r3b.json`)
+**Last updated:** 2026-10-12 (AP-3.1 round 4 issued: aria2 RPC errors no longer abort the worker tick; `docs/pm/2026-10/handoffs/AP-3.1-r4.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -33,6 +33,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Repo archive content (2026-10-12, AP-3.1 r3):** `repo.git` is a bare repo with branches and tags only (`+refs/heads/*`, `+refs/tags/*`), `HEAD` = remote default branch. No `refs/pull/*`: `clone --mirror` pulled every PR head (fork commits the API `size` ignores) and blew the cap on `octocat/Spoon-Knife`. Image `bucket-hub-repo-archiver:3`.
 - **TNAS defer (2026-10-12, AP-3.1 r3):** a repo job is deferred only after a second mount check `HUB_REPO_RECHECK_S` (5 s) later; a stale mark clears once the mount answers `stat`. The defer note names the reason.
 - **Smoke torrent (2026-10-12):** `smoke-ap31-lanes.sh` uses the Sintel magnet (proven well-seeded in r1). A torrent that is claimed on time but gets 0 bytes points at the swarm, not the lane fix; swap back to Sintel rather than changing code.
+- **Worker loop isolation (2026-10-12, AP-3.1 r4):** aria2 housekeeping errors are logged and contained, never allowed to skip the video or repo claims in the same tick. aria2 JSON-RPC errors (HTTP 400) surface as `RuntimeError`, so `hub http 4xx` in the worker log now means the Hub only.
 - **Smoke validity rule:** a smoke run with a worker restart or env edit during it is invalid; re-run from scratch.
 - **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
@@ -69,7 +70,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-1 (#1) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [x] AP-2 (#2) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [ ] AP-3 (#3) — **merged**, deployed. §T6 2026-10-12: 1 pass (worker), 3 partial (no `README.md`), 4 pass, 5 pass, **2 not run**. Done when AP-3.1 makes 2 and 3 pass. Evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md` §T6 success.
-- [ ] AP-3.1 fast-follow — PR #5 (draft), `pm/ap-3.1`. r1 and r2 QC **fail**; r3 code `4842a71` accepted (all repo checks pass); r3 only failed `torrent_bytes_rise` on a Tears of Steel magnet. Cursor re-runs the smoke once with Sintel per `docs/pm/2026-10/handoffs/AP-3.1-r3b.md`; on pass PR #5 goes ready for review. Sub-items below are implemented, pending live acceptance:
+- [ ] AP-3.1 fast-follow — PR #5 (draft), `pm/ap-3.1`. r1 and r2 QC **fail**; r3 code `4842a71` accepted (all repo checks pass); r3 only failed `torrent_bytes_rise` on a Tears of Steel magnet. r3b: Sintel bytes **pass**, repo drain **fail** (aria2 HTTP 400 aborted every worker tick). Round 4 fix in `hub-worker.py` (193 passed); Cursor runs `docs/pm/2026-10/handoffs/AP-3.1-r4.md`; on pass PR #5 goes ready for review. Sub-items below are implemented, pending live acceptance:
   - [x] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
   - [x] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
   - [x] Deferred §T2 tests: mirror argv and `--network container:gluetun`.
@@ -104,7 +105,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ### P2 — Reliability
 
-- [ ] Stale aria2 gid after worker restart logs `hub http 400: Active Download not found for GID#…` (seen AP-3.1 QC r1 F3 on smoke torrent `18d0343be5f5`). Worker should drop the gid and Retry-style re-add instead of PATCHing the dead one.
+- [ ] Stale aria2 gid: a Hub job left `running` with a gid aria2 no longer knows (r1 `18d0343be5f5`, r3b `8d817da9a03b`). Since AP-3.1 r4 it no longer blocks other lanes (`aria2()` raises `RuntimeError`, housekeeping isolated), but the job itself still sits `running`. Worker should mark it for Retry (drop the gid, re-add) instead of re-checking it every tick.
 
 - [x] Deploy `job_health.py` to Pi with `app.py` (2026-10-12); verify `agent_review` UI end-to-end.
 - [ ] aria2 error 13 (partial without `.aria2`): worker policy or user doc for Retry after cleanup.
@@ -139,6 +140,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM review of QC r3b: lane fix proven (Sintel 129 MB). Repo-drain fail root-caused: aria2 returns JSON-RPC errors as HTTP 400, `aria2()` let `HTTPError` escape, `find_resumable_aria2_job()` only caught `RuntimeError`, so every tick died before the repo claims (same cause as r1 F3). Round 4: `aria2()` converts to `RuntimeError`, housekeeping isolated in `main()`; 189 → 193 tests. |
 | 2026-10-12 | **AP-3.1 QC r3b** (`docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` **pass**; `repos_drain` / `readme_excerpt` **fail** (stale aria2 gid on smoke torrent; R2/R3 never claimed). PR #5 stays draft. |
 | 2026-10-12 | PM review of QC r3: Spoon-Knife and TNAS fixes proven live; no code change. `torrent_bytes_rise` 0 judged swarm-side (claimed at 10 s with 3 repo jobs ahead; r1 showed ~129 MB with Sintel during git/git). Issued r3b: one smoke re-run with Sintel, then PR #5 ready for review. |
 | 2026-10-12 | **AP-3.1 QC r3** (`docs/pm/2026-10/qc/AP-3.1-r3.json`): image `:3`, 189 tests; Spoon-Knife 1 MB / 0 pull refs; smoke repo drain **pass**; `torrent_bytes_rise` **fail** (Tears of Steel). |

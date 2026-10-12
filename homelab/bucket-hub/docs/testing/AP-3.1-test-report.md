@@ -112,3 +112,11 @@ Unit tests: **189 passed** (PM run, Python 3.13). Smoke script checked against a
 | `smoke.readme_excerpt` | **fail** (R3 not started) |
 
 QC: `docs/pm/2026-10/qc/AP-3.1-r3b.json` (**overall fail** — repo drain; worker log: stale aria2 gid `85365f42082a8ffe` on torrent `8d817da9a03b`).
+
+## Round 4 (PM fix, 2026-10-12)
+
+| Finding (r3b) | Fix | Tests |
+|---------------|-----|-------|
+| F1 repo drain stuck behind `Active Download not found for GID#…` | `aria2()` converts aria2's HTTP 400 JSON-RPC error to `RuntimeError`; `main()` wraps aria2 housekeeping in its own `try` | `test_aria2_rpc_http_400_is_runtime_error`, `test_aria2_rpc_ok_unchanged`, `test_find_resumable_skips_stale_gid`, `test_main_loop_claims_repo_when_aria2_housekeeping_fails` |
+
+Unit tests: **193 passed** (PM run). Live QC: `docs/pm/2026-10/qc/AP-3.1-r4.json` (pending Cursor).
