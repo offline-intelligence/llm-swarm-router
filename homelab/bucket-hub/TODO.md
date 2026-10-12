@@ -171,7 +171,7 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 
 - [x] AP-3 / AP-3.1 GitHub repo archive to TNAS (QC r4 pass; PR #5 awaiting merge)
 - [x] AP-4 `huggingface_repo` archive lane (QC r1b pass)
-- [ ] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`)
+- [x] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`) — QC r3 pass
 - [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (presence checked in AP-4.1 r2)
 - [ ] Finn: revoke and replace the HF token (it was pasted in chat) once the gated tests are done, in a few days
 - [x] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy — QC r2 pass 2026-10-12 (`OPS-HF1-r2.json`)

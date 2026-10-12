@@ -28,7 +28,7 @@ Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/A
 
 QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r2.json`): `HF_TOKEN` present, worker restarted; PM `GATE_REPO` list exhausted (`gated: manual`); smoke not run; PR #7 retargeted to `main`, not merged.
 
-QC r3 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json`): phase 1 smoke 4/4 (`google/gemma-2-9b-it`, job `7407b085aa83`); awaiting Finn licence UI + accepted for phase 2.
+QC r3 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r3.json`): gated Gemma archive + index; PR #7 merged.
 
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 
