@@ -49,6 +49,32 @@ KIND_FIELDS: dict[str, tuple[str, ...]] = {
         "readme_excerpt",
         "archive_layout",
     ),
+    "huggingface_repo": (
+        "repo_id",
+        "repo_type",
+        "owner",
+        "name",
+        "full_name",
+        "revision",
+        "revision_sha",
+        "stars",
+        "downloads",
+        "license",
+        "language",
+        "pipeline_tag",
+        "library_name",
+        "base_model",
+        "datasets",
+        "gated",
+        "parameter_count",
+        "source_size_bytes",
+        "file_summary",
+        "readme_excerpt",
+        "readme_path",
+        "upstream_created_at",
+        "upstream_updated_at",
+        "archive_layout",
+    ),
     "torrent": (
         "release_name",
         "media_type",
@@ -79,6 +105,27 @@ _VIDEO_SUFFIXES = (".mkv", ".mp4", ".avi", ".m4v", ".ts", ".mov", ".wmv")
 
 class IndexSecretError(ValueError):
     """Raised when an index entry would store a secret."""
+
+
+_FREE_TEXT_SECRETS = (
+    (re.compile(r"(?i)\b(jackett_apikey|apikey|token)=[^\s&'\")]*"), r"\1=***"),
+    (re.compile(r"(?i)Bearer\s+\S*"), "[redacted]"),
+    (_SECRET_PREFIX_RE, "[redacted]"),
+)
+
+
+def scrub_free_text(text: str | None) -> str | None:
+    """Redact secret-shaped bits of README/card text (code samples often show ``token=``).
+
+    Without this a README excerpt like ``login(token=...)`` fails ``secret_scan`` and the
+    whole archive job errors.
+    """
+    if not text:
+        return text
+    out = str(text)
+    for pattern, repl in _FREE_TEXT_SECRETS:
+        out = pattern.sub(repl, out)
+    return out
 
 
 def redact_source_url(url: str | None) -> str | None:
@@ -299,8 +346,90 @@ def build_github_entry(
         stars=meta.get("stargazers_count"),
         topics=topics,
         license_spdx=license_info.get("spdx_id"),
-        readme_excerpt=readme_excerpt[:2000] if readme_excerpt else None,
+        readme_excerpt=scrub_free_text(readme_excerpt[:2000]) if readme_excerpt else None,
         archive_layout="mirror",
+    )
+
+
+def file_summary(names: list[str]) -> dict[str, Any]:
+    """``{files: n, by_ext: {".safetensors": 2, ...}}`` for an archived file list."""
+    by_ext: dict[str, int] = {}
+    for n in names:
+        ext = Path(n).suffix.lower() or "(none)"
+        by_ext[ext] = by_ext.get(ext, 0) + 1
+    return {"files": len(names), "by_ext": dict(sorted(by_ext.items()))}
+
+
+def build_hf_entry(
+    job: dict[str, Any],
+    *,
+    repo_type: str,
+    repo_id: str,
+    meta: dict[str, Any],
+    status: str,
+    rel_path: str,
+    readme_excerpt: str,
+    card: dict[str, Any],
+    source_size_bytes: int | None = None,
+    size_bytes: int | None = None,
+    files: list[str] | None = None,
+    revision_sha: str = "",
+    readme_path: str | None = None,
+) -> dict[str, Any]:
+    """Build a provenance/index record for a ``huggingface_repo`` snapshot (spec A6)."""
+    owner, _, name = repo_id.partition("/")
+    opts = job.get("options") or {}
+    notes = job.get("notes") or ""
+    who = job.get("requested_by") or ""
+    context_bits = [p for p in (notes, who) if p]
+    if str(job.get("source") or "") == "like":
+        context_bits.append("Liked on HuggingFace")
+    card_data = meta.get("cardData") if isinstance(meta.get("cardData"), dict) else {}
+    tags = [str(t) for t in (meta.get("tags") or []) if t]
+    safetensors = meta.get("safetensors") if isinstance(meta.get("safetensors"), dict) else {}
+    gated = meta.get("gated")
+    by_type = "models" if repo_type == "model" else "datasets"
+    web = f"https://huggingface.co/{repo_id}" if repo_type == "model" else f"https://huggingface.co/{by_type}/{repo_id}"
+    return build_entry(
+        "huggingface_repo",
+        source_id=f"hf:{repo_type}/{repo_id}",
+        hub_job_id=str(job.get("id") or ""),
+        status=status,
+        source=str(job.get("source") or "manual"),
+        title=job.get("title") or repo_id,
+        description=scrub_free_text(card_data.get("description")) if card_data.get("description") else None,
+        hub_tags=list(job.get("tags") or []),
+        topics=tags,
+        rel_path=rel_path,
+        local_path=None,
+        source_url=job.get("url") or web,
+        context=" · ".join(context_bits) if context_bits else None,
+        size_bytes=size_bytes if size_bytes is not None else 0,
+        user_note=opts.get("user_note"),
+        repo_id=repo_id,
+        repo_type=repo_type,
+        owner=owner,
+        name=name,
+        full_name=repo_id,
+        revision=str(opts.get("revision") or "main"),
+        revision_sha=revision_sha or meta.get("sha") or None,
+        stars=meta.get("likes"),
+        downloads=meta.get("downloads"),
+        license=card.get("license") or card_data.get("license"),
+        language=card.get("language"),
+        pipeline_tag=meta.get("pipeline_tag"),
+        library_name=meta.get("library_name"),
+        base_model=list(card.get("base_model") or []),
+        datasets=list(card.get("datasets") or []),
+        gated=bool(gated) if gated is not None else None,
+        parameter_count=safetensors.get("total"),
+        source_size_bytes=source_size_bytes,
+        file_summary=file_summary(files or []),
+        readme_excerpt=scrub_free_text(readme_excerpt[:2000]) if readme_excerpt else None,
+        readme_path=readme_path,
+        upstream_created_at=meta.get("createdAt"),
+        upstream_updated_at=meta.get("lastModified"),
+        archive_layout="snapshot",
     )
 
 

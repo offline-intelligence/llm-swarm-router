@@ -81,7 +81,7 @@ def fetch_readme_fallback(full_name: str) -> str:
 def get_runner() -> RepoRunner:
     global _runner
     if _runner is None:
-        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:3")
+        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:4")
         _runner = DockerRepoRunner(image=image)
     return _runner
 

@@ -1,0 +1,26 @@
+{
+  "id": "hf-internal-testing/tiny-random-gpt2",
+  "sha": "71034c5d8bde858ff824298bdedc65515b97d2b9",
+  "gated": false,
+  "likes": 3,
+  "downloads": 812345,
+  "pipeline_tag": "text-generation",
+  "library_name": "transformers",
+  "createdAt": "2022-03-02T23:29:05.000Z",
+  "lastModified": "2024-03-04T12:00:00.000Z",
+  "tags": ["transformers", "pytorch", "safetensors", "gpt2"],
+  "cardData": {"license": "apache-2.0"},
+  "safetensors": {"total": 102714},
+  "siblings": [
+    {"rfilename": ".gitattributes", "size": 1477},
+    {"rfilename": "README.md", "size": 120},
+    {"rfilename": "config.json", "size": 907},
+    {"rfilename": "merges.txt", "size": 9},
+    {"rfilename": "model.safetensors", "size": 431000, "lfs": {"size": 431000}},
+    {"rfilename": "pytorch_model.bin", "size": 2000000000, "lfs": {"size": 2000000000}},
+    {"rfilename": "tf_model.h5", "size": 450000, "lfs": {"size": 450000}},
+    {"rfilename": "flax_model.msgpack", "size": 420000, "lfs": {"size": 420000}},
+    {"rfilename": "tokenizer.json", "size": 2100},
+    {"rfilename": "vocab.json", "size": 5000}
+  ]
+}
