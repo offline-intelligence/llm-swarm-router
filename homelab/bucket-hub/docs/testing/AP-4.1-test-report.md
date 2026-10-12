@@ -43,15 +43,17 @@ No new files for the deploy manifest; no archiver image change (`:4` stays).
 
 ## Manual acceptance (Cursor)
 
-| Check | Result (QC r1) | Evidence |
+| Check | Result (QC r2) | Evidence |
 |-------|------------------|----------|
-| deploy parity pi / worker | **pass** | `AP-4.1-r1.json` |
-| Pi app reloaded; gate-check 404 `Job not found` | **pass** | hub-form.service restart |
-| `HF_TOKEN=hf_…` in hub-worker.env | **blocked** | Finn |
-| `smoke.gate_*` phase 1 | **not run** | blocked on token |
-| Finn UI + phase 2 smoke | **not run** | needs GATE_REPO + click |
+| deploy parity pi / worker | **pass** | carried from `AP-4.1-r1.json` |
+| Pi app reloaded; gate-check 404 `Job not found` | **pass** | carried from r1 |
+| `HF_TOKEN` in hub-worker.env (presence) | **pass** | `AP-4.1-r2.json` deploy.env_hf_token |
+| worker restart + logs | **pass** | r2 Part C |
+| `GATE_REPO` (PM list) | **no candidate** | both `google/gemma-2-9b` and `-it` are `gated: manual` on HF API |
+| `smoke.gate_*` phase 1 | **not run** | no GATE_REPO; Glance queue still broken (OPS-HF1) |
+| Finn UI + phase 2 smoke | **not run** | awaiting PM `GATE_REPO` + OPS-HF1 gateway deploy + Finn "accepted" |
 
-QC: `docs/pm/2026-10/qc/AP-4.1-r1.json` (**overall blocked**).
+QC: `docs/pm/2026-10/qc/AP-4.1-r1.json` (**blocked**); `docs/pm/2026-10/qc/AP-4.1-r2.json` (**blocked**).
 
 ## Not covered live
 

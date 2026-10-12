@@ -6,6 +6,8 @@
 
 **What changed:** Caddy route for `/assets/hub-escape.js`; `[gateway]` section in `scripts/deploy-manifest.txt`; `verify-deploy-parity.sh gateway`; test that every `/assets/` file referenced by a page is routed by the gateway and served by `app.py`. Tests 239 → 241. Also: specs `AP-UX-1-download-presets.md`, `AP-5-index-architecture-v2.md`, `ROADMAP-2026-10.md`.
 
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r1.json`): glance.yml live drift blocked copy; `hub-escape.js` still 404 on :3000; worker parity ok.
+
 ## 2026-10-12 — AP-4.1 gated Hugging Face repos: one-click licence (PM)
 
 **Packet:** AP-4.1 (`pm/ap-4.1`, on top of `pm/ap-4`), written by the PM; Cursor deploys.
@@ -21,6 +23,8 @@
 - New `scripts/smoke-ap41-gate.sh` (two phases around Finn's click). Tests: 217 → 239 passed.
 
 Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r1.json`): integrate + deploy ok; `HF_TOKEN` unset; gated smoke not run.
+
+QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r2.json`): `HF_TOKEN` present, worker restarted; PM `GATE_REPO` list exhausted (`gated: manual`); smoke not run; PR #7 retargeted to `main`, not merged.
 
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 

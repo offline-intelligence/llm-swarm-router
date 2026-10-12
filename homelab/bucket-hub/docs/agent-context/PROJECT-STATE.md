@@ -104,7 +104,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
 - [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; `GATE_REPO` = `google/gemma-2-9b` (~18 GB, PM choice per Finn); needs Finn's Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
-- [ ] MERGE-1: **Cursor** (Finn authorised 2026-10-12) merges #5 → retarget/merge #6 → retarget #7, merge after OPS-HF1 + AP-4.1 QC pass. Merge commits only.
+- [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
 - [ ] AP-UX-1 download presets + "Manually set path" — **spec** `docs/pm/2026-10/AP-UX-1-download-presets.md`; Finn to review preset table; PM codes after MERGE-1.
 - [ ] AP-5a/5b/5c index on ai-server cache — **spec** `docs/pm/2026-10/AP-5-index-architecture-v2.md`; Finn to confirm architecture.
@@ -159,6 +159,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |
+| 2026-10-12 | **AP-4.1 QC r2** (`docs/pm/2026-10/qc/AP-4.1-r2.json`): **blocked** — `HF_TOKEN` + worker restart pass; `google/gemma-2-9b` / `-it` both `gated: manual` on HF API (no smoke); MERGE-1 #5/#6 merged to `main`, #7 draft on `main`. |
 | 2026-10-12 | Finn: PM picks a ~20 GB gated model (→ `google/gemma-2-9b`), HF token stays active during testing, film inbox OK if existing connections keep working, Cursor does MERGE-1. Prompt `OPS-HF1-AP-4.1-r2.md` updated (Part F merges, `WAIT_S=14400`). |
 | 2026-10-12 | PM: Glance queue P0 root-caused (no Caddy route for `hub-escape.js`; gateway files never in manifest/parity) → **OPS-HF1** `4458018`, 241 tests. Restored an indentation-damaged uncommitted `hub-worker.py` in the Mac checkout (patch saved in `.tmp-hub-ui/`). Specs: AP-UX-1 presets, AP-5 index v2, ROADMAP-2026-10. Cursor prompt `handoffs/OPS-HF1-AP-4.1-r2.md` (gateway deploy, worker check, AP-4.1 QC r2). |
 | 2026-10-12 | PM implemented **AP-4.1** (one-click gated HF licence, Finn's choice) on `pm/ap-4.1`: gate probe + `awaiting_licence`/`needs_token` waits, `gate-check` endpoint, Hub Licence-needed UI, index `licence_accepted_by`; 217 → 239 tests; `smoke-ap41-gate.sh` 7/7 on a local Hub. One Cursor prompt issued: AP-4 r1b, then AP-4.1 r1. |
