@@ -5,7 +5,7 @@
   "generated_at": "2026-10-12T18:35:00+10:00",
   "git": {
     "branch": "pm/ap-ux-1",
-    "head": "e84f741cfd67080253d0d5a2cb7d872265b7da9c",
+    "head": "41bb592c3df924be0239c68b292da709d96a1468",
     "base": "pm/ap-4.1@76ba30e",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
     "rebase_conflicts": []
@@ -23,7 +23,7 @@
     {
       "id": "git.push",
       "status": "pass",
-      "value": "e84f741cfd67080253d0d5a2cb7d872265b7da9c",
+      "value": "41bb592c3df924be0239c68b292da709d96a1468",
       "expected": "pushed pm/ap-ux-1",
       "evidence": "git push -u offline-intelligence pm/ap-ux-1",
       "log": "/tmp/apux1-git.push.log"
