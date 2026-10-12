@@ -67,7 +67,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (Finn agreed 2026-10-12) |
 | Glance cache-buster | `glance.yml` `?v=` values are cache-busters: a live-only `?v=` difference may be overwritten on gateway deploy; any other gateway drift stops the deploy. Bump `v=` whenever `form.html` changes. (2026-10-12) |
 | Gated test model | AP-4.1 accepts manually gated repos (Hub re-checks for 168 h); `google/gemma-2-9b-it` used for QC. (2026-10-12) |
-| Priority (2026-10-12) | OPS-HF1 → AP-4.1 QC → MERGE-1 (parallel) → AP-UX-1 → AP-5a/b → hygiene. `docs/pm/2026-10/ROADMAP-2026-10.md`. |
+| Priority (2026-10-12, late) | Done today: OPS-HF1, AP-4.1, AP-4.2, AP-UX-1, AP-5a.1, OPS-ARR2 (all merged). **Next:** 1) Cursor merges the AP-9 docs (`pm/ap9-spec`) and checks ffmpeg in `METUBE_IMAGE`; 2) PM builds AP-5a.2 (ai-server catalogue + nightly rebuild); 3) AP-9.1 video polish (small); 4) AP-5b Index panel; 5) hygiene (queue-click dedupe, HF size warning, Retry library import). `docs/pm/2026-10/ROADMAP-2026-10.md`. |
 | Off-LAN Hub review (2026-10-12, Finn) | Use Tailscale `http://100.85.42.0:3000/` (and `/hub-form/`); not LAN `.138`. Direct uvicorn: `http://100.85.42.0:3020/hub-form/` only with **trailing slash**. See `01-ARCHITECTURE-AND-NETWORK.md` § Remote review. |
 
 ---
