@@ -41,17 +41,17 @@ No new files for the deploy manifest; no archiver image change (`:4` stays).
 - (flag file created = "Finn accepts")
 - PHASE=2: `g_check_now`, `g_done`, `g_index` → **3/3 pass** (`licence_accepted_by: user`, `gate_wait_s: 72`)
 
-## Manual acceptance (Cursor fills in)
+## Manual acceptance (Cursor)
 
-| Check | Result | Evidence |
-|-------|--------|----------|
-| deploy parity pi / worker | | |
-| Pi app reloaded (gate-check endpoint live) | | |
-| `smoke.gate_*` / `smoke.g_waiting*` (phase 1) | | |
-| Finn: UI shows "Licence needed" + Accept licence + waiting bar | | |
-| `smoke.g_check_now` / `g_done` / `g_index` (phase 2) | | |
-| real weights on TNAS, no partials | | |
-| `HF_TOKEN` not in `ps` during phase 2 | | |
+| Check | Result (QC r1) | Evidence |
+|-------|------------------|----------|
+| deploy parity pi / worker | **pass** | `AP-4.1-r1.json` |
+| Pi app reloaded; gate-check 404 `Job not found` | **pass** | hub-form.service restart |
+| `HF_TOKEN=hf_…` in hub-worker.env | **blocked** | Finn |
+| `smoke.gate_*` phase 1 | **not run** | blocked on token |
+| Finn UI + phase 2 smoke | **not run** | needs GATE_REPO + click |
+
+QC: `docs/pm/2026-10/qc/AP-4.1-r1.json` (**overall blocked**).
 
 ## Not covered live
 

@@ -14,6 +14,8 @@
 - Index entries: `licence_accepted_by`, `gate_wait_s`.
 - New `scripts/smoke-ap41-gate.sh` (two phases around Finn's click). Tests: 217 → 239 passed.
 
+Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r1.json`): integrate + deploy ok; `HF_TOKEN` unset; gated smoke not run.
+
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 
 **Packet:** AP-4 (`pm/ap-4`), written by the PM; Cursor deploys.
