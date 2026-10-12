@@ -69,3 +69,17 @@ QC r1 `smoke.r4_manual` failed with HTTP 400 because the `tv` preset resolved to
 | R5 (Finn) | **blocked** — `escAttr is not defined` on queue (OPS-HF1); review on Tailscale `http://100.85.42.0:3000/` after gateway fix |
 
 QC: `docs/pm/2026-10/qc/AP-UX-1-r1.json` (**overall fail**: gateway Caddy parity, R4). Finn live notes: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`.
+
+### QC r2 (2026-10-12)
+
+| id | result |
+|----|--------|
+| R0 | **pass** (Jellyfin; *arr ConnectionResetError unchanged) |
+| R0b | **pass** (2 jobs unchanged) |
+| R1 | **pass** (8/8; tv/film → `/mnt/external/movies/torrents`) |
+| R2 | **pass** (5/5) |
+| R3 | **pass** (`7d639ca70123` hf_repo done) |
+| R4 | **pass** (manual tv → `torrents/`) |
+| R5 (Finn) | **blocked** — awaiting Download tab sign-off |
+
+QC: `docs/pm/2026-10/qc/AP-UX-1-r2.json` (**overall blocked** on `ui.presets`).
