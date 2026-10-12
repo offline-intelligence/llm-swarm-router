@@ -6,6 +6,8 @@
 
 Deployed 2026-10-12, QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r2.json`).
 
+r3 (PM): `minecraft` jobs are housekeeping, not downloads (`NOT_DOWNLOADS`), so the back-fill skips them (dry run 27 → 25 to write).
+
 ## 2026-10-12 — AP-4.2 Hugging Face access re-check schedule (PM)
 
 **Why:** Finn wanted the Hub to re-check a gated model soon after he accepts, not every 10 min. **What changed:** re-checks after 1, 5 and 30 min, then hourly (`HF_GATE_SCHEDULE_S`); Check now kept and does not reset the schedule; `gate.state = granted` while the download runs; manual gates say "Approval needed" / "Request access"; cards and the queue bar show "Next automatic check in N min". Tests 279 → 286. Spec `homelab/bucket-hub/docs/pm/2026-10/AP-4.2-gate-schedule.md`.

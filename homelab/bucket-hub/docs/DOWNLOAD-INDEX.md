@@ -46,6 +46,8 @@ ssh stackrise-pi 'cd ~/homelab/hub-form && python3 scripts/rebuild-download-inde
 
 Prints counts by kind. Without `--dry-run` it appends one minimal entry per finished download job that has no record yet (idempotent, append-only). PM reviews the dry-run counts first.
 
+Not downloads, never indexed (`download_record.NOT_DOWNLOADS`): `storage_delete`, `sync`, `storage_scan`, `github_stars_sync`, `huggingface_likes_sync`, `minecraft`.
+
 ## Secrets
 
 Every line goes through `index_writer.secret_scan`; free text (notes, README excerpts, cards) is scrubbed with `scrub_free_text` first. URLs lose credential query parameters (`redact_source_url`).

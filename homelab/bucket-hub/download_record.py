@@ -27,7 +27,10 @@ log = logging.getLogger("bucket-hub.download_record")
 ABOUT_FILENAME = "ABOUT-THIS-DOWNLOAD.md"
 
 # Job kinds that are housekeeping, not downloads: never get their own index entry.
-NOT_DOWNLOADS = frozenset({"storage_delete", "sync", "storage_scan", "github_stars_sync", "huggingface_likes_sync"})
+# "minecraft": Minecraft-server jobs (2 seen in the 2026-10-12 back-fill dry run), not downloads.
+NOT_DOWNLOADS = frozenset(
+    {"storage_delete", "sync", "storage_scan", "github_stars_sync", "huggingface_likes_sync", "minecraft"}
+)
 
 REPO_KINDS = frozenset({"github_repo", "github_release", "huggingface_repo"})
 

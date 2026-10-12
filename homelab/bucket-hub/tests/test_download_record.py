@@ -210,6 +210,7 @@ def test_i10_from_jobs_dry_run_then_write(tmp_path, capsys):
         {"id": "a", "status": "done", "kind": "magnet", "title": "Show"},
         {"id": "b", "status": "done", "kind": "video", "title": "Clip"},
         {"id": "c", "status": "done", "kind": "storage_delete"},
+        {"id": "m", "status": "done", "kind": "minecraft", "title": "map switch"},
         {"id": "d", "status": "error", "kind": "http"},
         {"id": "e", "status": "done", "kind": "http", "title": "iso"},
     ):
@@ -217,7 +218,7 @@ def test_i10_from_jobs_dry_run_then_write(tmp_path, capsys):
     append_entry(tmp_path / "download-index.jsonl", _entry("pre", kind="http", job="e"))
     assert mod.main(["--from-jobs", str(tmp_path), "--dry-run"]) == 0
     out = json.loads(capsys.readouterr().out)
-    assert out["to_write"] == 2 and out["written"] == 0 and out["skipped_not_download"] == 1
+    assert out["to_write"] == 2 and out["written"] == 0 and out["skipped_not_download"] == 2
     assert out["already_indexed"] == 1
     assert len(dr.load_records(tmp_path / "download-index.jsonl")) == 1
     assert mod.main(["--from-jobs", str(tmp_path)]) == 0
