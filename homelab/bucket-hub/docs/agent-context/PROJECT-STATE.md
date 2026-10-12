@@ -144,7 +144,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
 - [x] OPS-ARR1 folded into OPS-ARR2 (same fault: worker host cannot reach Sonarr/Radarr).
 - [x] **OPS-ARR2** worker → Sonarr/Radarr via `arr_client` + docker exec transport — QC r2 **pass** `docs/pm/2026-10/qc/OPS-ARR2-r2.json`; PR **#12 merged** (2026-10-12).
-- [ ] **AP-9 social video** (YouTube, X, Instagram, Threads, TikTok, Facebook, Reddit; yoinks approach in Hub video lane). AP-9.0 probe `handoffs/AP-9.0.md`; spec `docs/pm/2026-10/AP-9-social-video.md`.
+- [ ] **AP-9 video polish** (Finn 2026-10-12; slimmed from the social-video idea, repo `https://github.com/pablostanley/yoinks` considered): resolution chips, X links → video, all video jobs in `METUBE_IMAGE` (ffmpeg). Spec `docs/pm/2026-10/AP-9-social-video.md` § AP-9.1. Small; after AP-5a.2.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
 - [x] AP-5a.1 per-download record — QC r4 **pass** `docs/pm/2026-10/qc/AP-5a1-r4.json`; PR **#11 merged** (2026-10-12). Operator doc `docs/DOWNLOAD-INDEX.md`.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
@@ -200,6 +200,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | Finn: mainly wants YouTube, so **AP-9.1 slimmed** to resolution chips (Best/1080p/720p), X links → video, and all video jobs in `METUBE_IMAGE` (ffmpeg). Per-site cookies, platform registry, Social segment and Instagram/Facebook/Reddit dropped. |
 | 2026-10-12 | PM scoped **AP-9.1** from `qc/AP-9.0-r2.json`: YouTube + X in; Instagram in with `cookies-instagram.txt` (Finn exports, secondary account advised); Facebook best effort; Reddit deferred (blocks VPN exits; non-VPN egress is Finn's call); Threads/TikTok out. All video jobs move to `METUBE_IMAGE` (ffmpeg; `python:3.11-slim` lacks it). Fixed format chips (metadata ~16 s, no live picker). Spec § AP-9.1 in `docs/pm/2026-10/AP-9-social-video.md`. Build after AP-5a.2. |
 | 2026-10-12 | **AP-9.0 QC r2** (`docs/pm/2026-10/qc/AP-9.0-r2.json`): **pass** — Gluetun metadata probe (YouTube+cookies, X ok; IG/FB/Reddit fail classes recorded). Finn: skip Threads/TikTok. |
 | 2026-10-12 | **AP-9.0 QC r1** (`docs/pm/2026-10/qc/AP-9.0-r1.json`): **blocked** — probe not run; need Finn public URLs per platform (S0). |
