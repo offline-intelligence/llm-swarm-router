@@ -24,6 +24,9 @@ SAFE_EXPR = (
     "dur",
     "timeout",
     "jobHead",
+    "gateHtml",
+    "link",
+    "rows",
     "topJobs",
     "cancelBtn",
     "retry",
@@ -83,7 +86,10 @@ def _interpolations(chunk: str) -> list[str]:
     return re.findall(r"\$\{([^}]+)\}", chunk)
 
 
-@pytest.mark.parametrize("fn", ["loadNightSummary", "renderJobRow", "renderQueueRow"])
+@pytest.mark.parametrize(
+    "fn",
+    ["loadNightSummary", "renderJobRow", "renderQueueRow", "gateBlock", "renderLicenceBar", "licenceBarRow"],
+)
 def test_innerhtml_interpolations_escaped(fn):
     src = FORM.read_text(encoding="utf-8")
     body = _extract_fn(src, fn)

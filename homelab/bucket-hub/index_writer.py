@@ -66,6 +66,8 @@ KIND_FIELDS: dict[str, tuple[str, ...]] = {
         "base_model",
         "datasets",
         "gated",
+        "licence_accepted_by",
+        "gate_wait_s",
         "parameter_count",
         "source_size_bytes",
         "file_summary",
@@ -375,8 +377,13 @@ def build_hf_entry(
     files: list[str] | None = None,
     revision_sha: str = "",
     readme_path: str | None = None,
+    licence_accepted_by: str | None = None,
+    gate_wait_s: int | None = None,
 ) -> dict[str, Any]:
-    """Build a provenance/index record for a ``huggingface_repo`` snapshot (spec A6)."""
+    """Build a provenance/index record for a ``huggingface_repo`` snapshot (spec A6).
+
+    ``licence_accepted_by`` / ``gate_wait_s`` record how a gated repo got access (AP-4.1).
+    """
     owner, _, name = repo_id.partition("/")
     opts = job.get("options") or {}
     notes = job.get("notes") or ""
@@ -422,6 +429,8 @@ def build_hf_entry(
         base_model=list(card.get("base_model") or []),
         datasets=list(card.get("datasets") or []),
         gated=bool(gated) if gated is not None else None,
+        licence_accepted_by=licence_accepted_by,
+        gate_wait_s=gate_wait_s,
         parameter_count=safetensors.get("total"),
         source_size_bytes=source_size_bytes,
         file_summary=file_summary(files or []),

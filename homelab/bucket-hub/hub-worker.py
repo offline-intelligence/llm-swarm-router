@@ -625,7 +625,7 @@ def jellyfin_apply_hub_tags(job: dict[str, Any], host_dir: Path) -> None:
 
 
 def update_job(job_id: str, retries: int = 3, **fields: Any) -> None:
-    clearable = {"error", "agent_review"}
+    clearable = {"error", "agent_review", "gate"}
     body = {
         k: v
         for k, v in fields.items()
@@ -635,6 +635,8 @@ def update_job(job_id: str, retries: int = 3, **fields: Any) -> None:
         body["error"] = None
     if "agent_review" in fields and fields["agent_review"] is None:
         body["agent_review"] = None
+    if "gate" in fields and fields["gate"] is None:
+        body["gate"] = None
     last: Exception | None = None
     for attempt in range(retries):
         try:
@@ -980,6 +982,40 @@ def gluetun_http_json(url: str, timeout: int = 25) -> Any:
     return json.loads(out) if out else {}
 
 
+def gluetun_http_status(url: str, timeout: int = 25) -> int:
+    """HTTP status of a ``HEAD`` via Gluetun, redirects not followed (token over stdin)."""
+    cmd = [
+        "docker",
+        "run",
+        "--rm",
+        "--network",
+        "container:gluetun",
+        "curlimages/curl:8.11.1",
+        "-sS",
+        "-I",
+        "-o",
+        "/dev/null",
+        "-w",
+        "%{http_code}",
+        "--max-time",
+        str(timeout),
+        "-H",
+        "User-Agent: Bucket-HUB-worker/2.1",
+    ]
+    auth = _gluetun_auth_header(url)
+    if auth:
+        cmd[3:3] = ["-i"]
+        cmd.extend(["-H", "@-"])
+    cmd.append(url)
+    out = subprocess.check_output(
+        cmd,
+        text=True,
+        timeout=timeout + 10,
+        input=f"{auth}\n" if auth else None,
+    )
+    return int((out or "0").strip()[-3:] or 0)
+
+
 def _gluetun_auth_header(url: str) -> str:
     """Return the ``Authorization`` header line for ``url``, or "" when none applies."""
     gh = os.environ.get("HUB_GITHUB_TOKEN", "").strip()
@@ -1025,7 +1061,7 @@ def _hf_metadata_fetch(repo_type: str, repo_id: str, revision: str) -> Any:
         raise
 
 
-configure_repo_archive_hf(fetch_metadata=_hf_metadata_fetch)
+configure_repo_archive_hf(fetch_metadata=_hf_metadata_fetch, probe_access=gluetun_http_status)
 
 
 def jackett_http_json(path_and_query: str, timeout: int = 40) -> Any:

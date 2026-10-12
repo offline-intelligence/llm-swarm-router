@@ -2397,6 +2397,8 @@ class JobUpdate(BaseModel):
     resolved: dict[str, Any] | None = None
     # ISO-8601 UTC; claim skips the job until then. Empty string clears it.
     not_before: str | None = None
+    # AP-4.1 gated HF repo waiting for access; explicit null clears it.
+    gate: dict[str, Any] | None = None
 
 
 @app.patch("/api/jobs/{job_id}")
@@ -2455,6 +2457,11 @@ def patch_job(
             job.pop("agent_review", None)
         else:
             job["agent_review"] = body.agent_review
+    if "gate" in body.model_fields_set:
+        if body.gate is None:
+            job.pop("gate", None)
+        else:
+            job["gate"] = body.gate
     if job.get("status") in ("done", "error") and prev_status not in ("done", "error"):
         entry = job.get("index_entry")
         if not isinstance(entry, dict):
@@ -2704,6 +2711,9 @@ def retry_job(job_id: str) -> dict[str, Any]:
     job["error"] = None
     job["finished_at"] = None
     job.pop("claimed_by", None)
+    # A retried gated job starts a fresh licence wait (AP-4.1).
+    job.pop("gate", None)
+    job.pop("not_before", None)
     if not keep_aria2:
         job["started_at"] = None
         job.pop("aria2_gid", None)
@@ -2716,6 +2726,20 @@ def retry_job(job_id: str) -> dict[str, Any]:
     _assign_queue_rank_if_queued(job)
     _write_job(job)
     return {"ok": True, "job": _job_public(job), "reattach_aria2": keep_aria2}
+
+
+@app.post("/api/jobs/{job_id}/gate-check")
+def gate_check_job(job_id: str) -> dict[str, Any]:
+    """"Check now" for a gated HF job: clear ``not_before`` so the next claim re-probes access."""
+    job = _read_job(job_id)
+    if not isinstance(job.get("gate"), dict) or job.get("status") != "queued":
+        raise HTTPException(404, "Job is not waiting on a Hugging Face licence")
+    job.pop("not_before", None)
+    gate = dict(job["gate"])
+    gate["next_check"] = _now()
+    job["gate"] = gate
+    _write_job(job)
+    return {"ok": True, "job": _job_public(job)}
 
 
 class QueueReorderBody(BaseModel):

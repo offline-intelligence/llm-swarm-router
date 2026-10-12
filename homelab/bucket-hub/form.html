@@ -1161,6 +1161,11 @@
       font-size: 0.78rem;
     }
     .queue-lilly-bar.hidden { display: none; }
+    .queue-licence-bar { margin: 0 0 0.5rem; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; }
+    .queue-licence-bar a { color: var(--accent); }
+    .queue-licence-bar.hidden { display: none; }
+    .queue-licence-bar .licence-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.3rem; }
+    .gate-block { margin-top: 0.3rem; }
     .queue-lilly-bar a { color: var(--accent); }
     .queue-detail {
       margin-top: 0.45rem; padding: 0.55rem 0.65rem; border: 1px solid var(--border);
@@ -1593,6 +1598,7 @@
       <a id="queueLillyLink" href="#">Open Requests</a>
       <span id="queueLillyBadge" class="badge"></span>
     </div>
+    <div id="queueLicenceBar" class="queue-licence-bar hidden" aria-live="polite"></div>
     <div class="queue-tabs" role="tablist" aria-label="Queue views">
       <button type="button" class="chip on" role="tab" aria-selected="true" data-qtab="active" id="qTabActive">Active</button>
       <button type="button" class="chip" role="tab" aria-selected="false" data-qtab="history" id="qTabHistory">History</button>
@@ -3003,6 +3009,62 @@ function renderMachineStrip(machines) {
   }).join('');
 }
 
+// AP-4.1: gated Hugging Face repos wait for a one-click licence accept.
+function gateBlock(j) {
+  const g = j && j.gate;
+  if (!g || j.status !== 'queued') return '';
+  if (g.state === 'needs_token') {
+    return `<div class="gate-block"><div class="url">Gated model: add HF_TOKEN to hub-worker.env on ai-server, then Check now.</div>
+      <div class="row-actions"><button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
+  }
+  const how = g.gated === 'manual'
+    ? 'The model owner approves requests by hand; this can take days.'
+    : 'Access is instant once you accept; the download then starts by itself.';
+  return `<div class="gate-block"><div class="url">Licence needed. ${escHtml(how)}</div>
+    <div class="row-actions"><a class="btn secondary" href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">Accept licence</a>
+    <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
+}
+
+async function gateCheckJob(id) {
+  const r = await fetch(hubUrl(`/api/jobs/${encodeURIComponent(id)}/gate-check`), { method: 'POST' });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { setMsg(JSON.stringify(data.detail || data), false); return; }
+  setMsg('Checking licence for ' + id + ' on the next worker pass', true);
+  await loadJobs();
+  await loadQueuePanel();
+}
+
+document.addEventListener('click', (ev) => {
+  const btn = ev.target && ev.target.closest ? ev.target.closest('[data-gate-check]') : null;
+  if (!btn) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  gateCheckJob(btn.dataset.gateCheck);
+});
+
+function renderLicenceBar(jobs) {
+  const el = document.getElementById('queueLicenceBar');
+  if (!el) return;
+  const waiting = (jobs || []).filter(j => j.gate && j.status === 'queued');
+  if (!waiting.length) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('hidden');
+  const rows = waiting.map(licenceBarRow).join('');
+  el.innerHTML = `<div class="sub"><strong>Waiting for a licence (${escHtml(String(waiting.length))})</strong></div>${rows}`;
+}
+
+function licenceBarRow(j) {
+  const g = j.gate || {};
+  const link = g.state === 'needs_token'
+    ? '<span class="sub">needs HF_TOKEN</span>'
+    : `<a href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">Accept licence</a>`;
+  return `<div class="licence-row"><span>${escHtml(j.title || j.url || j.id)}</span> ${link}
+    <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div>`;
+}
+
 async function retryJob(id) {
   const r = await fetch(hubUrl(`/api/jobs/${id}/retry`), { method: 'POST' });
   const data = await r.json();
@@ -3764,8 +3826,9 @@ function renderJobRow(j) {
     ? `${escHtml(j.source_folder_name || '')} → ${escHtml(j.folder_name || '')} · ${escHtml(j.source_path || '')} → ${escHtml(j.destination_path || '')}`
     : `${escHtml(j.folder_name || '')} · ${escHtml(j.destination_path || '')}`;
   const urlLine = j.url ? `<div class="url">${escHtml(redactSecrets(j.url))}</div>` : (j.notes ? `<div class="url">${escHtml(j.notes)}</div>` : '');
+  const gateHtml = gateBlock(j);
   return `<div class="job"><div class="top"><strong>${escHtml(j.title || j.kind)}</strong><span>${by}<span class="status-${escAttr(j.status)}">${escHtml(j.status)}</span>${approve}${cancelBtn}${retry}</span></div>
-    ${urlLine}${err}
+    ${urlLine}${err}${gateHtml}
     <div>${line} ${tags}</div></div>`;
 }
 
@@ -4149,6 +4212,7 @@ function statusLabel(st, j) {
     if (j) return stageShortLabel(j);
     return 'Downloading';
   }
+  if (st === 'queued' && j && j.gate) return j.gate.state === 'needs_token' ? 'Needs HF token' : 'Licence needed';
   if (st === 'queued') return 'Queued';
   if (st === 'paused') return 'Paused';
   if (st === 'purging') return 'Removing…';
@@ -4450,6 +4514,7 @@ function renderQueueDetail(j) {
     ${j.notes ? `<div class="url">${escHtml(j.notes)}</div>` : ''}
     ${j.download_dir ? `<div class="url">Downloaded to ${escHtml(j.download_dir)}${(j.media_pipeline && (j.media_pipeline.sonarr === 'added' || j.media_pipeline.sonarr === 'exists')) ? ' · Sonarr will file this under TV › ' + escHtml((j.torrent_meta && j.torrent_meta.show_title_guess) || 'Show') : ''}</div>` : ''}
     ${j.error ? `<div class="url">${escHtml(j.error_display || humanError(j.error))}</div>` : ''}
+    ${gateBlock(j)}
     ${archiveDetail || (pct != null ? `<div class="url">Progress ${pct}%${escHtml(aria2ThroughputHint(j))}</div>` : (aria2ThroughputHint(j) ? `<div class="url">${escHtml(aria2ThroughputHint(j).replace(/^ · /, ''))}</div>` : ''))}
     <div class="url">${escHtml(j.id)} · ${escHtml(kindLabel(j))} · ${escHtml(j.folder_name || j.destination_path || '')}</div>
     <div class="url">${escHtml(j.requested_by || j.source || '')} · ${proton}${tags ? ' · ' + escHtml(tags) : ''}</div>
@@ -4627,6 +4692,7 @@ async function loadQueuePanel() {
     const data = await r.json();
     queueJobsCache = data.jobs || [];
     renderQueueLillyBar(queueJobsCache);
+    renderLicenceBar(queueJobsCache);
     paintQueueLists();
   } catch (e) {
     listEl.innerHTML = '<p class="sub">Could not load queue.</p>';

@@ -33,7 +33,7 @@ pages:
         widgets:
           - type: iframe
             title: Workspace
-            source: /hub-form/?panel=hub&v=20261012ap4
+            source: /hub-form/?panel=hub&v=20261012ap41
             height: 1280
 
   - name: Jellyfin
