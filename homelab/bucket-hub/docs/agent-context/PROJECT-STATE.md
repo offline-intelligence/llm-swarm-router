@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (PM review of OPS-HF1 r1 / AP-4.1 r2; prompt `docs/pm/2026-10/handoffs/OPS-HF1-r2-AP-4.1-r3.md`)
+**Last updated:** 2026-10-12 (Finn UI blocker `escAttr`; PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`; Tailscale review URLs)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -64,6 +64,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Glance cache-buster | `glance.yml` `?v=` values are cache-busters: a live-only `?v=` difference may be overwritten on gateway deploy; any other gateway drift stops the deploy. Bump `v=` whenever `form.html` changes. (2026-10-12) |
 | Gated test model | AP-4.1 accepts manually gated repos (Hub re-checks for 168 h); `google/gemma-2-9b-it` used for QC. (2026-10-12) |
 | Priority (2026-10-12) | OPS-HF1 → AP-4.1 QC → MERGE-1 (parallel) → AP-UX-1 → AP-5a/b → hygiene. `docs/pm/2026-10/ROADMAP-2026-10.md`. |
+| Off-LAN Hub review (2026-10-12, Finn) | Use Tailscale `http://100.85.42.0:3000/` (and `/hub-form/`); not LAN `.138`. Direct uvicorn: `http://100.85.42.0:3020/hub-form/` only with **trailing slash**. See `01-ARCHITECTURE-AND-NETWORK.md` § Remote review. |
 
 ---
 
@@ -187,6 +188,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **Finn UI validation (Tailscale):** queue GitHub URL → **`escAttr is not defined`**; queue panel **Could not load queue**; `:3000/assets/hub-escape.js` **404** (OPS-HF1). Tried `:3020/hub-form` without slash → 404 JSON; use **`/hub-form/`**. PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`. |
 | 2026-10-12 | **AP-UX-1 QC r1** (`docs/pm/2026-10/qc/AP-UX-1-r1.json`): **fail** — Pi deploy + presets API + smoke R0–R3 pass; gateway Caddy parity fail; R4 manual tv→inbox HTTP 400 (/mnt/media on ai-server); PR #8 draft; Finn R5 pending. |
 | 2026-10-12 | PM implemented **AP-UX-1** on `pm/ap-ux-1`: `download_presets.py` (8 presets, 4 segments), `/api/presets`, `/api/presets/resolve`, jobs store `preset`/`segment`/`destination_source`, Firefox capture + Requests through presets (fixes magnet → `nas/inbox` and Request approve → aria2 for GitHub links), form preset chips + Saves-to + Manually set path, queue segment filter; 241 → 277 tests; `smoke-apux1-presets.sh`. Finding: aria2 already put film `movies/` jobs in `torrents/movies/`. |
 | 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |

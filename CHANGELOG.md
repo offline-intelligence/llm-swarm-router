@@ -12,7 +12,7 @@
 - Hub: Download type chips, "Saves to" line, Drive/Folder only behind **Manually set path**, Type select removed, queue segment filter.
 - Tests 241 → 277; `scripts/smoke-apux1-presets.sh` (checks Sonarr/Radarr/Jellyfin paths are unchanged before vs after).
 
-Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r1.json`): Pi presets deploy ok; gateway Caddyfile parity fail (OPS-HF1 not live); smoke R4 manual path blocked on /mnt/media mount.
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r1.json`): Pi presets deploy ok; gateway Caddyfile parity fail (OPS-HF1 not live); smoke R4 manual path blocked on /mnt/media mount. Finn Tailscale UI check: `escAttr is not defined` until `:3000/assets/hub-escape.js` is deployed (PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`).
 
 ## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
 

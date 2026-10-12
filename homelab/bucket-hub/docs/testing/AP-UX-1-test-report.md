@@ -57,6 +57,6 @@
 | R2 | **pass** (5/5 resolve) |
 | R3 | **pass** (hf_repo job done) |
 | R4 | **fail** (manual tv → nas/inbox HTTP 400; needs /mnt/media on worker) |
-| R5 (Finn) | **blocked** — awaiting UI confirmation |
+| R5 (Finn) | **blocked** — `escAttr is not defined` on queue (OPS-HF1); review on Tailscale `http://100.85.42.0:3000/` after gateway fix |
 
-QC: `docs/pm/2026-10/qc/AP-UX-1-r1.json` (**overall fail**: gateway Caddy parity, R4).
+QC: `docs/pm/2026-10/qc/AP-UX-1-r1.json` (**overall fail**: gateway Caddy parity, R4). Finn live notes: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`.
