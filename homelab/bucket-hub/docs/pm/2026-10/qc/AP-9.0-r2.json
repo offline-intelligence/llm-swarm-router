@@ -1,0 +1,181 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-9.0",
+  "round": 2,
+  "generated_at": "2026-10-12T23:50:00+10:00",
+  "git": {
+    "branch": "pm/ap9-spec",
+    "head": "pending-commit",
+    "base": "offline-intelligence/main@c96e8af",
+    "pr_url": null,
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "probe.youtube",
+      "status": "pass",
+      "value": {
+        "url": "https://www.youtube.com/watch?v=usSfgHGEGxQ",
+        "rc": 0,
+        "secs": 16,
+        "ytdlp_version": "2026.08.19",
+        "extractor": "Youtube",
+        "max_height": 1080,
+        "split_av": true,
+        "formats": 120,
+        "duration": 998,
+        "cookies": "yes"
+      },
+      "expected": "metadata via Gluetun; YouTube cookies file mounted",
+      "evidence": "ai-server-ts S1; ~/homelab/data/ytdlp/cookies.txt",
+      "log": null
+    },
+    {
+      "id": "probe.x",
+      "status": "pass",
+      "value": {
+        "url": "https://x.com/damkina7/status/2109275362660130919",
+        "rc": 0,
+        "secs": 16,
+        "ytdlp_version": "2026.08.19",
+        "extractor": "Twitter",
+        "max_height": 1440,
+        "split_av": true,
+        "formats": 11,
+        "duration": 22.035,
+        "cookies": "no"
+      },
+      "expected": "metadata without cookies",
+      "evidence": "ai-server-ts S1",
+      "log": null
+    },
+    {
+      "id": "probe.instagram",
+      "status": "fail",
+      "value": {
+        "url": "https://www.instagram.com/reel/C6xRGVRO20f/",
+        "rc": 1,
+        "secs": 16,
+        "ytdlp_version": "2026.08.19",
+        "error_class": "login_required",
+        "cookies": "no"
+      },
+      "expected": "metadata without cookies (NASA reel)",
+      "evidence": "Instagram empty media response; needs cookies per yt-dlp",
+      "log": null
+    },
+    {
+      "id": "probe.threads",
+      "status": "skip",
+      "value": {
+        "reason": "Finn 2026-10-12: Threads not required for Hub social lane; probe not run"
+      },
+      "expected": "Finn decision",
+      "evidence": "chat scope cut",
+      "log": null
+    },
+    {
+      "id": "probe.tiktok",
+      "status": "skip",
+      "value": {
+        "reason": "Finn 2026-10-12: TikTok not required for Hub social lane; probe not run"
+      },
+      "expected": "Finn decision",
+      "evidence": "chat scope cut",
+      "log": null
+    },
+    {
+      "id": "probe.facebook",
+      "status": "fail",
+      "value": {
+        "url": "https://www.facebook.com/NASA/videos/313731330445028/",
+        "rc": 1,
+        "secs": 13,
+        "ytdlp_version": "2026.08.19",
+        "error_class": "other",
+        "cookies": "no"
+      },
+      "expected": "metadata without cookies (NASA video)",
+      "evidence": "yt-dlp facebook extractor: Cannot parse data",
+      "log": null
+    },
+    {
+      "id": "probe.reddit",
+      "status": "fail",
+      "value": {
+        "url": "https://www.reddit.com/r/videos/comments/1c9xj0o/worlds_largest_drum/",
+        "rc": 1,
+        "secs": 16,
+        "ytdlp_version": "2026.08.19",
+        "error_class": "other",
+        "cookies": "no"
+      },
+      "expected": "metadata without cookies (r/videos hosted clip)",
+      "evidence": "Reddit JSON metadata HTTP 404 via Gluetun exit",
+      "log": null
+    },
+    {
+      "id": "info.ffmpeg_needed",
+      "status": "pass",
+      "value": true,
+      "expected": "true if any split_av",
+      "evidence": "youtube and x probes",
+      "log": null
+    },
+    {
+      "id": "info.ffmpeg_in_image",
+      "status": "pass",
+      "value": "missing",
+      "expected": "ffmpeg in python:3.11-slim worker image",
+      "evidence": "docker run --rm python:3.11-slim command -v ffmpeg",
+      "log": null
+    },
+    {
+      "id": "info.format_list_secs",
+      "status": "pass",
+      "value": 16,
+      "expected": "median probe secs (five platforms run)",
+      "evidence": "youtube,x,instagram,facebook,reddit secs 16,16,16,13,16",
+      "log": null
+    },
+    {
+      "id": "info.yoinks_note",
+      "status": "skip",
+      "value": null,
+      "expected": "optional Finn",
+      "evidence": "not provided",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "info",
+      "summary": "Instagram needs per-platform cookies (login_required without cookies.txt).",
+      "repro": "S1 probe.instagram URL on ai-server through Gluetun"
+    },
+    {
+      "id": "F2",
+      "severity": "info",
+      "summary": "Facebook metadata probe failed (extractor parse); likely cookies or yt-dlp drift.",
+      "repro": "S1 probe.facebook NASA video URL"
+    },
+    {
+      "id": "F3",
+      "severity": "info",
+      "summary": "Reddit metadata HTTP 404 from Gluetun; AP-9.1 may need cookies or different egress.",
+      "repro": "S1 probe.reddit r/videos URL"
+    }
+  ],
+  "needs_finn": [],
+  "deviations": [
+    "Finn scoped AP-9.0 r2 to YouTube, X, Instagram, Facebook, Reddit; Threads and TikTok skipped per Finn chat 2026-10-12 (recorded in probe.threads / probe.tiktok).",
+    "Integrator-chosen public URLs for Instagram, Facebook, Reddit (official NASA / r/videos); YouTube and X URLs from Finn."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-9.0-r2.json",
+    "homelab/bucket-hub/docs/pm/2026-10/AP-9-social-video.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md"
+  ]
+}

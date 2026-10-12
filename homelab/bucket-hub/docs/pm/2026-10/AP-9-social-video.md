@@ -59,6 +59,22 @@ The QC JSON (`qc/AP-9.0-r1.json`) decides which platforms need cookies, and whet
 
 QC: `docs/pm/2026-10/qc/AP-9.0-r1.json` (**overall blocked**, 2026-10-12).
 
+### Probe results (r2)
+
+Finn cut scope: **Threads** and **TikTok** not probed (Hub social lane does not need them). Five platforms through Gluetun (`yt-dlp` 2026.08.19 in `python:3.11-slim`).
+
+| platform | url | result | error class | max height | split A/V | secs |
+|----------|-----|--------|-------------|------------|-----------|------|
+| youtube | https://www.youtube.com/watch?v=usSfgHGEGxQ | pass | — | 1080 | yes | 16 |
+| x | https://x.com/damkina7/status/2109275362660130919 | pass | — | 1440 | yes | 16 |
+| instagram | https://www.instagram.com/reel/C6xRGVRO20f/ | fail | login_required | — | — | 16 |
+| threads | — | skip | — | — | — | — |
+| tiktok | — | skip | — | — | — | — |
+| facebook | https://www.facebook.com/NASA/videos/313731330445028/ | fail | other | — | — | 13 |
+| reddit | https://www.reddit.com/r/videos/comments/1c9xj0o/worlds_largest_drum/ | fail | other | — | — | 16 |
+
+QC: `docs/pm/2026-10/qc/AP-9.0-r2.json` (**overall pass**, 2026-10-12). `info.ffmpeg_needed` true; ffmpeg **missing** in `python:3.11-slim`; median format-list time **16 s**.
+
 ## AP-9.1 build (PM), sketch
 
 - `detect_kind` and the platform registry, plus a test per platform.

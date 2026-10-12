@@ -200,6 +200,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-9.0 QC r2** (`docs/pm/2026-10/qc/AP-9.0-r2.json`): **pass** — Gluetun metadata probe (YouTube+cookies, X ok; IG/FB/Reddit fail classes recorded). Finn: skip Threads/TikTok. |
 | 2026-10-12 | **AP-9.0 QC r1** (`docs/pm/2026-10/qc/AP-9.0-r1.json`): **blocked** — probe not run; need Finn public URLs per platform (S0). |
 | 2026-10-12 | **OPS-ARR2 QC r2** (`docs/pm/2026-10/qc/OPS-ARR2-r2.json`): **pass** — rebase on main; root cause Gluetun publish; live parity ok; **PR #12 merged**. |
 | 2026-10-12 | **AP-5a.1 QC r4** (`docs/pm/2026-10/qc/AP-5a1-r4.json`): **pass** — F1 boundary proved (r3 overlap); smoke 7/7; **PR #11 merged**. |
