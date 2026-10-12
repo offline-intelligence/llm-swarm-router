@@ -67,7 +67,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (Finn agreed 2026-10-12) |
 | Glance cache-buster | `glance.yml` `?v=` values are cache-busters: a live-only `?v=` difference may be overwritten on gateway deploy; any other gateway drift stops the deploy. Bump `v=` whenever `form.html` changes. (2026-10-12) |
 | Gated test model | AP-4.1 accepts manually gated repos (Hub re-checks for 168 h); `google/gemma-2-9b-it` used for QC. (2026-10-12) |
-| Priority (2026-10-12, late) | Done today: OPS-HF1, AP-4.1, AP-4.2, AP-UX-1, AP-5a.1, OPS-ARR2 (all merged). **Next:** 1) Cursor merges the AP-9 docs (`pm/ap9-spec`) and checks ffmpeg in `METUBE_IMAGE`; 2) PM builds AP-5a.2 (ai-server catalogue + nightly rebuild); 3) AP-9.1 video polish (small); 4) AP-5b Index panel; 5) hygiene (queue-click dedupe, HF size warning, Retry library import). `docs/pm/2026-10/ROADMAP-2026-10.md`. |
+| Priority (2026-10-12, late) | Done today: OPS-HF1, AP-4.1, AP-4.2, AP-UX-1, AP-5a.1, OPS-ARR2 (all merged). **Next:** 1) Cursor merges the AP-9 docs + backlog audit (PR #13; ffmpeg confirmed in `METUBE_IMAGE`, AP-9.0-r3); 2) PM builds AP-5a.2 (ai-server catalogue + nightly rebuild); 3) AP-9.1 video polish (small); 4) AP-5b Index panel; 5) hygiene (queue-click dedupe, HF size warning, Retry library import). Separate projects added 2026-10-12: REPO-SYNC (nightly freshness check of archived repos), Looping Jobs tab, overnight visual workflow, archive preview, parked social downloader, final Claude QC pass (ROADMAP rows 28–42). `docs/pm/2026-10/ROADMAP-2026-10.md`. |
 | Off-LAN Hub review (2026-10-12, Finn) | Use Tailscale `http://100.85.42.0:3000/` (and `/hub-form/`); not LAN `.138`. Direct uvicorn: `http://100.85.42.0:3020/hub-form/` only with **trailing slash**. See `01-ARCHITECTURE-AND-NETWORK.md` § Remote review. |
 
 ---
@@ -150,6 +150,10 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
 - [ ] AP-5b Index panel + search proxy/fallback; AP-5c website/video builders and sidecars — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md`.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
+- [ ] **REPO-SYNC** (separate project, Finn 2026-10-12): nightly check of archived GitHub/HF repos for new commits or revisions; pull without deleting (keep force-pushed/deleted refs under a history ref; HF keeps the newest few revisions); record from → to in the catalogue. Not covered by AP-8 (releases only). ROADMAP row 28.
+- [ ] Separate ideas (ROADMAP rows 29–33): parked social downloader (Instagram/FB/Reddit/TikTok/Threads, yoinks); Looping Jobs tab + daily top-starred repo (AP-6b); overnight visual workflow with locked critical steps and auto-added items (OVN-2); local Docker preview of archived sites; final Claude terminal QC pass.
+- [ ] Audit leftovers (ROADMAP rows 34–37): phase 1b season-first ranking, 2 import truth, 2b folder sanitise, 3/3b egress + Jackett apikey + "Waiting for VPN".
+- [ ] Local agent over the catalogue (Finn asked 2026-10-11; after AP-5b). PR-comment audit trail: Cursor posts QC summaries on packet PRs.
 
 ### P0 — TV season-first UX
 
@@ -200,6 +204,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM backlog audit (Finn: "review the docs, my initial messaging … to see if there are any other requests which you missed"). Read the project chat from 2026-10-11, every PM-PASTE handoff and the audit. Added ROADMAP rows 28–42: REPO-SYNC as its own project (AP-8 excludes mirror refresh), parked social downloader, Looping Jobs tab, overnight visual workflow, archive preview, final Claude QC, four audit phases never ticketed, ops/hygiene items, PR-comment audit trail; row 26 local agent marked as asked for. 5 TB drive idea parked (TNAS holds archives). Branch `pm/backlog-audit`. |
 | 2026-10-12 | **AP-9.0 QC r3** (`docs/pm/2026-10/qc/AP-9.0-r3.json`): **pass** — FF merge PM AP-9 rescope docs; `METUBE_IMAGE` has ffmpeg 7.1.5 + yt-dlp 2026.08.19; docs PR opened. |
 | 2026-10-12 | Finn: mainly wants YouTube, so **AP-9.1 slimmed** to resolution chips (Best/1080p/720p), X links → video, and all video jobs in `METUBE_IMAGE` (ffmpeg). Per-site cookies, platform registry, Social segment and Instagram/Facebook/Reddit dropped. |
 | 2026-10-12 | PM scoped **AP-9.1** from `qc/AP-9.0-r2.json`: YouTube + X in; Instagram in with `cookies-instagram.txt` (Finn exports, secondary account advised); Facebook best effort; Reddit deferred (blocks VPN exits; non-VPN egress is Finn's call); Threads/TikTok out. All video jobs move to `METUBE_IMAGE` (ffmpeg; `python:3.11-slim` lacks it). Fixed format chips (metadata ~16 s, no live picker). Spec § AP-9.1 in `docs/pm/2026-10/AP-9-social-video.md`. Build after AP-5a.2. |
