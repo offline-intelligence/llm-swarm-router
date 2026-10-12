@@ -1,5 +1,21 @@
 # Changelog
 
+## 2026-10-12 — AP-3.1 repo lane fast-follow (PM)
+
+**Packet:** AP-3.1 (`pm/ap-3.1`), written by the PM; Cursor deploys.
+
+**Why:** the worker claimed jobs lane-blind, so a queued repo job could be claimed and bounced by the aria2 loop every tick and starve torrents; TNAS defers had no back-off; the Pi dropped worker `error_display`/`resolved`; the GitHub token was visible in `ps`; `README.md` was missing for repos whose README is not literally `README.md`.
+
+**What changed:**
+
+- `POST /api/jobs/claim` accepts optional `{"lane": …}` (a `_job_kind_bucket`); `hub-worker.py` passes `aria2`, `video`, `repo`, `repo_meta` from its dispatch loops. No body keeps the old claim.
+- Jobs with a future `not_before` are skipped by every claim; TNAS-offline defer sets it (`HUB_REPO_DEFER_S`, default 120 s).
+- `JobUpdate` accepts `error_display`, `resolved`, `not_before`; stored `error_display` shows when there is no raw error and is cleared on `running`/`done`.
+- `gluetun_http_json` sends `Authorization` over stdin (`docker run -i`, `curl -H @-`), never argv.
+- Archiver image `:2`: README picked case-insensitively from `git ls-tree HEAD` and saved as `README.md`; worker falls back to the GitHub `/readme` API.
+- `docker/repo-archiver/*` added to the `[worker]` deploy manifest.
+- New `scripts/smoke-ap31-lanes.sh` (§T6 step 2, adversarial order). Tests: 146 → 177 passed.
+
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy
 
 **Packet:** ops (`cursor/ops-2026-10-12-home`).
@@ -12,6 +28,7 @@
 - Pi manifest redeployed; `verify-deploy-parity.sh pi` exit 0; Glance hub iframe `?v=20261012ops1`.
 - Mac `~/.ssh/config`: `stackrise-pi` → Tailscale `100.85.42.0` (local, not in repo).
 - §T6 step 2 baseline recorded **fail** in `AP-3-test-report.md` (torrent error + repo slot).
+- Follow-up (Finn, same day): ASUS RT-AX57 DHCP reservation `tnas` → `.187`; `HUB_GITHUB_TOKEN` set on ai-server; Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/`.
 
 ## 2026-10-12 — AP-3 deploy reconciliation (PM)
 

@@ -239,7 +239,8 @@ def _human_error(raw: str | None, job: dict[str, Any] | None = None) -> str | No
 def _job_public(job: dict[str, Any]) -> dict[str, Any]:
     """Copy job with a display-friendly error field for Hub UI."""
     out = dict(job)
-    out["error_display"] = _human_error(job.get("error"), job)
+    # Worker-supplied text (e.g. "TNAS offline, will retry") wins when there is no raw error.
+    out["error_display"] = _human_error(job.get("error"), job) or job.get("error_display")
     return out
 
 
@@ -2391,6 +2392,10 @@ class JobUpdate(BaseModel):
     agent_review: dict[str, Any] | None = None
     download_dir: str | None = None
     index_entry: dict[str, Any] | None = None
+    error_display: str | None = None
+    resolved: dict[str, Any] | None = None
+    # ISO-8601 UTC; claim skips the job until then. Empty string clears it.
+    not_before: str | None = None
 
 
 @app.patch("/api/jobs/{job_id}")
@@ -2417,6 +2422,10 @@ def patch_job(
             job.setdefault("paused_at", _now())
         if body.status in ("done", "error"):
             job["finished_at"] = _now()
+        if body.status in ("running", "done") and body.error_display is None:
+            job.pop("error_display", None)
+        if body.status in ("running", "done", "error") and body.not_before is None:
+            job.pop("not_before", None)
     if body.error is not None:
         job["error"] = body.error
     if body.progress is not None:
@@ -2431,6 +2440,15 @@ def patch_job(
         job["download_dir"] = body.download_dir
     if body.index_entry is not None:
         job["index_entry"] = body.index_entry
+    if body.error_display is not None:
+        job["error_display"] = body.error_display
+    if body.resolved is not None:
+        job["resolved"] = body.resolved
+    if body.not_before is not None:
+        if body.not_before:
+            job["not_before"] = body.not_before
+        else:
+            job.pop("not_before", None)
     if "agent_review" in body.model_fields_set:
         if body.agent_review is None:
             job.pop("agent_review", None)
@@ -2876,19 +2894,58 @@ def repo_lane_status() -> dict[str, Any]:
     }
 
 
+CLAIM_LANES = {"aria2", "video", "repo", "repo_meta", "archive", "exclusive", "other"}
+
+
+class ClaimRequest(BaseModel):
+    # Restrict the claim to one ``_job_kind_bucket``; None keeps the legacy any-lane claim.
+    lane: str | None = None
+
+
+def _not_before_pending(job: dict[str, Any], now: datetime) -> bool:
+    raw = job.get("not_before")
+    if not raw:
+        return False
+    try:
+        when = datetime.fromisoformat(str(raw).replace("Z", "+00:00"))
+    except ValueError:
+        return False
+    if when.tzinfo is None:
+        when = when.replace(tzinfo=timezone.utc)
+    return when > now
+
+
 @app.post("/api/jobs/claim")
-def claim_job(x_worker_token: str | None = Header(default=None)) -> dict[str, Any]:
-    """Atomically claim the next queued job (priority, queue_rank, slot limits)."""
+def claim_job(
+    body: ClaimRequest | None = Body(default=None),
+    x_worker_token: str | None = Header(default=None),
+) -> dict[str, Any]:
+    """Atomically claim the next queued job (priority, queue_rank, slot limits).
+
+    With ``{"lane": "<bucket>"}`` only jobs in that bucket are considered, so a
+    worker loop never claims (and bounces) a job it cannot run.
+    """
     _require_worker(x_worker_token)
     _ensure_dirs()
+    lane = (body.lane if body else None) or None
+    if lane is not None:
+        lane = lane.strip().lower()
+        if lane not in CLAIM_LANES:
+            raise HTTPException(400, f"lane must be one of {sorted(CLAIM_LANES)}")
+    now = datetime.now(timezone.utc)
     candidates: list[dict[str, Any]] = []
     for path in JOBS_SUB.glob("*.json"):
         try:
             job = json.loads(path.read_text(encoding="utf-8"))
         except Exception:
             continue
-        if job.get("status") == "queued":
-            candidates.append(job)
+        if job.get("status") != "queued":
+            continue
+        if lane is not None and _job_kind_bucket(job) != lane:
+            continue
+        if _not_before_pending(job, now):
+            continue
+        candidates.append(job)
     if not candidates:
         return {"ok": True, "job": None}
 

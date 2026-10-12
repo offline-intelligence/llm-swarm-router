@@ -16,7 +16,7 @@ import json
 import logging
 import os
 import shutil
-from datetime import datetime, timezone
+from datetime import datetime, timedelta, timezone
 from pathlib import Path
 from typing import Any, Callable
 from urllib.parse import urlparse
@@ -37,25 +37,51 @@ log = logging.getLogger("bucket-hub.repo_archive_github")
 
 TNAS_OFFLINE_MSG = "TNAS offline, will retry"
 DEFAULT_MAX_MB = 2048
+DEFAULT_DEFER_S = 120
+
+
+def repo_defer_seconds() -> int:
+    """Seconds a TNAS-deferred job waits before it can be claimed again (``HUB_REPO_DEFER_S``)."""
+    try:
+        return max(0, int(os.environ.get("HUB_REPO_DEFER_S", DEFAULT_DEFER_S)))
+    except ValueError:
+        return DEFAULT_DEFER_S
+
+
 _runner: RepoRunner | None = None
 _fetch_metadata: Callable[[str], dict[str, Any]] | None = None
+_fetch_readme: Callable[[str], str] | None = None
 
 
 def configure(
     runner: RepoRunner | None = None,
     fetch_metadata: Callable[[str], dict[str, Any]] | None = None,
+    fetch_readme: Callable[[str], str] | None = None,
 ) -> None:
-    global _runner, _fetch_metadata
+    global _runner, _fetch_metadata, _fetch_readme
     if runner is not None:
         _runner = runner
     if fetch_metadata is not None:
         _fetch_metadata = fetch_metadata
+    if fetch_readme is not None:
+        _fetch_readme = fetch_readme
+
+
+def fetch_readme_fallback(full_name: str) -> str:
+    """README text from the GitHub API when the archiver left none; "" on any failure."""
+    if _fetch_readme is None:
+        return ""
+    try:
+        return str(_fetch_readme(full_name) or "")
+    except Exception as exc:  # noqa: BLE001
+        logging.getLogger(__name__).warning("readme fallback failed for %s: %s", full_name, exc)
+        return ""
 
 
 def get_runner() -> RepoRunner:
     global _runner
     if _runner is None:
-        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:1")
+        image = os.environ.get("REPO_ARCHIVER_IMAGE", "bucket-hub-repo-archiver:2")
         _runner = DockerRepoRunner(image=image)
     return _runner
 
@@ -132,17 +158,20 @@ def run_github_repo_job(
     full_name = github_full_name_from_url(url)
     source_id = f"github:{full_name}"
 
+    now = now or datetime.now(timezone.utc)
     ok, reason = path_ready(str(root))
     if not ok:
+        # Back off so a dead mount does not get re-claimed every worker tick.
+        retry_at = now + timedelta(seconds=repo_defer_seconds())
         update_job(
             jid,
             status="queued",
             error_display=TNAS_OFFLINE_MSG,
+            not_before=retry_at.isoformat(),
             progress={"phase": "checking", "note": TNAS_OFFLINE_MSG},
         )
         return
 
-    now = now or datetime.now(timezone.utc)
     from repo_archive_paths import dated_folder_brisbane
 
     day = dated_folder_brisbane(now)
@@ -239,8 +268,14 @@ def run_github_repo_job(
         return
 
     readme = str(result.get("readme_text") or "")
-    if not readme and (partial / "README.md").is_file():
-        readme = (partial / "README.md").read_text(encoding="utf-8", errors="replace")
+    readme_file = partial / "README.md"
+    if not readme and readme_file.is_file():
+        readme = readme_file.read_text(encoding="utf-8", errors="replace")
+    if not readme_file.is_file():
+        # Older archiver images only read HEAD:README.md; fall back to the API (spec A5).
+        readme = readme or fetch_readme_fallback(full_name)
+        if readme:
+            readme_file.write_text(readme, encoding="utf-8")
 
     # Atomic promote: partial → final folder (same filesystem).
     dated.mkdir(parents=True, exist_ok=True)

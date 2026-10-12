@@ -923,24 +923,51 @@ def gluetun_http_json(url: str, timeout: int = 25) -> Any:
         "-H",
         "Accept: application/json",
     ]
+    auth = _gluetun_auth_header(url)
+    if auth:
+        # Header goes over stdin (curl ``-H @-``), never argv, so it is not visible in ``ps``.
+        cmd[3:3] = ["-i"]
+        cmd.extend(["-H", "@-"])
+    cmd.append(url)
+    out = subprocess.check_output(
+        cmd,
+        text=True,
+        timeout=timeout + 10,
+        input=f"{auth}\n" if auth else None,
+    )
+    return json.loads(out) if out else {}
+
+
+def _gluetun_auth_header(url: str) -> str:
+    """Return the ``Authorization`` header line for ``url``, or "" when none applies."""
     gh = os.environ.get("HUB_GITHUB_TOKEN", "").strip()
     if gh and "api.github.com" in url:
-        cmd.extend(["-H", f"Authorization: Bearer {gh}"])
+        return f"Authorization: Bearer {gh}"
     hf = os.environ.get("HF_TOKEN", "").strip() or os.environ.get(
         "HUGGING_FACE_HUB_TOKEN", ""
     ).strip()
     if hf and "huggingface.co" in url:
-        cmd.extend(["-H", f"Authorization: Bearer {hf}"])
-    cmd.append(url)
-    out = subprocess.check_output(cmd, text=True, timeout=timeout + 10)
-    return json.loads(out) if out else {}
+        return f"Authorization: Bearer {hf}"
+    return ""
 
 
 def _github_metadata_fetch(full_name: str) -> Any:
     return gluetun_http_json(f"https://api.github.com/repos/{full_name}")
 
 
-configure_repo_archive(fetch_metadata=_github_metadata_fetch)
+def _github_readme_fetch(full_name: str) -> str:
+    """Decoded README from ``GET /repos/{owner}/{repo}/readme`` (any README name)."""
+    data = gluetun_http_json(f"https://api.github.com/repos/{full_name}/readme")
+    content = data.get("content") if isinstance(data, dict) else None
+    if not content or data.get("encoding") != "base64":
+        return ""
+    return base64.b64decode(content).decode("utf-8", errors="replace")
+
+
+configure_repo_archive(
+    fetch_metadata=_github_metadata_fetch,
+    fetch_readme=_github_readme_fetch,
+)
 
 
 def jackett_http_json(path_and_query: str, timeout: int = 40) -> Any:
@@ -1868,8 +1895,14 @@ def send_heartbeat(vpn: tuple[bool, str], *, force_remount: bool = False) -> lis
     return drives
 
 
-def claim_next() -> dict[str, Any] | None:
-    return hub_call("/api/jobs/claim", method="POST", body={}).get("job")
+def claim_next(lane: str | None = None) -> dict[str, Any] | None:
+    """Claim the next queued job; ``lane`` limits it to one Pi claim bucket.
+
+    Each dispatch loop passes its own lane so it never claims a job it would
+    have to re-queue (the AP-3.1 lane-blind starvation bug).
+    """
+    body: dict[str, Any] = {"lane": lane} if lane else {}
+    return hub_call("/api/jobs/claim", method="POST", body=body).get("job")
 
 
 def _recover_claimed_aria2_jobs(vpn: tuple[bool, str]) -> None:
@@ -5042,7 +5075,7 @@ def main() -> None:
             if resume and str(resume.get("id") or "") not in ARIA2_TRACKS:
                 _attach_resumable_aria2_to_supervisor(resume)
             while _aria2_can_dispatch_more():
-                slot_job = claim_next()
+                slot_job = claim_next("aria2")
                 if not slot_job:
                     break
                 slot_kind = (slot_job.get("kind") or "http").lower()
@@ -5056,7 +5089,7 @@ def main() -> None:
                 )
                 _dispatch_claimed_job(slot_job, vpn)
             if HUB_SLOT_VIDEO > 0 and len(_video_running) < HUB_SLOT_VIDEO:
-                video_job = claim_next()
+                video_job = claim_next("video")
                 if video_job and (video_job.get("kind") or "").lower() == "video":
                     print(
                         f"claimed {video_job['id']} video -> "
@@ -5067,7 +5100,7 @@ def main() -> None:
                 elif video_job:
                     update_job(video_job["id"], status="queued", error=None)
             if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
-                repo_job = claim_next()
+                repo_job = claim_next("repo")
                 if repo_job and dispatch_route(repo_job) == "repo":
                     print(
                         f"claimed {repo_job['id']} {repo_job.get('kind')} -> repo lane",
@@ -5077,7 +5110,7 @@ def main() -> None:
                 elif repo_job:
                     update_job(repo_job["id"], status="queued", error=None)
             if HUB_SLOT_REPO > 0 and len(_repo_running) < HUB_SLOT_REPO:
-                meta_job = claim_next()
+                meta_job = claim_next("repo_meta")
                 if meta_job and dispatch_route(meta_job) == "repo_meta":
                     print(
                         f"claimed {meta_job['id']} {meta_job.get('kind')} -> repo_meta",
