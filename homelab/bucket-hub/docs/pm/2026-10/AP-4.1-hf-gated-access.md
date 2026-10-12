@@ -94,6 +94,8 @@ Live (Cursor, `scripts/smoke-ap41-gate.sh`):
 
 ## Decision (Finn)
 
+**Decided 2026-10-12: One click.** Build A1–A3, A5. A4 auto-accept and spike S1 are out of scope (no session cookie stored); L5 dropped.
+
 Build A4 auto-accept, or stop at A1–A3 (one click per gated model, then it downloads by itself)? PM recommendation: A1–A3 now. They meet "paste and it downloads" for everything except the single licence click, with no session cookie stored. A4 is only worth building if the spike shows a stable form and Finn accepts storing his HF session cookie on the worker.
 
 ## Ops prerequisites (Finn)
