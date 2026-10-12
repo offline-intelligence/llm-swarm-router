@@ -5,9 +5,9 @@
   "generated_at": "2026-10-12T20:25:00+10:00",
   "git": {
     "branch": "pm/ap-4.2",
-    "head": "29aa91a",
+    "head": "a49977d",
     "base": "pm/ap-ux-1@45bffe3",
-    "pr_url": null,
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/9",
     "rebase_conflicts": []
   },
   "overall": "blocked",
@@ -31,9 +31,9 @@
     {
       "id": "git.pr",
       "status": "pass",
-      "value": null,
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/9",
       "expected": "draft PR base pm/ap-ux-1",
-      "evidence": "gh pr create after push",
+      "evidence": "gh pr create #9 draft",
       "log": null
     },
     {
