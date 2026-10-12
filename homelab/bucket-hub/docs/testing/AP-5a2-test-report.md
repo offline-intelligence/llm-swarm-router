@@ -25,3 +25,4 @@ Load check (PM, container): 50 000 files in 1 202 folders, first scan 1.3 s, unc
 
 | round | date | result | QC file |
 |-------|------|--------|---------|
+| r1 | 2026-10-13 | **fail** (smoke C5 Pi→ai-server SSH; C6 no machine_sleep in schedule) | `docs/pm/2026-10/qc/AP-5a2-r1.json` |

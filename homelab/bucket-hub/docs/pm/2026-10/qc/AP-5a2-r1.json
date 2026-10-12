@@ -1,0 +1,222 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-5a.2",
+  "round": 1,
+  "generated_at": "2026-10-13T00:45:00+10:00",
+  "git": {
+    "branch": "pm/ap-5a2",
+    "head": "pending-commit",
+    "base": "main@bcfe9b3",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/14",
+    "rebase_conflicts": [],
+    "merged": null
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "git.rebase",
+      "status": "pass",
+      "value": "1d3006d atop bcfe9b3",
+      "expected": "clean; only AP-5a.2 commit above main",
+      "evidence": "git rebase offline-intelligence/main",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "340 passed, 0 failed in 14.61s",
+      "expected": "340 passed",
+      "evidence": "cd homelab/bucket-hub && PYTHONPATH=. uv run python -m pytest -q",
+      "log": null
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/14",
+      "expected": "draft PR URL",
+      "evidence": "gh pr create --draft",
+      "log": null
+    },
+    {
+      "id": "info.ai_server",
+      "status": "pass",
+      "value": {
+        "python": "3.12.3",
+        "fts5": "3.45.1",
+        "port_3031_before": 0,
+        "linger": "yes",
+        "data_on_root": true,
+        "mounted": ["/mnt/tnas", "/mnt/media", "/mnt/external/camz_ssd1", "/mnt/external/movies", "/mnt/external/organtransp", "/mnt/external/wrkssd"]
+      },
+      "expected": "Python ≥ 3.10, fts5, mountpoint, data on /, 3031 free, Linger=yes",
+      "evidence": "ssh ai-server-ts S1 script",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh worker after rsync",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh pi after rsync",
+      "log": null
+    },
+    {
+      "id": "deploy.services",
+      "status": "pass",
+      "value": {
+        "hub-index": "active",
+        "hub-worker": "active",
+        "hub-form": "active",
+        "log_note": "first start: full rebuild"
+      },
+      "expected": "hub-index, hub-worker, hub-form active; no traceback",
+      "evidence": "systemctl --user is-active; journalctl hub-index",
+      "log": null
+    },
+    {
+      "id": "smoke.c0_prereqs",
+      "status": "pass",
+      "value": { "fts5": "fts5", "service": "active", "db_mount": "/" },
+      "expected": "pass",
+      "evidence": "smoke-ap5a2-catalog.sh",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c1_health",
+      "status": "pass",
+      "value": { "items": 13402, "files": 235764, "last_rebuild": "2026-10-12T14:37:33.989852+00:00" },
+      "expected": "pass",
+      "evidence": "smoke C1",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c2_search",
+      "status": "pass",
+      "value": "repo, tv show, episode hits",
+      "expected": "pass",
+      "evidence": "smoke C2",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c3_note_tail",
+      "status": "pass",
+      "value": { "secs": 22, "old_note_restored": true },
+      "expected": "pass",
+      "evidence": "smoke C3",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c4_nudge",
+      "status": "pass",
+      "value": { "job": "5b274ec5b14b", "status": "done", "fresh_files": 9 },
+      "expected": "pass",
+      "evidence": "smoke C4",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c5_overnight_step",
+      "status": "fail",
+      "value": {
+        "error": "index rebuild failed (rc 255): bucket@192.168.50.65: Permission denied (publickey,password).",
+        "machines_ssh_identity_smoke": "unset (inline python, no .env)",
+        "machines_ssh_identity_configured": "~/homelab/data/hub-jobs/machines_ssh",
+        "overnight_ubuntu_ssh": "bucket@192.168.50.65"
+      },
+      "expected": "step ok; snapshot mtime increases",
+      "evidence": "smoke C5",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "smoke.c6_schedule",
+      "status": "fail",
+      "value": ["machine_wake", "mount_check", "llm_start", "dsh_research", "dsh_log_review", "llm_stop", "index_rebuild"],
+      "expected": "index_rebuild immediately before machine_sleep",
+      "evidence": "GET /api/overnight/schedule — no machine_sleep step in live schedule",
+      "log": "/tmp/ap5a2-smoke.log"
+    },
+    {
+      "id": "info.catalogue",
+      "status": "pass",
+      "value": {
+        "items": 13403,
+        "files": 235773,
+        "db_bytes": 211877888,
+        "last_rebuild": "2026-10-12T14:37:33.989852+00:00"
+      },
+      "expected": "health JSON",
+      "evidence": "curl 127.0.0.1:3031/health",
+      "log": null
+    },
+    {
+      "id": "info.search_ms",
+      "status": "pass",
+      "value": { "office": "0.01s", "llama": "0.00s", "heat": "0.00s" },
+      "expected": "three search timings",
+      "evidence": "curl /search on ai-server",
+      "log": null
+    },
+    {
+      "id": "info.warnings",
+      "status": "pass",
+      "value": "none",
+      "expected": "WARNING/ERROR tail or none",
+      "evidence": "journalctl hub-index grep WARNING|ERROR",
+      "log": null
+    },
+    {
+      "id": "git.pr_comment",
+      "status": "skip",
+      "value": null,
+      "expected": "QC summary on PR after write",
+      "evidence": "posted with this commit",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "skip",
+      "value": "not merged (overall fail)",
+      "expected": "gh pr merge after pass",
+      "evidence": "overall fail",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "major",
+      "check": "smoke.c5_overnight_step",
+      "where": "stackrise-pi overnight-run.py → ai-server",
+      "observed": "Permission denied (publickey,password) for bucket@192.168.50.65",
+      "expected": "Pi can ssh to ai-server for hub_index.py rebuild",
+      "repro": "QC_OUT=/tmp/ap5a2-qc.json ./scripts/smoke-ap5a2-catalog.sh (C5)",
+      "suspect": "MACHINES_SSH_IDENTITY unset on Pi; default key may not authorize LAN IP 192.168.50.65"
+    },
+    {
+      "id": "F2",
+      "severity": "major",
+      "check": "smoke.c6_schedule",
+      "where": "GET /api/overnight/schedule",
+      "observed": "enabled steps end with index_rebuild; machine_sleep absent",
+      "expected": "index_rebuild immediately before machine_sleep",
+      "repro": "curl http://100.85.42.0:3020/api/overnight/schedule | jq '.schedule.steps[].type'"
+    }
+  ],
+  "needs_finn": [],
+  "deviations": [
+    "Deploy used targeted rsync for mismatched manifest paths (hub_index.py, hub-index.service, download_record.py, overnight-run.py) after bulk loop only synced app.py/hub-worker.py."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a2-r1.json",
+    "homelab/bucket-hub/docs/testing/AP-5a2-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}
