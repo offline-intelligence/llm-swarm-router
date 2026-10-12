@@ -16,6 +16,8 @@
 - `docker/repo-archiver/*` added to the `[worker]` deploy manifest.
 - New `scripts/smoke-ap31-lanes.sh` (§T6 step 2, adversarial order). Tests: 146 → 177 passed.
 
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r1.json`): Pi/worker deploy + parity ok; §T6 adversarial torrent lane **pass**; repo drain/readme smoke timeout; worker log had aria2 `hub http 400` lines.
+
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy
 
 **Packet:** ops (`cursor/ops-2026-10-12-home`).

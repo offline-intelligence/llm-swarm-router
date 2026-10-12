@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (ops closed: TNAS `.187` reserved, token set, Kuma fixed, PR #4 merged; **AP-3.1 written by PM on `pm/ap-3.1`, 177 tests, awaiting Cursor push + deploy + `smoke-ap31-lanes.sh`**)
+**Last updated:** 2026-10-12 (AP-3.1 QC r1 **fail** — deploy ok, §T6 lane smoke pass, drain/readme/worker-log fail; `docs/pm/2026-10/qc/AP-3.1-r1.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -132,6 +132,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-3.1 QC r1** (`docs/pm/2026-10/qc/AP-3.1-r1.json`): pushed `pm/ap-3.1`, draft PR #5, Pi/worker deploy + parity **0**, image `:2` built; `smoke-ap31-lanes.sh` torrent lane **pass**; `repos_drain`/`readme_excerpt` **fail** (15 min timeout); `deploy.worker_log` **fail** (`hub http 400` aria2 stale gid). |
 | 2026-10-12 | Ops closed (DHCP reservation, `HUB_GITHUB_TOKEN`, Kuma, PR #4). PM implemented AP-3.1 on `pm/ap-3.1`: lane-aware claim, `not_before` back-off, Pi keeps `error_display`/`resolved`, token via stdin, README any-name + API fallback, image `:2`, archiver in worker manifest; 146 → 177 tests. Acceptance script `scripts/smoke-ap31-lanes.sh`; Cursor handoff `docs/pm/2026-10/handoffs/AP-3.1.md`. |
 | 2026-10-12 | Home ops (`cursor/ops-2026-10-12-home`): `stackrise-pi` → `100.85.42.0`; TNAS `.187` in repo + Pi deploy; parity pi/worker **0**; §T6 step 2 baseline **fail** (torrent error, repo slot). `HUB_GITHUB_TOKEN` still unset. |
 | 2026-10-12 | TNAS cable restored, NAS at `.187`; job `694e010971e2` Hello-World done, indexed, idempotent re-queue ok. PM: AP-3 live for manual use but not done (§T6 2 not run; `README.md` missing because the archiver only reads `HEAD:README.md`). Priority AP-3.1 → AP-4. Finn: DHCP reservation, `.186` clean-up, `HUB_GITHUB_TOKEN`. |

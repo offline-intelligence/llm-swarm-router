@@ -45,10 +45,10 @@ Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy (emits `QC {json}` lines 
 
 | Step | Result |
 |------|--------|
-| Precheck `active_repo == 0` | |
-| R1 long clone running | |
-| Torrent claimed ≤ 60 s while R1 runs | |
-| Torrent bytes rise while R1 runs | |
-| R2, R3 finish after R1 | |
-| Hello-World `README.md` + non-empty `readme_excerpt` | |
-| `ps` on ai-server during a metadata call shows no `Authorization` | |
+| Precheck `active_repo == 0` | **pass** (QC r1) |
+| R1 long clone running | **pass** (`git/git` job `da8ff9d48de5`) |
+| Torrent claimed ≤ 60 s while R1 runs | **pass** (10 s; Sintel magnet, `ext_movies` / `torrents`) |
+| Torrent bytes rise while R1 runs | **pass** (~129 MB while R1 running) |
+| R2, R3 finish after R1 | **fail** — 15 min drain window ended with Spoon-Knife still `running`, Hello-World `queued` (see `docs/pm/2026-10/qc/AP-3.1-r1.json`) |
+| Hello-World `README.md` + non-empty `readme_excerpt` | **fail** — R3 not finished in smoke window; `git/git` archive on TNAS has `README.md` (manual spot-check) |
+| `ps` on ai-server during smoke shows no `Authorization` in argv | **pass** (sampler output `0` only) |
