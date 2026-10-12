@@ -100,3 +100,15 @@ QC: `docs/pm/2026-10/qc/AP-3.1-r3.json` (**overall fail** — one smoke byte-ris
 | F3 Sintel collision | Handoff S0 `prep.torrent_dest_clean` | n/a |
 
 Unit tests: **189 passed** (PM run, Python 3.13). Smoke script checked against a fake Hub with a TNAS defer on R1 for 8 s: 6/6 pass, `tnas_defer` recorded. Live QC: `docs/pm/2026-10/qc/AP-3.1-r3.json` (pending Cursor).
+
+## Round 3b (2026-10-12)
+
+| Check | Result |
+|-------|--------|
+| S0 dismiss r3 Tears job `648ae5ce9631` | **pass** (was metadata-only, 0 seeders) |
+| Sintel smoke `torrent_claimed_60s` | **pass** (10 s) |
+| Sintel `torrent_bytes_rise` | **pass** (~129 MB while R1 running) |
+| `smoke.repos_drain` | **fail** — R1 `c3f52f15ad9c` done; Spoon-Knife / Hello-World still `queued` at drain timeout |
+| `smoke.readme_excerpt` | **fail** (R3 not started) |
+
+QC: `docs/pm/2026-10/qc/AP-3.1-r3b.json` (**overall fail** — repo drain; worker log: stale aria2 gid `85365f42082a8ffe` on torrent `8d817da9a03b`).

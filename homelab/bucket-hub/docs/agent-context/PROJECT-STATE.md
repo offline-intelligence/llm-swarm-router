@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 r3 reviewed: code accepted; one smoke re-run with Sintel issued, `docs/pm/2026-10/handoffs/AP-3.1-r3b.md`)
+**Last updated:** 2026-10-12 (AP-3.1 QC r3b **fail** — Sintel bytes pass; repo drain fail, `docs/pm/2026-10/qc/AP-3.1-r3b.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -139,6 +139,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-3.1 QC r3b** (`docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` **pass**; `repos_drain` / `readme_excerpt` **fail** (stale aria2 gid on smoke torrent; R2/R3 never claimed). PR #5 stays draft. |
 | 2026-10-12 | PM review of QC r3: Spoon-Knife and TNAS fixes proven live; no code change. `torrent_bytes_rise` 0 judged swarm-side (claimed at 10 s with 3 repo jobs ahead; r1 showed ~129 MB with Sintel during git/git). Issued r3b: one smoke re-run with Sintel, then PR #5 ready for review. |
 | 2026-10-12 | **AP-3.1 QC r3** (`docs/pm/2026-10/qc/AP-3.1-r3.json`): image `:3`, 189 tests; Spoon-Knife 1 MB / 0 pull refs; smoke repo drain **pass**; `torrent_bytes_rise` **fail** (Tears of Steel). |
 | 2026-10-12 | AP-3.1 QC r2 reviewed (`AP-3.1-r2.json`): orphan recovery **proven** (S4 job `27d1993819a1`), Hello-World README **pass**, token sampler **pass**. Two real defects: (1) `git clone --mirror` fetched GitHub `refs/pull/*`, so Spoon-Knife `74ad6f30004f` hit the 64 MB cap; (2) one failed TNAS mount check deferred R1 for 120 s and the smoke waited 60 s. Round 3 (`4842a71`): heads+tags bare fetch, image `:3`, `repo_path_ready` re-check, stale-mount clear, smoke `R1_WAIT_S=150`; 183 → 189 tests. Sintel collision = test hygiene (S0 prep check). |

@@ -22,6 +22,8 @@ QC r2 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r2.json`): orphan 
 
 QC r3 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3.json`): archiver `:3` Spoon-Knife 1 MB / no `refs/pull`; full repo drain pass; `smoke.torrent_bytes_rise` fail (Tears of Steel swarm).
 
+QC r3b **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r3b.json`): Sintel `torrent_bytes_rise` pass; `smoke.repos_drain` fail (stale aria2 gid on smoke torrent).
+
 Round 3 (PM): archiver image `:3` fetches branches and tags only (no GitHub `refs/pull/*`, which made Spoon-Knife exceed its cap); worker re-checks the TNAS mount once (`HUB_REPO_RECHECK_S`, 5 s) before deferring a repo job and clears a stale mark once the mount answers; defer note names the reason; smoke R1 waits 150 s. Tests 183 → 189.
 
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy

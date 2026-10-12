@@ -61,8 +61,8 @@ Enqueue smoke: `POST http://100.85.42.0:3000/api/jobs` with `kind: github_repo`,
 |------|-----------------|---------------|-------|
 | **Step 1 — parity** | `./scripts/verify-deploy-parity.sh pi` (before deploy: mismatch `machines_ctl.py`, `glance.yml`) | after rsync + `hub-form` restart: **0** | **pass** |
 | **Step 1 — worker** | `./scripts/verify-deploy-parity.sh worker` | **0** (before and after) | **pass** |
-| **Step 2 — parallel** | QC r3 `smoke.repos_drain` + `smoke.torrent_claimed_60s` | Repo lane + torrent claim **pass**; `torrent_bytes_rise` **fail** (swarm) — [AP-3.1-r3.json](../pm/2026-10/qc/AP-3.1-r3.json) | **partial** |
-| **Step 3 — README / Spoon-Knife** | QC r3 `live.spoon_knife_done` + `smoke.readme_excerpt` | Spoon-Knife 1 MB, no pull refs; Hello-World README | **pass** (QC r3) |
+| **Step 2 — parallel** | QC r3b Sintel smoke | Torrent claim + bytes **pass**; `repos_drain` **fail** (R2/R3 queued) — [AP-3.1-r3b.json](../pm/2026-10/qc/AP-3.1-r3b.json) | **partial** |
+| **Step 3 — README / Spoon-Knife** | QC r3 live checks + r3b `smoke.readme_excerpt` | r3: Spoon-Knife 1 MB, no pull refs **pass**; r3b smoke README path **fail** (Hello-World not drained) | **partial** |
 | **Task 6 — heartbeat** | `GET /api/status` `heartbeat_age_s` ~10s; worker log tail has historical `heartbeat failed` / `loop error` bursts | Pi reachable now; not blocking single-repo smokes | **note** |
 
 §T6 step 2 commands:
