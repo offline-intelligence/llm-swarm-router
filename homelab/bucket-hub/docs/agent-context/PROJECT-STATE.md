@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (OPS-HF1 gateway fix + specs AP-UX-1, AP-5 v2, roadmap; Cursor prompt `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`)
+**Last updated:** 2026-10-12 (PM review of OPS-HF1 r1 / AP-4.1 r2; prompt `docs/pm/2026-10/handoffs/OPS-HF1-r2-AP-4.1-r3.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -61,6 +61,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Pi restart | `ssh stackrise-pi 'systemctl --user restart hub-form.service'` (user unit). (2026-10-12) |
 | Download destinations | One server-side preset registry (`download_presets.py`, AP-UX-1) decides type → place for form, capture, Requests and API; drive/folder only behind "Manually set path". Film torrents default to the flat `torrents/` inbox like TV (Radarr imports). Finn agreed 2026-10-12 provided existing connections keep working: no *arr/aria2/Jellyfin config changes, R0 read-only before/after check. |
 | Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (Finn agreed 2026-10-12) |
+| Glance cache-buster | `glance.yml` `?v=` values are cache-busters: a live-only `?v=` difference may be overwritten on gateway deploy; any other gateway drift stops the deploy. Bump `v=` whenever `form.html` changes. (2026-10-12) |
+| Gated test model | AP-4.1 accepts manually gated repos (Hub re-checks for 168 h); `google/gemma-2-9b-it` used for QC. (2026-10-12) |
 | Priority (2026-10-12) | OPS-HF1 → AP-4.1 QC → MERGE-1 (parallel) → AP-UX-1 → AP-5a/b → hygiene. `docs/pm/2026-10/ROADMAP-2026-10.md`. |
 
 ---
@@ -102,7 +104,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
 - [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
-- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; `GATE_REPO` = `google/gemma-2-9b` (~18 GB, PM choice per Finn); needs Finn's Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
+- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; `GATE_REPO` = `google/gemma-2-9b-it` (18.5 GB, gated manual; PM choice per Finn); needs Finn's Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
 - [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
@@ -159,6 +161,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM review: OPS-HF1 r1 fail = glance.yml cache-buster drift only (deploy correctly stopped); repo bumped to `v=20261012hf1`, overwrite of `?v=` diffs authorised. AP-4.1 r2 blocked: PM's Gemma picks are gated manual (and base 9b is 37 GB); rule relaxed, `GATE_REPO=google/gemma-2-9b-it`. #5, #6 merged to `main`; #7 retargeted. Issued `OPS-HF1-r2-AP-4.1-r3.md`. |
 | 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |
 | 2026-10-12 | **AP-4.1 QC r2** (`docs/pm/2026-10/qc/AP-4.1-r2.json`): **blocked** — `HF_TOKEN` + worker restart pass; `google/gemma-2-9b` / `-it` both `gated: manual` on HF API (no smoke); MERGE-1 #5/#6 merged to `main`, #7 draft on `main`. |
 | 2026-10-12 | Finn: PM picks a ~20 GB gated model (→ `google/gemma-2-9b`), HF token stays active during testing, film inbox OK if existing connections keep working, Cursor does MERGE-1. Prompt `OPS-HF1-AP-4.1-r2.md` updated (Part F merges, `WAIT_S=14400`). |

@@ -175,7 +175,7 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (presence checked in AP-4.1 r2)
 - [ ] Finn: revoke and replace the HF token (it was pasted in chat) once the gated tests are done, in a few days
 - [ ] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy (Glance queue broken) — `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`
-- [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b`, ~18 GB, PM choice; fallback `-it`)
+- [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b-it`, 18.5 GB, gated manual)
 - [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
 - [ ] AP-UX-1 download presets; drive/folder only behind "Manually set path" (`docs/pm/2026-10/AP-UX-1-download-presets.md`)
 - [ ] AP-5a/5b index: ai-server SQLite catalogue + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
