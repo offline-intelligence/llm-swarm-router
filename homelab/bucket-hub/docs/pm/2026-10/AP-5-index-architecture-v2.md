@@ -107,6 +107,14 @@ The two JSONL journals are never replaced; the catalogue is added beside them. D
 
 **AP-5a Catalogue and indexer (worker side + Pi export).** Files: `hub_index.py` (new: schema, ingest, scan, search, HTTP server), `scripts/systemd/hub-index.service` (user unit on ai-server), `app.py` (`/api/index/export`, `/entries`, `/sources`), `hub-worker.py` (nudge), `scripts/overnight-run.py` + `overnight-schedule.default.json` (`index_rebuild` step type), `scripts/rebuild-download-index.py` (`--from-jobs`, `--catalog`), deploy manifest (`hub_index.py` in `[worker]`), `docs/DOWNLOAD-INDEX.md` (new). Tests below.
 
+**AP-5a.2 as built (PM, 2026-10-12, branch `pm/ap-5a2`).** `hub_index.py` (catalogue, scans in a child process, FTS5 search, HTTP `:3031`), `scripts/systemd/hub-index.service`, worker nudge in `update_job` on `done`, overnight step type `index_rebuild` (added once to existing schedules, before ai-server sleeps), `PUT /api/index/snapshot` on the Pi, `download_record.load_snapshot`. Tests `tests/test_hub_index.py` (I2–I6, I8, I9, I11, I14 plus guards). Smoke `scripts/smoke-ap5a2-catalog.sh`. Changes from the plan above:
+
+- The TNAS repo journal is not read: since the AP-5a.1 back-fill the Pi journal holds every repo record, and two feeds for one record would need a merge rule for nothing.
+- No `/forget` route: a Hub delete is a journal tombstone, so `/ingest` (journal tail) covers it. The Pi nudges `/ingest` after a tombstone when `HUB_INDEX_URL` is set on the Pi; it stays unset until AP-5b (the 30 s tail catches deletes meanwhile).
+- Recovery is `hub_index.py rebuild --local --fresh` instead of `rebuild-download-index.py --catalog` (the catalogue code lives on ai-server, the back-fill script on the Pi).
+- I7 (Pi proxy + fallback) moves to AP-5b with the proxy itself; I8 covers the snapshot upload and reader.
+- An empty listing of a root that had more than 100 files is treated as `offline`, never as a mass `missing`.
+
 **AP-5b Search API and Index panel.** Pi proxy + fallback + snapshot reader, Index panel UI per §A6 "UI", context cards, note editing, queue links.
 
 **AP-5c Remaining kinds.** Rich builders and sidecars for video, website, legacy repo kinds.

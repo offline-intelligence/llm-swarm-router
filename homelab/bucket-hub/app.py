@@ -5,6 +5,7 @@ from __future__ import annotations
 import json
 import os
 import re
+import threading
 import time
 import uuid
 from collections import Counter
@@ -72,6 +73,12 @@ OVERNIGHT_JS_PATH = Path(__file__).with_name("hub-overnight.js")
 HUB_DESIGN_CSS_PATH = Path(__file__).with_name("hub-design.css")
 HUB_ESCAPE_JS_PATH = Path(__file__).with_name("static") / "hub-escape.js"
 DOWNLOAD_INDEX_FILE = JOBS_DIR / "download-index.jsonl"
+# AP-5a.2: item-level snapshot pushed by the ai-server catalogue after each nightly rebuild
+# (read by the AP-5b fallback search while ai-server sleeps).
+INDEX_SNAPSHOT_FILE = JOBS_DIR / "index-snapshot.jsonl.gz"
+INDEX_SNAPSHOT_MAX_BYTES = int(os.environ.get("HUB_INDEX_SNAPSHOT_MAX_BYTES", str(64 * 1024 * 1024)))
+# ai-server catalogue (hub_index.py); empty = no delete nudge, the 30 s journal tail still catches it.
+HUB_INDEX_URL = os.environ.get("HUB_INDEX_URL", "").strip().rstrip("/")
 DEFAULT_OVERNIGHT_SCHEDULE = Path(__file__).with_name("overnight-schedule.default.json")
 OVERNIGHT_SCHEDULE_FILE = JOBS_DIR / "overnight-schedule.json"
 OVERNIGHT_STATE_FILE = JOBS_DIR / "overnight-run-state.json"
@@ -2802,11 +2809,34 @@ def _journal_finished_job(job: dict[str, Any]) -> None:
         print(f"download index append failed: {exc}", flush=True)
 
 
+def _nudge_hub_index() -> None:
+    """AP-5a.2: tell the ai-server catalogue the journal changed (best effort, never blocks)."""
+    if not HUB_INDEX_URL or not WORKER_TOKEN:
+        return
+
+    def send() -> None:
+        try:
+            req = URLRequest(
+                f"{HUB_INDEX_URL}/ingest",
+                data=b"{}",
+                method="POST",
+                headers={"Content-Type": "application/json", "X-Worker-Token": WORKER_TOKEN},
+            )
+            with urlopen(req, timeout=2):
+                pass
+        except Exception:  # noqa: BLE001  (ai-server asleep: the next tail or nightly scan catches up)
+            pass
+
+    threading.Thread(target=send, daemon=True).start()
+
+
 def _journal_tombstones_under(path: str, *, job_id: str, by: str) -> list[str]:
     records = download_record.load_records(DOWNLOAD_INDEX_FILE)
     hit = download_record.entries_under(records, path, HUB_REPO_ARCHIVE_ROOT)
     for eid in hit:
         append_entry(DOWNLOAD_INDEX_FILE, download_record.tombstone(eid, job_id=job_id, paths=[path], by=by))
+    if hit:
+        _nudge_hub_index()
     return hit
 
 
@@ -2817,6 +2847,8 @@ def _journal_tombstone_job(job: dict[str, Any], paths: list[str], *, by: str) ->
     hit = [eid for eid, r in records.items() if str(r.get("hub_job_id") or "") == jid and r.get("status") != "deleted"]
     for eid in hit:
         append_entry(DOWNLOAD_INDEX_FILE, download_record.tombstone(eid, job_id=jid, paths=paths, by=by))
+    if hit:
+        _nudge_hub_index()
     return hit
 
 
@@ -2976,6 +3008,23 @@ def index_entries(body: IndexEntriesBody, x_worker_token: str | None = Header(de
             raise HTTPException(422, f"{entry.get('entry_id')}: {exc}") from exc
         written += 1
     return {"ok": True, "written": written}
+
+
+@app.put("/api/index/snapshot")
+async def index_snapshot_upload(request: Request, x_worker_token: str | None = Header(default=None)) -> dict[str, Any]:
+    """AP-5a.2: the ai-server catalogue pushes its item snapshot (gzip JSONL) after a rebuild."""
+    _require_worker(x_worker_token)
+    data = await request.body()
+    if not data or len(data) > INDEX_SNAPSHOT_MAX_BYTES:
+        raise HTTPException(413 if data else 400, "snapshot missing or too large")
+    try:
+        items = download_record.count_snapshot_bytes(data)
+    except ValueError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    tmp = INDEX_SNAPSHOT_FILE.with_name(INDEX_SNAPSHOT_FILE.name + ".tmp")
+    tmp.write_bytes(data)
+    os.replace(tmp, INDEX_SNAPSHOT_FILE)
+    return {"ok": True, "items": items, "bytes": len(data)}
 
 
 class IndexNoteBody(BaseModel):
@@ -4038,7 +4087,37 @@ def _migrate_overnight_schedule(sched: dict[str, Any]) -> dict[str, Any]:
             step["type"] = type_map[step["type"]]
         if "timeout_min" not in step and "duration_min" in step:
             step["timeout_min"] = step.pop("duration_min")
+    _add_index_rebuild_step(sched)
     return sched
+
+
+INDEX_REBUILD_STEP = {
+    "id": "index-rebuild",
+    "type": "index_rebuild",
+    "label": "Rebuild download index",
+    "timeout_min": 30,
+    "enabled": True,
+    "critical": False,
+}
+
+
+def _add_index_rebuild_step(sched: dict[str, Any]) -> None:
+    """AP-5a.2, once per schedule: add the nightly index rebuild before ai-server sleeps.
+
+    Recorded in ``migrations`` so a step Finn removes in the planner does not come back.
+    """
+    done = sched.setdefault("migrations", [])
+    if "index_rebuild_v1" in done:
+        return
+    done.append("index_rebuild_v1")
+    steps = sched.setdefault("steps", [])
+    if any(s.get("type") == "index_rebuild" for s in steps):
+        return
+    at = next(
+        (i for i, s in enumerate(steps) if s.get("type") == "machine_sleep" and str(s.get("target")) in ("ubuntu", "ai-server")),
+        len(steps),
+    )
+    steps.insert(at, dict(INDEX_REBUILD_STEP))
 
 
 def _load_overnight_schedule() -> dict[str, Any]:

@@ -53,7 +53,7 @@ Finn's suggested order (hotfix → AP-4.1 → presets → index) is kept.
 |---|------|-----|-----------|
 | 16 | Finn confirms the architecture (ai-server SQLite catalogue as cache; journals + files as truth; Pi fallback while ai-server sleeps) | Finn | spec |
 | 17 | AP-5a Pi side: `/api/index/export`, `/entries`, `/sources`; `rebuild-download-index.py --from-jobs` | PM | 10, 16 |
-| 18 | AP-5a ai-server side: `hub_index.py` (schema, ingest, scan, FTS5 search, HTTP `:3031`), `hub-index.service`, worker nudge, overnight `index_rebuild` step, snapshot push; tests I1–I10 | PM | 17 |
+| 18 | AP-5a ai-server side: `hub_index.py` (schema, ingest, scan, FTS5 search, HTTP `:3031`), `hub-index.service`, worker nudge, overnight `index_rebuild` step, snapshot push; tests I1–I10 | PM | 17 — ✓ done (`pm/ap-5a2`, 340 tests) |
 | 19 | AP-5a deploy + QC: back-fill dry run (PM reviews count), first full scan, smoke steps 1–5 | Cursor | 18 |
 | 20 | AP-5b: Pi search proxy + fallback; Index panel (`?panel=index`), context cards, "Why I kept this" notes, queue rows link to items | PM → Cursor | 19 |
 | 21 | AP-5c: rich builders + sidecars for video, website, legacy `github`/`hf`; `test_every_download_kind_has_builder` | PM → Cursor | 20 |

@@ -13,6 +13,7 @@
     { type: 'sync_job', label: 'Seedvault sync', defaults: { timeout_min: 30 } },
     { type: 'queue_drain', label: 'Download queue', defaults: { timeout_min: 20 } },
     { type: 'storage_scan', label: 'Storage scan', defaults: { timeout_min: 20 } },
+    { type: 'index_rebuild', label: 'Rebuild download index', defaults: { timeout_min: 30 } },
   ];
 
   let schedule = {

@@ -629,6 +629,24 @@ def jellyfin_apply_hub_tags(job: dict[str, Any], host_dir: Path) -> None:
         print(f"jellyfin tags applied to {updated} item(s)", flush=True)
 
 
+# AP-5a.2: the download catalogue on this host (hub_index.py); empty disables the nudge.
+HUB_INDEX_URL = os.environ.get("HUB_INDEX_URL", "http://127.0.0.1:3031").strip().rstrip("/")
+
+
+def _nudge_index(job_id: str) -> None:
+    """Tell hub-index a job finished so its files are searchable in seconds (never blocks)."""
+    if not HUB_INDEX_URL or not WORKER_TOKEN:
+        return
+
+    def send() -> None:
+        try:
+            _http_json(f"{HUB_INDEX_URL}/ingest", method="POST", body={"job_id": job_id}, timeout=2.0)
+        except Exception:  # noqa: BLE001  (hub-index down: the nightly rebuild catches up)
+            pass
+
+    threading.Thread(target=send, daemon=True).start()
+
+
 def update_job(job_id: str, retries: int = 3, **fields: Any) -> None:
     clearable = {"error", "agent_review", "gate"}
     body = {
@@ -646,6 +664,8 @@ def update_job(job_id: str, retries: int = 3, **fields: Any) -> None:
     for attempt in range(retries):
         try:
             hub_call(f"/api/jobs/{job_id}", method="PATCH", body=body)
+            if fields.get("status") == "done":
+                _nudge_index(job_id)  # the Pi has journalled the job by now
             return
         except Exception as exc:  # noqa: BLE001
             last = exc

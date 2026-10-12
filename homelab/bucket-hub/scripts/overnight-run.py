@@ -38,6 +38,11 @@ TZ = ZoneInfo(os.environ.get("HUB_TZ", "Australia/Brisbane"))
 UBUNTU_SSH = os.environ.get("OVERNIGHT_UBUNTU_SSH", "bucket@192.168.50.65")
 SSH_IDENTITY = os.environ.get("MACHINES_SSH_IDENTITY", "").strip()
 DSH_SCRIPT = os.environ.get("OVERNIGHT_DSH_SCRIPT", "~/homelab/scripts/overnight-dsh-task.sh")
+# AP-5a.2: the catalogue rebuild runs on ai-server with the worker env (token, HUB_URL).
+INDEX_REBUILD_CMD = os.environ.get(
+    "OVERNIGHT_INDEX_REBUILD_CMD",
+    "set -a; . ~/homelab/scripts/hub-worker.env; set +a; python3 ~/homelab/scripts/hub_index.py rebuild --timeout {timeout_s}",
+)
 
 
 def log(msg: str) -> None:
@@ -173,10 +178,33 @@ def run_step_body(step: dict) -> dict:
         ]
         log(f"Queue drain: {len(active)} active jobs to process (paused jobs do not block)")
         return {"ok": True, "active": len(active), "total_jobs": len(all_jobs)}
+    if stype == "index_rebuild":
+        return run_index_rebuild(step)
     if stype == "storage_scan":
         hub_json("POST", "/api/storage/scan", {"volume": "all"})
         return {"ok": True}
     raise RuntimeError(f"Unknown step type: {stype}")
+
+
+def run_index_rebuild(step: dict) -> dict:
+    """Ask hub-index on ai-server for a full rebuild; returns its counts."""
+    budget_s = step_timeout_min(step) * 60
+    walk_s = max(60, budget_s - 60)  # leave a minute for the snapshot push and ssh
+    rc, out = ssh_ubuntu(INDEX_REBUILD_CMD.format(timeout_s=walk_s), timeout=budget_s)
+    try:
+        data = json.loads(out.strip().splitlines()[-1]) if out.strip() else {}
+    except (json.JSONDecodeError, IndexError):
+        data = {}
+    if rc != 0 or not data.get("ok"):
+        raise RuntimeError(f"index rebuild failed (rc {rc}): {(data.get('error') or out)[-200:]}")
+    keep = ("new", "changed", "missing", "deleted", "items", "files", "secs", "snapshot")
+    return {"ok": True, **{k: data.get(k) for k in keep if k in data}}
+
+
+def index_rebuild_text(result: dict) -> str:
+    counts = ", ".join(f"{int(result.get(k) or 0)} {k}" for k in ("new", "changed", "missing", "deleted"))
+    snap = result.get("snapshot") or {}
+    return counts + ("" if snap.get("pushed") else "; Pi snapshot not pushed")
 
 
 def run_step_poll(step: dict, deadline: float) -> dict:
@@ -398,7 +426,7 @@ def run_step(step: dict, dry_run: bool, step_started: str) -> dict:
         step_started,
         base,
         ok=True,
-        result_text="OK",
+        result_text=index_rebuild_text(base) if stype == "index_rebuild" else "OK",
     )
 
 
