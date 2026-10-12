@@ -9,6 +9,7 @@ job_health.py
 download_destinations.py
 download_presets.py
 index_writer.py
+download_record.py
 job_kinds.py
 hub_worker.py
 repo_archive_paths.py
@@ -31,6 +32,7 @@ storage.html
 capture.html
 indexers.html
 scripts/overnight-run.py
+scripts/rebuild-download-index.py
 
 [worker]
 # Destination: ~/homelab/scripts/
@@ -39,6 +41,7 @@ hub_worker.py
 job_health.py
 download_destinations.py
 index_writer.py
+download_record.py
 job_kinds.py
 repo_archive_paths.py
 repo_archive_github.py

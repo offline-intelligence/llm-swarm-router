@@ -23,8 +23,9 @@ from pydantic import BaseModel, Field, field_validator
 import llm_ctl
 import machines_ctl
 from download_destinations import aria2_destination_catalog, validate_aria2_destination
-from index_writer import append_entry, entry_from_job
+from index_writer import IndexSecretError, append_entry, entry_from_job
 import download_presets
+import download_record
 from job_kinds import is_archive_root_kind, is_aria2_job, is_repo_download_kind, is_repo_meta_kind
 from overnight_report import (
     build_last_night,
@@ -2600,17 +2601,7 @@ def patch_job(
         else:
             job["gate"] = body.gate
     if job.get("status") in ("done", "error") and prev_status not in ("done", "error"):
-        entry = job.get("index_entry")
-        if not isinstance(entry, dict):
-            entry = entry_from_job(job)
-        if job.get("status") == "error":
-            entry = dict(entry)
-            entry["status"] = "failed"
-        try:
-            append_entry(DOWNLOAD_INDEX_FILE, entry)
-            job["index_entry"] = entry
-        except Exception as exc:  # noqa: BLE001
-            print(f"download index append failed: {exc}", flush=True)
+        _journal_finished_job(job)
     _write_job(job)
     try:
         from notify import maybe_notify_job
@@ -2787,6 +2778,48 @@ class PurgeCompleteBody(BaseModel):
     detail: str = ""
 
 
+def _journal_finished_job(job: dict[str, Any]) -> None:
+    """AP-5a.1: one journal line per finished download; deletes become tombstones."""
+    kind = str(job.get("kind") or "").lower()
+    try:
+        if kind == "storage_delete":
+            if job.get("status") == "done" and job.get("source_path"):
+                _journal_tombstones_under(str(job["source_path"]), job_id=str(job.get("id") or ""), by="storage-delete")
+            return
+        if kind in download_record.NOT_DOWNLOADS:
+            return
+        entry = job.get("index_entry")
+        entry = dict(entry) if isinstance(entry, dict) else entry_from_job(job)
+        if job.get("status") == "error":
+            entry["status"] = "failed"
+        entry.setdefault("segment", _job_segment(job))
+        for key in ("preset", "saves_to"):
+            if job.get(key) and not entry.get(key):
+                entry[key] = job[key]
+        append_entry(DOWNLOAD_INDEX_FILE, entry)
+        job["index_entry"] = entry
+    except Exception as exc:  # noqa: BLE001
+        print(f"download index append failed: {exc}", flush=True)
+
+
+def _journal_tombstones_under(path: str, *, job_id: str, by: str) -> list[str]:
+    records = download_record.load_records(DOWNLOAD_INDEX_FILE)
+    hit = download_record.entries_under(records, path, HUB_REPO_ARCHIVE_ROOT)
+    for eid in hit:
+        append_entry(DOWNLOAD_INDEX_FILE, download_record.tombstone(eid, job_id=job_id, paths=[path], by=by))
+    return hit
+
+
+def _journal_tombstone_job(job: dict[str, Any], paths: list[str], *, by: str) -> list[str]:
+    """Tombstone every record of one job (cancel + purge)."""
+    jid = str(job.get("id") or "")
+    records = download_record.load_records(DOWNLOAD_INDEX_FILE)
+    hit = [eid for eid, r in records.items() if str(r.get("hub_job_id") or "") == jid and r.get("status") != "deleted"]
+    for eid in hit:
+        append_entry(DOWNLOAD_INDEX_FILE, download_record.tombstone(eid, job_id=jid, paths=paths, by=by))
+    return hit
+
+
 @app.post("/api/jobs/{job_id}/purge-complete")
 def purge_complete_job(
     job_id: str,
@@ -2805,6 +2838,11 @@ def purge_complete_job(
         job["purge_removed_paths"] = body.removed_paths
     if body.detail:
         job["purge_detail"] = body.detail
+    if body.removed_paths:
+        try:
+            _journal_tombstone_job(job, body.removed_paths, by="purge")
+        except Exception as exc:  # noqa: BLE001
+            print(f"download index tombstone failed: {exc}", flush=True)
     _write_job(job)
     return {"ok": True, "job": _job_public(job)}
 
@@ -2877,6 +2915,92 @@ def gate_check_job(job_id: str) -> dict[str, Any]:
     job["gate"] = gate
     _write_job(job)
     return {"ok": True, "job": _job_public(job)}
+
+
+# --- AP-5a.1 download index (spec A6; the journal is the truth) ---------------------
+
+
+def _index_records() -> dict[str, dict[str, Any]]:
+    return download_record.load_records(DOWNLOAD_INDEX_FILE)
+
+
+def _index_record_or_404(entry_id: str) -> dict[str, Any]:
+    rec = _index_records().get(entry_id)
+    if rec is None:
+        raise HTTPException(404, "Index entry not found")
+    return rec
+
+
+@app.get("/api/index/search")
+def index_search(
+    q: str = "", kind: str = "", segment: str = "", status: str = "", limit: int = 50, offset: int = 0
+) -> dict[str, Any]:
+    return download_record.search(
+        _index_records(), q, kind=kind, segment=segment, status=status, limit=limit, offset=offset
+    )
+
+
+@app.get("/api/index/export")
+def index_export(since: int = 0, kind: str = "") -> Response:
+    """Deduped JSONL of records changed after byte cursor ``since``; next cursor in a header."""
+    rows, cursor = download_record.export_since(DOWNLOAD_INDEX_FILE, since, kind=kind)
+    body = "".join(json.dumps(r, ensure_ascii=False) + "\n" for r in rows)
+    return Response(
+        body,
+        media_type="application/x-ndjson",
+        headers={"X-Index-Cursor": str(cursor), "X-Index-Count": str(len(rows))},
+    )
+
+
+@app.get("/api/index/sources")
+def index_sources(kind: str = "") -> dict[str, Any]:
+    ids = download_record.sources(_index_records(), kind)
+    return {"kind": kind or None, "count": len(ids), "source_ids": ids}
+
+
+class IndexEntriesBody(BaseModel):
+    entries: list[dict[str, Any]] = Field(..., min_length=1, max_length=500)
+
+
+@app.post("/api/index/entries")
+def index_entries(body: IndexEntriesBody, x_worker_token: str | None = Header(default=None)) -> dict[str, Any]:
+    """Worker/rebuild upsert: each record is appended (last line wins)."""
+    _require_worker(x_worker_token)
+    written = 0
+    for entry in body.entries:
+        if not entry.get("entry_id") or entry.get("event"):
+            raise HTTPException(422, "each entry needs entry_id and no event field")
+        try:
+            append_entry(DOWNLOAD_INDEX_FILE, entry)
+        except IndexSecretError as exc:
+            raise HTTPException(422, f"{entry.get('entry_id')}: {exc}") from exc
+        written += 1
+    return {"ok": True, "written": written}
+
+
+class IndexNoteBody(BaseModel):
+    model_config = {"extra": "forbid"}
+    user_note: str = Field(..., max_length=4000)
+
+
+@app.get("/api/index/{entry_id:path}/card")
+def index_card(entry_id: str) -> Response:
+    return Response(download_record.context_card(_index_record_or_404(entry_id)), media_type="text/markdown; charset=utf-8")
+
+
+@app.get("/api/index/{entry_id:path}")
+def index_entry(entry_id: str) -> dict[str, Any]:
+    return _index_record_or_404(entry_id)
+
+
+@app.patch("/api/index/{entry_id:path}")
+def index_note(entry_id: str, body: IndexNoteBody) -> dict[str, Any]:
+    _index_record_or_404(entry_id)
+    try:
+        append_entry(DOWNLOAD_INDEX_FILE, download_record.note_event(entry_id, body.user_note))
+    except IndexSecretError as exc:
+        raise HTTPException(422, str(exc)) from exc
+    return _index_records()[entry_id]
 
 
 class QueueReorderBody(BaseModel):

@@ -316,8 +316,15 @@ def run_github_repo_job(
 
 
 def write_provenance_sidecar(final: Path, job_id: str, entry: dict[str, Any]) -> None:
+    """Machine record (``.hub-provenance-<id>.json``) and person record (AP-5a.1) beside the files."""
     path = final / f".hub-provenance-{job_id}.json"
     path.write_text(json.dumps(entry, indent=2) + "\n", encoding="utf-8")
+    try:
+        from download_record import write_about_file
+
+        write_about_file(final, entry)
+    except Exception as exc:  # noqa: BLE001 - the download itself succeeded
+        log.warning("ABOUT-THIS-DOWNLOAD.md not written for %s: %s", job_id, exc)
 
 
 def write_tags_sidecar_job(final: Path, job: dict[str, Any], job_id: str) -> None:

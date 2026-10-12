@@ -103,6 +103,8 @@ The two JSONL journals are never replaced; the catalogue is added beside them. D
 
 ## Packets
 
+**Split (PM, 2026-10-12):** AP-5a ships as **AP-5a.1** (Pi export/entries/sources/search/card/note, delete tombstones, `ABOUT-THIS-DOWNLOAD.md`, `--from-jobs`; tests I1, I10–I13) and **AP-5a.2** (everything on ai-server below; tests I2–I9, I14). The export cursor is the journal byte offset (`X-Index-Cursor`).
+
 **AP-5a Catalogue and indexer (worker side + Pi export).** Files: `hub_index.py` (new: schema, ingest, scan, search, HTTP server), `scripts/systemd/hub-index.service` (user unit on ai-server), `app.py` (`/api/index/export`, `/entries`, `/sources`), `hub-worker.py` (nudge), `scripts/overnight-run.py` + `overnight-schedule.default.json` (`index_rebuild` step type), `scripts/rebuild-download-index.py` (`--from-jobs`, `--catalog`), deploy manifest (`hub_index.py` in `[worker]`), `docs/DOWNLOAD-INDEX.md` (new). Tests below.
 
 **AP-5b Search API and Index panel.** Pi proxy + fallback + snapshot reader, Index panel UI per §A6 "UI", context cards, note editing, queue links.
