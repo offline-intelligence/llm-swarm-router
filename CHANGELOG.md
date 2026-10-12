@@ -16,6 +16,8 @@
 - `form.html`: "GitHub repo (TNAS archive)", "Hugging Face repo (TNAS archive)", "Hugging Face files (to drive)".
 - `repo_archive_hf.py` added to both deploy manifests. New `scripts/smoke-ap4-hf.sh`. Tests: 193 → 217 passed.
 
+Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1.json`): integrate + parity + image `:4` ok; `REPO_ARCHIVER_IMAGE=:4` not set; smoke not run.
+
 ## 2026-10-12 — AP-3.1 repo lane fast-follow (PM)
 
 **Packet:** AP-3.1 (`pm/ap-3.1`), written by the PM; Cursor deploys.

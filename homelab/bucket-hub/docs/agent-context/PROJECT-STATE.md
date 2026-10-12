@@ -145,6 +145,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-4 QC r1** (`docs/pm/2026-10/qc/AP-4-r1.json`): 217 tests; draft PR #6 (base `pm/ap-3.1`); Pi/worker parity + image `:4` built; **blocked** on `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env — smoke not run. Legacy hf LFS check: real weights at SmokeTest. |
 | 2026-10-12 | PM implemented **AP-4** on `pm/ap-4`: `repo_archive_hf.py` (`huggingface_repo` lane), archiver `:4` `hf_snapshot`, `build_hf_entry` + `scrub_free_text`, form options, archive-root drive fix for legacy `hf`/`github` jobs; 193 → 217 tests; `scripts/smoke-ap4-hf.sh` (7 checks). Cursor round 1 issued. |
 | 2026-10-12 | **PM sign-off: AP-3.1 and AP-3 done** (QC r4 overall pass, 0 findings). PR #5 ready for Finn to merge. Next: AP-4 on `pm/ap-4` after the merge. Open P2: stale aria2 gid job stays `running` (no longer blocks lanes). |
 | 2026-10-12 | PM review of QC r3b: lane fix proven (Sintel 129 MB). Repo-drain fail root-caused: aria2 returns JSON-RPC errors as HTTP 400, `aria2()` let `HTTPError` escape, `find_resumable_aria2_job()` only caught `RuntimeError`, so every tick died before the repo claims (same cause as r1 F3). Round 4: `aria2()` converts to `RuntimeError`, housekeeping isolated in `main()`; 189 → 193 tests. |

@@ -1,0 +1,253 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-4",
+  "round": 1,
+  "generated_at": "2026-10-12T15:55:00+10:00",
+  "git": {
+    "branch": "pm/ap-4",
+    "head": "2f1b5ac0e5a08e5b7f46ab1aa7288fab6097d995",
+    "base": "offline-intelligence/main@ea1349f84d869cda40e75eb3316efa5b93589a89",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/6",
+    "rebase_conflicts": []
+  },
+  "overall": "blocked",
+  "checks": [
+    {
+      "id": "info.pr5_state",
+      "status": "pass",
+      "value": { "state": "OPEN", "isDraft": false, "mergedAt": null },
+      "expected": "PR #5 state; stack or rebase per handoff",
+      "evidence": "gh pr view 5; kept pm/ap-4 on pm/ap-3.1, PR #6 base pm/ap-3.1",
+      "log": "/tmp/ap4r1-info.pr5_state.log"
+    },
+    {
+      "id": "info.legacy_hf_lfs",
+      "status": "pass",
+      "value": {
+        "job_id": "14835f682592",
+        "destination_path": "/mnt/media/Media/SmokeTest",
+        "sizes": { "model.safetensors": 453864, "pytorch_model.bin": 3561811 },
+        "starts_with_lfs_pointer": false
+      },
+      "expected": "legacy hf done job shows real weights or no job",
+      "evidence": "find SmokeTest tiny-random-gpt2 weights; head -c 40 git-lfs count 0",
+      "log": "/tmp/ap4r1-info.legacy_hf_lfs.log"
+    },
+    {
+      "id": "git.rebase",
+      "status": "skip",
+      "value": null,
+      "expected": "exit 0 or skip if stacked",
+      "evidence": "PR #5 not merged; pm/ap-4 stacked on pm/ap-3.1",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "217 passed, 97 warnings in 6.26s",
+      "expected": "217 passed, 0 failed, 0 skipped",
+      "evidence": "pytest with huggingface_hub==0.26.2",
+      "log": "/tmp/ap4r1-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "2f1b5ac0e5a08e5b7f46ab1aa7288fab6097d995",
+      "expected": "remote pm/ap-4 = local HEAD",
+      "evidence": "git push -u offline-intelligence pm/ap-4; pushed pm/ap-3.1 f4b7f05 first",
+      "log": "/tmp/ap4r1-git.push.log"
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/6",
+      "expected": "draft PR URL",
+      "evidence": "gh pr create --draft --base pm/ap-3.1",
+      "log": "/tmp/ap4r1-git.pr.log"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "parity ok pi after rsync stackrise-pi:homelab/hub-form/",
+      "log": "/tmp/ap4r1-deploy.pi_parity.log"
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh worker exit 0",
+      "evidence": "parity ok worker",
+      "log": "/tmp/ap4r1-deploy.worker_parity.log"
+    },
+    {
+      "id": "deploy.image_build",
+      "status": "pass",
+      "value": "sha256:d2f7c8b4a66945316bc497fc58d57daed6d4722dbcb413842d241aaf639b54ea",
+      "expected": "docker image inspect bucket-hub-repo-archiver:4",
+      "evidence": "docker build on ai-server-ts",
+      "log": "/tmp/ap4r1-deploy.image_build.log"
+    },
+    {
+      "id": "deploy.image_hf_version",
+      "status": "pass",
+      "value": "0.26.2",
+      "expected": "prints 0.26.2",
+      "evidence": "docker run bucket-hub-repo-archiver:4 import huggingface_hub",
+      "log": null
+    },
+    {
+      "id": "deploy.env_image",
+      "status": "blocked",
+      "value": 0,
+      "expected": "grep REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:4 count 1",
+      "evidence": "hub-worker.env grep count 0; Finn must set :4 per handoff",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "blocked",
+      "value": null,
+      "expected": "hub-worker active after restart",
+      "evidence": "not restarted until deploy.env_image confirmed",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_log",
+      "status": "skip",
+      "value": null,
+      "expected": "0 loop error lines 120s post-restart",
+      "evidence": "not reached: worker restart blocked",
+      "log": null
+    },
+    {
+      "id": "deploy.form_kinds",
+      "status": "pass",
+      "value": { "path": "http://100.85.42.0:3000/hub-form/", "count": 1 },
+      "expected": "huggingface_repo in form HTML",
+      "evidence": "curl hub-form grep count 1",
+      "log": "/tmp/ap4r1-deploy.form_kinds.log"
+    },
+    {
+      "id": "smoke.precheck",
+      "status": "skip",
+      "value": null,
+      "expected": "all smoke checks pass",
+      "evidence": "not reached: worker not on :4 / not restarted",
+      "log": null
+    },
+    {
+      "id": "smoke.h1_done",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.h1_index",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.h1_no_dup_weights",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.h2_dedupe",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.space_rejected",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "smoke.missing_repo",
+      "status": "skip",
+      "value": null,
+      "expected": "pass",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.hf_layout",
+      "status": "skip",
+      "value": null,
+      "expected": "snapshot README sidecars",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.hf_real_weights",
+      "status": "skip",
+      "value": null,
+      "expected": "largest file >10k, no LFS pointer",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.no_partials",
+      "status": "skip",
+      "value": null,
+      "expected": "count 0",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.index_rows",
+      "status": "skip",
+      "value": null,
+      "expected": "huggingface_repo archived in index tail",
+      "evidence": "not reached",
+      "log": null
+    },
+    {
+      "id": "live.token_not_in_ps",
+      "status": "skip",
+      "value": null,
+      "expected": "distinct hf_ grep counts 0 only",
+      "evidence": "not run; smoke blocked",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "blocker",
+      "check": "deploy.env_image",
+      "where": "ai-server-ts:~/homelab/scripts/hub-worker.env",
+      "observed": "grep '^REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:4$' count = 0",
+      "expected": "count = 1 before worker restart and smoke",
+      "repro": "ssh ai-server-ts \"grep -c '^REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:4$' ~/homelab/scripts/hub-worker.env\""
+    }
+  ],
+  "needs_finn": [
+    "Set REPO_ARCHIVER_IMAGE=bucket-hub-repo-archiver:4 in ~/homelab/scripts/hub-worker.env on ai-server-ts, then ask Cursor for AP-4 QC r1 resume (worker restart + smoke)"
+  ],
+  "deviations": [
+    "Pi rsync via stackrise-pi:homelab/hub-form/ (bucket@100.85.42.0 SSH key failed on this Mac)"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1.json",
+    "homelab/bucket-hub/docs/testing/AP-4-test-report.md",
+    "homelab/bucket-hub/docs/testing/AP-3-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

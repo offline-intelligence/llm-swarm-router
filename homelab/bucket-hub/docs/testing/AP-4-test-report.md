@@ -47,8 +47,19 @@ cd homelab/bucket-hub && PYTHONPATH=. uv run --with pytest --with huggingface_hu
 
 ## LFS pointer inference (spec AP-4 "before writing code")
 
-Code reading: legacy `hf` whole-repo mode runs `git clone --depth 1` in `GIT_IMAGE` with no LFS step, so weight files would be LFS pointers (≈130-byte text files). Live confirmation is check `info.legacy_hf_lfs` in the AP-4 QC round.
+Code reading: legacy `hf` whole-repo mode runs `git clone --depth 1` in `GIT_IMAGE` with no LFS step, so weight files would be LFS pointers (≈130-byte text files).
+
+**QC r1 (2026-10-12):** job `14835f682592` at `/mnt/media/Media/SmokeTest/tiny-random-gpt2/` — `model.safetensors` 453864 B, `pytorch_model.bin` 3561811 B; `starts_with_lfs_pointer: false` (real weights, not LFS text).
 
 ## Manual acceptance (§T6 step 6 + error paths)
 
-`scripts/smoke-ap4-hf.sh` (checked against a fake Hub: 7/7). Live results: `docs/pm/2026-10/qc/AP-4-r1.json` (pending Cursor).
+`scripts/smoke-ap4-hf.sh` (fake Hub: 7/7).
+
+| Check | Result (QC r1) |
+|-------|----------------|
+| Integrate (217 tests, draft PR #6) | **pass** |
+| Pi/worker parity + image `:4` build | **pass** |
+| `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env | **blocked** (Finn) |
+| Worker restart + smoke + disk | **not run** |
+
+QC: `docs/pm/2026-10/qc/AP-4-r1.json` (**overall blocked**).
