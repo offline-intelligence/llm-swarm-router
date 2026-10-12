@@ -1,0 +1,211 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-5a1",
+  "round": 2,
+  "generated_at": "2026-10-12T22:10:00+10:00",
+  "git": {
+    "branch": "pm/ap-5a1",
+    "head": "c2e125d",
+    "base": "offline-intelligence/main@b396a6f",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/11",
+    "rebase_conflicts": []
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "301 passed, 0 skipped, 0 failed in 8.32s (huggingface_hub==0.26.2)",
+      "expected": "301 passed, 0 skipped, 0 failed",
+      "evidence": "uv pip install huggingface_hub==0.26.2; PYTHONPATH=. uv run python -m pytest -q",
+      "log": "/tmp/ap5a1r2-unit-026.log"
+    },
+    {
+      "id": "info.unit_hf_latest",
+      "status": "pass",
+      "value": "24 passed on huggingface_hub==2.2.0 (tests/test_repo_archive_hf.py)",
+      "expected": "test_repo_archive_hf.py all pass on latest huggingface_hub",
+      "evidence": "uv pip install -U huggingface_hub; pytest tests/test_repo_archive_hf.py",
+      "log": "/tmp/ap5a1r2-unit-hf-latest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "c2e125d",
+      "expected": "pushed",
+      "evidence": "git push offline-intelligence pm/ap-5a1 (d39f4ea test fix + QC docs)",
+      "log": null
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/11",
+      "expected": "draft PR url",
+      "evidence": "carried from AP-5a1-r1.json",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh pi after scripts/rebuild-download-index.py rsync",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh worker",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "active_enter": "Mon 2026-10-12 22:01:04 AEST",
+        "app_py_mtime": "2026-10-12 21:55:04 +1000"
+      },
+      "expected": "process start later than app.py mtime",
+      "evidence": "systemctl --user show hub-form ActiveEnterTimestamp vs stat app.py",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": { "active": true, "errors_first_2min": 0 },
+      "expected": "active, 0 errors",
+      "evidence": "systemctl is-active hub-worker; journalctl since 2 min",
+      "log": null
+    },
+    {
+      "id": "deploy.index_endpoint",
+      "status": "pass",
+      "value": 200,
+      "expected": "HTTP 200",
+      "evidence": "curl -o /dev/null -w '%{http_code}' http://100.85.42.0:3000/api/index/search?q=",
+      "log": null
+    },
+    {
+      "id": "smoke.x1_export",
+      "status": "pass",
+      "value": { "cursor": 62535, "records": 37, "after_cursor": 0 },
+      "expected": "pass",
+      "evidence": "smoke-ap5a1-index.sh X1",
+      "log": "/tmp/ap5a1r2-smoke.log"
+    },
+    {
+      "id": "smoke.x2_hello_world",
+      "status": "pass",
+      "value": { "total": 5, "entry_id": "github_repo:octocat/Hello-World:05c1dcf1cc7b" },
+      "expected": "pass or absent",
+      "evidence": "smoke X2",
+      "log": "/tmp/ap5a1r2-qc.json"
+    },
+    {
+      "id": "smoke.x3_search",
+      "status": "pass",
+      "value": { "headings": 4, "title_line": "# octocat/Hello-World" },
+      "expected": "pass",
+      "evidence": "smoke X3 card",
+      "log": "/tmp/ap5a1r2-qc.json"
+    },
+    {
+      "id": "smoke.x4_card",
+      "status": "pass",
+      "value": { "entry_id": "huggingface_repo:79dd6f2b73ad:79dd6f2b73ad", "note_ok": true },
+      "expected": "pass",
+      "evidence": "smoke X4 note",
+      "log": "/tmp/ap5a1r2-qc.json"
+    },
+    {
+      "id": "smoke.x5_note",
+      "status": "pass",
+      "value": { "count": 10 },
+      "expected": "pass",
+      "evidence": "smoke X5 sources",
+      "log": "/tmp/ap5a1r2-qc.json"
+    },
+    {
+      "id": "smoke.x6_hf_job",
+      "status": "pass",
+      "value": {
+        "job": "8620670cf65e",
+        "status": "done",
+        "download_dir": "huggingface-daily/2026-10-12/models__hf-internal-testing__tiny-random-gpt2",
+        "dismissed": true
+      },
+      "expected": "pass",
+      "evidence": "smoke X6 ABOUT file; POST dismiss",
+      "log": "/tmp/ap5a1r2-smoke.log"
+    },
+    {
+      "id": "smoke.x7_backfill_dry_run",
+      "status": "pass",
+      "value": {
+        "jobs": 133,
+        "done": 56,
+        "already_indexed": 28,
+        "skipped_not_download": 1,
+        "to_write": 27,
+        "by_kind": {
+          "github": 5,
+          "hf": 2,
+          "http": 4,
+          "magnet": 1,
+          "minecraft": 2,
+          "video": 6,
+          "website_archive": 7
+        }
+      },
+      "expected": "pass",
+      "evidence": "smoke X7 dry-run only",
+      "log": "/tmp/ap5a1r2-qc.json"
+    },
+    {
+      "id": "info.backfill_counts",
+      "status": "pass",
+      "value": {
+        "jobs": 133,
+        "done": 56,
+        "already_indexed": 28,
+        "skipped_not_download": 1,
+        "to_write": 27,
+        "by_kind": {
+          "github": 5,
+          "hf": 2,
+          "http": 4,
+          "magnet": 1,
+          "minecraft": 2,
+          "video": 6,
+          "website_archive": 7
+        }
+      },
+      "expected": "X7 dry-run counts",
+      "evidence": "same as smoke.x7_backfill_dry_run",
+      "log": null
+    },
+    {
+      "id": "ui.card",
+      "status": "skip",
+      "value": null,
+      "expected": "Finn card review or skip",
+      "evidence": "not run this round",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "First bulk rsync placed rebuild-download-index.py at hub-form root; corrected with rsync to homelab/hub-form/scripts/ before parity.",
+    "F1 (r1): PM fix d39f4ea test_entry_hf_error_kinds (huggingface_hub 1.x/2.x); archiver image still pins 0.26.2."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r2.json",
+    "homelab/bucket-hub/docs/testing/AP-5a1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

@@ -1,0 +1,266 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-5a1",
+  "round": 3,
+  "generated_at": "2026-10-12T23:20:00+10:00",
+  "git": {
+    "branch": "pm/ap-5a1",
+    "head": "9ecede5",
+    "base": "offline-intelligence/main",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/11",
+    "rebase_conflicts": []
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "301 passed, 0 skipped, 0 failed in 7.39s (huggingface_hub==0.26.2)",
+      "expected": "301 passed, 0 failed",
+      "evidence": "PYTHONPATH=. uv run python -m pytest -q",
+      "log": null
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "9ecede5",
+      "expected": "pushed",
+      "evidence": "git merge --ff-only pm/ap-5a1-r3; git push offline-intelligence pm/ap-5a1",
+      "log": null
+    },
+    {
+      "id": "info.minecraft_jobs",
+      "status": "pass",
+      "value": [
+        {
+          "id": "7b10746b01c0",
+          "kind": "minecraft",
+          "status": "done",
+          "title": "Stop Minecraft server",
+          "url_host": "",
+          "result_keys": []
+        },
+        {
+          "id": "41d89de7a1ad",
+          "kind": "minecraft",
+          "status": "done",
+          "title": "Start Minecraft server",
+          "url_host": "",
+          "result_keys": []
+        }
+      ],
+      "expected": "2 rows",
+      "evidence": "python3 jq substitute on Pi jobs dir",
+      "log": null
+    },
+    {
+      "id": "backfill.minecraft_not_download",
+      "status": "pass",
+      "value": "no download url_host or result paths on either job",
+      "expected": "pass",
+      "evidence": "info.minecraft_jobs",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh pi after full [pi] rsync",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh worker after full [worker] rsync from ap-5a1 branch",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "active_enter": "Mon 2026-10-12 23:14:38 AEST",
+        "app_py_mtime": "2026-10-12 21:55:04 +1000"
+      },
+      "expected": "process start later than app.py mtime",
+      "evidence": "systemctl --user show hub-form",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": { "active": true, "traceback_2min": false },
+      "expected": "active, 0 errors",
+      "evidence": "systemctl --user is-active hub-worker",
+      "log": null
+    },
+    {
+      "id": "deploy.index_endpoint",
+      "status": "pass",
+      "value": 200,
+      "expected": "HTTP 200",
+      "evidence": "curl /api/index/search?q=",
+      "log": null
+    },
+    {
+      "id": "deploy.stray_backfill_removed",
+      "status": "pass",
+      "value": "root rebuild-download-index.py removed after cmp matched scripts/",
+      "expected": "pass",
+      "evidence": "ssh stackrise-pi hub-form cmp+rm",
+      "log": null
+    },
+    {
+      "id": "backfill.dry_run",
+      "status": "pass",
+      "value": {
+        "to_write": 25,
+        "skipped_not_download": 3,
+        "by_kind": {
+          "github": 5,
+          "hf": 2,
+          "http": 4,
+          "magnet": 1,
+          "video": 6,
+          "website_archive": 7
+        }
+      },
+      "expected": "to_write 25, skipped 3, no minecraft",
+      "evidence": "rebuild-download-index.py --dry-run",
+      "log": null
+    },
+    {
+      "id": "backfill.written",
+      "status": "pass",
+      "value": 25,
+      "expected": "written 25",
+      "evidence": "rebuild without --dry-run",
+      "log": null
+    },
+    {
+      "id": "backfill.idempotent",
+      "status": "pass",
+      "value": { "to_write": 0, "already_indexed": 53 },
+      "expected": "to_write 0",
+      "evidence": "third dry-run",
+      "log": null
+    },
+    {
+      "id": "backfill.export_count",
+      "status": "fail",
+      "value": { "x_index_count": 64, "expected": 62, "note": "r2 had 37 records + 25 backfill; +2 likely from r3 smoke X4 note + X6 HF re-archive" },
+      "expected": "X-Index-Count = 62",
+      "evidence": "curl -D - /api/index/export?since=0 | grep X-Index-Count",
+      "log": null
+    },
+    {
+      "id": "info.backfill_backup",
+      "status": "pass",
+      "value": {
+        "path": "download-index.jsonl.bak-20261012-ap5a1r3",
+        "bytes": 67402
+      },
+      "expected": "backup name and size",
+      "evidence": "ls -l on Pi jobs dir",
+      "log": null
+    },
+    {
+      "id": "smoke.x1_export",
+      "status": "fail",
+      "value": { "cursor": 67402, "records": 39, "after_cursor": 25 },
+      "expected": "after_cursor 0",
+      "evidence": "smoke-ap5a1-index.sh X1 after backfill",
+      "log": "/tmp/ap5a1r3-smoke.log"
+    },
+    {
+      "id": "smoke.x2_search",
+      "status": "pass",
+      "value": { "total": 5 },
+      "expected": "pass",
+      "evidence": "smoke X2",
+      "log": "/tmp/ap5a1r3-qc.json"
+    },
+    {
+      "id": "smoke.x3_card",
+      "status": "pass",
+      "value": { "headings": 4 },
+      "expected": "pass",
+      "evidence": "smoke X3",
+      "log": "/tmp/ap5a1r3-qc.json"
+    },
+    {
+      "id": "smoke.x4_note",
+      "status": "pass",
+      "value": { "entry_id": "huggingface_repo:hf:model/hf-internal-testing/tiny-random-gpt2:8620670cf65e" },
+      "expected": "pass",
+      "evidence": "smoke X4",
+      "log": "/tmp/ap5a1r3-qc.json"
+    },
+    {
+      "id": "smoke.x5_sources",
+      "status": "pass",
+      "value": { "count": 10 },
+      "expected": "pass",
+      "evidence": "smoke X5",
+      "log": "/tmp/ap5a1r3-qc.json"
+    },
+    {
+      "id": "smoke.x6_about_file",
+      "status": "pass",
+      "value": { "job": "53d87780f941", "status": "done" },
+      "expected": "pass",
+      "evidence": "smoke X6",
+      "log": "/tmp/ap5a1r3-smoke.log"
+    },
+    {
+      "id": "smoke.x7_backfill_dry_run",
+      "status": "pass",
+      "value": { "to_write": 0, "already_indexed": 54 },
+      "expected": "pass",
+      "evidence": "smoke X7",
+      "log": "/tmp/ap5a1r3-qc.json"
+    },
+    {
+      "id": "ui.card",
+      "status": "skip",
+      "value": null,
+      "expected": "Finn S3",
+      "evidence": "not run",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "skip",
+      "value": null,
+      "expected": "PR #11 merge on pass",
+      "evidence": "overall fail — merge not run",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "medium",
+      "summary": "After writing 25 back-fill lines, GET /api/index/export returns cursor 67402 with 39 records but GET ?since=67402 returns 25 more lines (after_cursor≠0).",
+      "repro": "homelab/bucket-hub: QC_OUT=/tmp/t.json ./scripts/smoke-ap5a1-index.sh (post back-fill on 2026-10-12)"
+    },
+    {
+      "id": "F2",
+      "severity": "low",
+      "summary": "X-Index-Count 64 vs PM expected 62 (37+25); +2 aligns with r3 smoke note + HF re-archive entries.",
+      "repro": "curl -sD - -o /dev/null 'http://100.85.42.0:3000/api/index/export?since=0' | grep -i x-index-count"
+    }
+  ],
+  "needs_finn": [],
+  "deviations": [
+    "Full [pi]/[worker] manifest rsync from pm/ap-5a1 branch for parity (reverted OPS-ARR2 form.html on Pi until Part B deploy)."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a1-r3.json",
+    "homelab/bucket-hub/docs/testing/AP-5a1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}

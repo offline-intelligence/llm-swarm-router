@@ -101,3 +101,18 @@ curl -s -X POST http://100.85.42.0:3000/api/presets/resolve -H 'Content-Type: ap
 | neither | `drive_id` + `folder_id` without a preset = old client (`destination_source: "legacy"`); nothing at all = preset suggested from the URL |
 
 Stored on the job: `preset`, `segment`, `destination_source` (`preset` / `manual` / `legacy`), `saves_to`. Unavailable preset → **503** with the reason; a link that does not fit the preset (e.g. YouTube with `tv`) → **400**. `GET /api/jobs?segment=tv|repo|website|other` filters; jobs from before AP-UX-1 get a segment derived from their kind.
+
+## `/api/index/*` — download index (AP-5a.1)
+
+Full guide: `docs/DOWNLOAD-INDEX.md`.
+
+| Method | Path | Notes |
+|--------|------|-------|
+| `GET` | `/api/index/search?q=&kind=&segment=&status=&limit=50&offset=0` | every term must match; weighted; deleted/failed hidden unless `status=` names them. `{total, items:[…, score]}` |
+| `GET` | `/api/index/{entry_id}` | merged record; 404 if unknown |
+| `GET` | `/api/index/{entry_id}/card` | Markdown context card (What / Where / Why / When) |
+| `PATCH` | `/api/index/{entry_id}` | `{"user_note": "…"}` only (422 on any other key) |
+| `GET` | `/api/index/export?since=<cursor>&kind=` | JSONL of records changed after the cursor; next cursor in `X-Index-Cursor` |
+| `GET` | `/api/index/sources?kind=` | `source_id`s that are not failed or deleted |
+| `POST` | `/api/index/entries` | worker token; `{"entries":[…]}` appended (last line wins) |
+

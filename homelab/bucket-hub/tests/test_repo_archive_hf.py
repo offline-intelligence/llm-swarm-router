@@ -366,9 +366,16 @@ def test_entry_hf_error_kinds():
     pytest.importorskip("huggingface_hub")
     from huggingface_hub.errors import GatedRepoError, RepositoryNotFoundError
 
+    def bare(cls, msg):
+        # huggingface_hub >= 1.0 requires a ``response`` kwarg in __init__; the classifier
+        # only looks at the class name, so build the instance without calling __init__.
+        exc = cls.__new__(cls)
+        exc.args = (msg,)
+        return exc
+
     mod = _entry_mod()
-    assert mod._hf_error_kind(GatedRepoError("gated")) == "gated"
-    assert mod._hf_error_kind(RepositoryNotFoundError("nope")) == "not_found"
+    assert mod._hf_error_kind(bare(GatedRepoError, "gated")) == "gated"
+    assert mod._hf_error_kind(bare(RepositoryNotFoundError, "nope")) == "not_found"
     assert mod._hf_error_kind(RuntimeError("disk full")) == "failed"
 
 
