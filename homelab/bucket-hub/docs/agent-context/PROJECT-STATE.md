@@ -197,6 +197,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | **AP-5a.1 QC r3** (`docs/pm/2026-10/qc/AP-5a1-r3.json`): **fail** — back-fill **25 written**; smoke **X1** `after_cursor=25`; PR **#11 not merged**. |
 | 2026-10-12 | PM reviewed the AP-5a.1 r2 back-fill dry run (27 to write): accepted except 2 `minecraft` jobs (Minecraft-server housekeeping, no such kind in current code). r3 on `pm/ap-5a1-r3`: `minecraft` added to `NOT_DOWNLOADS` + test (301 pass). Cursor runs the real back-fill (expect 25), then merges PR #11 (`cursor-prompts/cursor-ap5a1-r3.md`). Next PM build: AP-5a.2. |
 | 2026-10-12 | **AP-5a.1 QC r2** (`docs/pm/2026-10/qc/AP-5a1-r2.json`): **pass** — PM test fix `d39f4ea`; 301 unit tests (`huggingface_hub==0.26.2`); Pi/worker deploy + parity; smoke X1–X7 7/7; PR #11 marked ready (not merged). |
 | 2026-10-12 | **AP-5a.1 QC r1** (`docs/pm/2026-10/qc/AP-5a1-r1.json`): **fail** — rebase onto `main` ok; `unit.pytest` 300/301 (`test_entry_hf_error_kinds` vs newer `huggingface_hub`); deploy/smokes skipped. |
