@@ -5,7 +5,7 @@
   "generated_at": "2026-10-13T00:45:00+10:00",
   "git": {
     "branch": "pm/ap-5a2",
-    "head": "cae77c7",
+    "head": "d1c955b",
     "base": "main@bcfe9b3",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/14",
     "rebase_conflicts": [],
