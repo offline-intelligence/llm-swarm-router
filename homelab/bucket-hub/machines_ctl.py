@@ -68,9 +68,9 @@ def default_machines() -> dict[str, Any]:
             {
                 "id": "tnas",
                 "label": "TNAS",
-                "lan_ip": "192.168.50.186",
+                "lan_ip": "192.168.50.187",
                 "mac": "6c:bf:b5:04:69:66",
-                "probe_url": "http://192.168.50.186/",
+                "probe_url": "http://192.168.50.187/",
                 "wake": True,
                 "sleep": False,
             },

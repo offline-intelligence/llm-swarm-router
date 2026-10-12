@@ -21,7 +21,7 @@ MONITORS: list[dict[str, object]] = [
     {"name": "Jellyfin", "url": "http://192.168.50.65:8096/"},
     {"name": "Jackett", "url": "http://192.168.50.65:9117/"},
     {"name": "SearXNG", "url": "http://192.168.50.65:8888/"},
-    {"name": "TNAS", "url": "http://192.168.50.186:8181/"},
+    {"name": "TNAS", "url": "http://192.168.50.187:8181/"},
     {"name": "netllm Ubuntu", "url": "http://192.168.50.65:11400/ui/"},
     {"name": "netllm Mac", "url": "http://192.168.50.19:11400/ui/"},
 ]

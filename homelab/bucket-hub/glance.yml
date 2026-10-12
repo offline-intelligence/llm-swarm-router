@@ -33,7 +33,7 @@ pages:
         widgets:
           - type: iframe
             title: Workspace
-            source: /hub-form/?panel=hub&v=20261010s01search
+            source: /hub-form/?panel=hub&v=20261012ops1
             height: 1280
 
   - name: Jellyfin
@@ -149,7 +149,7 @@ pages:
                     url: http://192.168.50.65:8888
                     icon: mdi:search-web
                   - title: TNAS
-                    url: http://192.168.50.186/
+                    url: http://192.168.50.187/
                     icon: mdi:harddisk
 
           - type: monitor
@@ -177,7 +177,7 @@ pages:
                 url: http://192.168.50.138:3001
                 icon: si:uptimekuma
               - title: TNAS
-                url: http://192.168.50.186/
+                url: http://192.168.50.187/
                 icon: mdi:harddisk
               - title: netllm Mac
                 url: http://192.168.50.19:11400/ui/
