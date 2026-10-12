@@ -1,5 +1,59 @@
 # Changelog
 
+## 2026-10-12 — AP-4.2 Hugging Face access re-check schedule (PM)
+
+**Why:** Finn wanted the Hub to re-check a gated model soon after he accepts, not every 10 min. **What changed:** re-checks after 1, 5 and 30 min, then hourly (`HF_GATE_SCHEDULE_S`); Check now kept and does not reset the schedule; `gate.state = granted` while the download runs; manual gates say "Approval needed" / "Request access"; cards and the queue bar show "Next automatic check in N min". Tests 279 → 286. Spec `homelab/bucket-hub/docs/pm/2026-10/AP-4.2-gate-schedule.md`.
+
+## 2026-10-12 — AP-4.2 HF access re-check schedule (PM)
+
+Progressive gate gaps (1, 5, 30 min, then hourly), `granted` state while downloading, Licence vs Approval copy. Branch `pm/ap-4.2` on `pm/ap-ux-1`.
+
+QC r1 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.2-r1.json`): worker/Pi/gateway deploy + schedule smokes pass; gate card + queue licence bar verified (`?panel=hub`).
+
+## 2026-10-12 — AP-UX-1 download presets and segments (PM)
+
+**Why:** Finn wants separate download segments with pre-defined paths. The Download tab asked for a drive and folder for every type, even where the server ignored them, and the same magnet landed in different places from the form (`torrents/`) and from Firefox (`nas/inbox`).
+
+**What changed:**
+
+- New `download_presets.py`: 8 presets in 4 segments (TV & film · Repo archive · Websites · Other), resolved server-side against the library with fallbacks; `capture-folders.json` still overrides.
+- `GET /api/presets`, `POST /api/presets/resolve`; `POST /api/jobs` takes `preset` / `manual_path` and stores `preset`, `segment`, `destination_source`; `GET /api/jobs?segment=`.
+- Firefox capture and Requests (link mode and approve) resolve through presets.
+- Hub: Download type chips, "Saves to" line, Drive/Folder only behind **Manually set path**, Type select removed, queue segment filter.
+- Tests 241 → 277; `scripts/smoke-apux1-presets.sh` (checks Sonarr/Radarr/Jellyfin paths are unchanged before vs after).
+
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r1.json`): Pi presets deploy ok; gateway Caddyfile parity fail (OPS-HF1 not live); smoke R4 manual path blocked on /mnt/media mount. Finn Tailscale UI check: `escAttr is not defined` until `:3000/assets/hub-escape.js` is deployed (PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`).
+
+Round 2 (PM): QC r1 R4 was a PM bug. The shipped `capture-folders.json` `magnet` → `nas/inbox` key overrode the TV preset; TV and film are now fixed to Expansion HDD `torrents/`, legacy `magnet`/`website` keys dropped, smoke R1 pins the paths. Tests 277 → 279. Cursor prompt `homelab/bucket-hub/docs/pm/2026-10/handoffs/AP-UX-1-r2.md`.
+
+QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json`): Pi deploy + smoke R0–R4 pass; integrator browser QC (Finn forwarded, PM accepted).
+
+## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
+
+**Why:** the Glance queue failed with `escHtml is not defined`: AP-1's shared `/assets/hub-escape.js` was served by the Hub app but the `hub-gateway` Caddyfile had no route for it. The gateway files (`Caddyfile`, `glance.yml` in `~/homelab/glance/`) were never in the deploy manifest, so parity checks could not catch it.
+
+**What changed:** Caddy route for `/assets/hub-escape.js`; `[gateway]` section in `scripts/deploy-manifest.txt`; `verify-deploy-parity.sh gateway`; test that every `/assets/` file referenced by a page is routed by the gateway and served by `app.py`. Tests 239 → 241. Also: specs `AP-UX-1-download-presets.md`, `AP-5-index-architecture-v2.md`, `ROADMAP-2026-10.md`.
+
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/OPS-HF1-r1.json`): glance.yml live drift blocked copy; `hub-escape.js` still 404 on :3000; worker parity ok.
+
+## 2026-10-12 — AP-4.1 gated Hugging Face repos: one-click licence (PM)
+
+**Packet:** AP-4.1 (`pm/ap-4.1`, on top of `pm/ap-4`), written by the PM; Cursor deploys.
+
+**Why:** pasting HF links is the main use case (Finn). A gated model ended in "accept the licence and retry". Hugging Face has no user-side accept API, so Finn chose one click: the Hub waits and downloads by itself after he accepts.
+
+**What changed:**
+
+- Gated repos are probed after metadata (`HEAD …/resolve/<sha>/<file>`, token over stdin). No access → job `queued` with a `gate` record and `not_before` (`HF_GATE_RECHECK_S`, 600 s); no `HF_TOKEN` → `needs_token`; expires after `HF_GATE_MAX_WAIT_H` (168 h).
+- `POST /api/jobs/{id}/gate-check` ("Check now"); `PATCH` accepts `gate` (null clears); Retry clears it.
+- Hub UI: "Licence needed" pill, Accept licence + Check now on the job, "Waiting for a licence (N)" bar.
+- Index entries: `licence_accepted_by`, `gate_wait_s`.
+- New `scripts/smoke-ap41-gate.sh` (two phases around Finn's click). Tests: 217 → 239 passed.
+
+Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r1.json`): integrate + deploy ok; `HF_TOKEN` unset; gated smoke not run.
+
+QC r2 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.1-r2.json`): `HF_TOKEN` present, worker restarted; PM `GATE_REPO` list exhausted (`gated: manual`); smoke not run; PR #7 retargeted to `main`, not merged.
+
 ## 2026-10-12 — AP-4 Hugging Face repo archive (PM)
 
 **Packet:** AP-4 (`pm/ap-4`), written by the PM; Cursor deploys.

@@ -24,6 +24,7 @@ import llm_ctl
 import machines_ctl
 from download_destinations import aria2_destination_catalog, validate_aria2_destination
 from index_writer import append_entry, entry_from_job
+import download_presets
 from job_kinds import is_archive_root_kind, is_aria2_job, is_repo_download_kind, is_repo_meta_kind
 from overnight_report import (
     build_last_night,
@@ -236,9 +237,23 @@ def _human_error(raw: str | None, job: dict[str, Any] | None = None) -> str | No
     return text
 
 
+def _job_segment(job: dict[str, Any]) -> str:
+    """Stored segment, or one derived from the kind for jobs made before AP-UX-1."""
+    seg = str(job.get("segment") or "")
+    if seg in download_presets.SEGMENT_IDS:
+        return seg
+    kind = str(job.get("kind") or "")
+    if kind == "http" and str(job.get("destination_path") or "").startswith(
+        "/mnt/external/movies/torrents"
+    ):
+        return "tv"
+    return download_presets.segment_for_kind(kind)
+
+
 def _job_public(job: dict[str, Any]) -> dict[str, Any]:
     """Copy job with a display-friendly error field for Hub UI."""
     out = dict(job)
+    out["segment"] = _job_segment(job)
     # Worker-supplied text (e.g. "TNAS offline, will retry") wins when there is no raw error.
     out["error_display"] = _human_error(job.get("error"), job) or job.get("error_display")
     return out
@@ -1887,31 +1902,9 @@ async def capture_url(
 ) -> JSONResponse:
     """Firefox / share entry: enqueue download with Proton defaults."""
     _require_capture_token(authorization, x_capture_token)
-    lib = _load_library()
     job_kind, source = _capture_kind(body.url, body.kind)
-    map_key = _capture_map_key(body.kind, job_kind, source)
-    drive_id = body.drive_id.strip()
-    folder_id = body.folder_id.strip()
-    if drive_id and folder_id:
-        drive = lib.get("drives", {}).get(drive_id)
-        if not drive:
-            raise HTTPException(400, "Unknown drive")
-        if drive.get("mounted") is False:
-            raise HTTPException(503, f"{drive.get('label', drive_id)} is not mounted")
-        folder = next((f for f in drive["folders"] if f["id"] == folder_id), None)
-        if not folder:
-            raise HTTPException(400, "Unknown folder")
-    else:
-        drive_id, folder_id, drive, folder = _resolve_capture_destination(lib, map_key)
-
-    dest_path = str(_folder_abs_path(drive, folder))
-    if job_kind == "video":
-        worker = "metube"
-    elif job_kind in ("github", "hf"):
-        worker = "repo"
-    else:
-        worker = "aria2"
-
+    manual = bool(body.drive_id.strip() and body.folder_id.strip())
+    preset = "" if manual else _capture_preset(body.kind, body.url, job_kind)
     tags = []
     for t in body.tags:
         t = t.strip().lstrip("#").lower()
@@ -1919,31 +1912,27 @@ async def capture_url(
             tags.append(t)
     if source == "website" and "website" not in tags:
         tags.append("website")
-
-    title = body.title.strip() or body.url[:80]
-    job = {
-        "url": body.url,
-        "title": title,
-        "kind": job_kind,
-        "source": source,
-        "drive_id": drive_id,
-        "folder_id": folder_id,
-        "folder_name": folder["name"],
-        "destination_path": dest_path,
-        "worker": worker,
-        "tags": tags,
-        "options": {
-            "via_proton": True,
-            "sensitive": True,
-            "high_priority": body.high_priority,
-            "notify_on_complete": body.notify_on_complete,
-            "captured_via": "firefox",
-        },
-        "hf": {"repo_id": "", "mode": "whole", "files": []},
-        "notes": body.notes.strip(),
-        "requested_by": "firefox-capture",
-    }
-    job = _enqueue_job(job)
+    create = JobCreate(
+        url=body.url,
+        title=body.title.strip() or body.url[:80],
+        # With a preset the preset decides the kind (e.g. capture "github" → github_repo).
+        kind=job_kind if manual else "auto",
+        drive_id=body.drive_id.strip(),
+        folder_id=body.folder_id.strip(),
+        options={"captured_via": "firefox"},
+        tags=tags,
+        high_priority=body.high_priority,
+        notify_on_complete=body.notify_on_complete,
+        notes=body.notes,
+        source=source,
+        preset=preset,
+        manual_path=manual,
+    )
+    job = _create_job(
+        create,
+        extra={"requested_by": "firefox-capture", "hf": {"repo_id": "", "mode": "whole", "files": []}},
+    )
+    destination = _job_destination_label(job)
     return JSONResponse(
         {
             "ok": True,
@@ -1951,12 +1940,38 @@ async def capture_url(
                 "id": job["id"],
                 "title": job["title"],
                 "kind": job["kind"],
-                "map_key": map_key,
-                "destination": f"{drive.get('label') or drive_id} / {folder['name']}",
+                "preset": job.get("preset"),
+                "segment": job.get("segment"),
+                "map_key": job.get("preset") or "manual",
+                "destination": destination,
                 "via_proton": True,
             },
         }
     )
+
+
+def _job_destination_label(job: dict[str, Any]) -> str:
+    """Short "Drive › folder" text for toasts (preset jobs carry ``saves_to``)."""
+    if job.get("saves_to"):
+        return str(job["saves_to"])
+    if job.get("drive_id"):
+        drive = (_load_library().get("drives") or {}).get(job["drive_id"]) or {}
+        return f"{drive.get('label') or job['drive_id']} / {job.get('folder_name') or ''}"
+    return "TNAS repo archive"
+
+
+def _capture_preset(body_kind: str, url: str, job_kind: str) -> str:
+    """Firefox kind → preset. "Website" keeps saving the single page (File preset)."""
+    k = (body_kind or "auto").strip().lower()
+    if k == "website":
+        return "file"
+    if k in ("media", "video") or job_kind == "video":
+        return "video"
+    if k == "github" or job_kind == "github":
+        return "github_repo"
+    if k == "hf" or job_kind == "hf":
+        return "hf_repo"
+    return download_presets.suggest(url, job_kind)
 
 
 class JobCreate(BaseModel):
@@ -1976,6 +1991,9 @@ class JobCreate(BaseModel):
     source: str = ""  # github | hf | manual
     archive_depth: int = 0  # 0 = unlimited recursion for website_archive
     torrent_meta: dict[str, Any] = Field(default_factory=dict)
+    # AP-UX-1: a preset picks the destination unless manual_path is true.
+    preset: str = ""
+    manual_path: bool = False
 
     @field_validator("url")
     @classmethod
@@ -2013,6 +2031,7 @@ def list_jobs(
     status: str | None = None,
     requested_by: str | None = None,
     tag: str | None = None,
+    segment: str | None = None,
 ) -> dict[str, Any]:
     _ensure_dirs()
     cap = max(1, min(limit, 100))
@@ -2030,6 +2049,8 @@ def list_jobs(
         if requested_by and job.get("requested_by") != requested_by:
             continue
         if tag and tag not in (job.get("tags") or []):
+            continue
+        if segment and _job_segment(job) != segment:
             continue
         jobs.append(job)
     jobs.sort(
@@ -2111,9 +2132,125 @@ def jobs_summary_last_night() -> dict[str, Any]:
     }
 
 
+class PresetResolveBody(BaseModel):
+    url: str = ""
+    preset: str = ""
+    torrent_category: str = ""
+
+
+@app.get("/api/presets")
+def get_presets() -> dict[str, Any]:
+    """AP-UX-1: every preset resolved against the current library (no job created)."""
+    return download_presets.list_presets(
+        _load_library(), overrides=_preset_overrides(), archive_root=HUB_REPO_ARCHIVE_ROOT
+    )
+
+
+@app.post("/api/presets/resolve")
+def resolve_preset(body: PresetResolveBody) -> dict[str, Any]:
+    """Suggest a preset for a URL (or resolve a given one). No job is created."""
+    url = body.url.strip()
+    detected = _detect_kind(url, "") if url else ""
+    preset_id = body.preset.strip() or download_presets.suggest(
+        url, detected, torrent_category=body.torrent_category
+    )
+    try:
+        kind = download_presets.job_kind_for(preset_id, detected) if url else ""
+        res = download_presets.resolve(
+            _load_library(),
+            preset_id,
+            overrides=_preset_overrides(),
+            archive_root=HUB_REPO_ARCHIVE_ROOT,
+        )
+    except download_presets.PresetError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    return {**res, "kind": kind, "detected_kind": detected}
+
+
+def _preset_overrides() -> dict[str, dict[str, str]]:
+    return download_presets.load_overrides(CAPTURE_FOLDERS_FILE)
+
+
+def _resolve_preset_or_raise(
+    lib: dict[str, Any], preset_id: str
+) -> dict[str, Any]:
+    try:
+        res = download_presets.resolve(
+            lib,
+            preset_id,
+            overrides=_preset_overrides(),
+            archive_root=HUB_REPO_ARCHIVE_ROOT,
+        )
+    except download_presets.PresetError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    if not res["available"]:
+        raise HTTPException(
+            503,
+            f"{res['label']}: {res['reason'] or 'destination unavailable'}. "
+            "Tick Manually set path to choose another drive.",
+        )
+    return res
+
+
+def _job_destination_plan(
+    body: "JobCreate", lib: dict[str, Any]
+) -> tuple[str, str, str, dict[str, Any]]:
+    """Return (kind, drive_id, folder_id, preset_fields) for a new job.
+
+    ``manual_path`` → the body's drive/folder. Old clients that send drive and
+    folder without a preset → the same (``legacy``). Otherwise the preset (given,
+    or suggested from the URL) decides, and stray drive/folder values are ignored.
+    """
+    detected = body.kind if body.kind != "auto" else _detect_kind(body.url, body.source)
+    has_drive = bool(body.drive_id.strip() and body.folder_id.strip())
+    preset_id = body.preset.strip()
+    if body.manual_path or (has_drive and not preset_id):
+        source = "manual" if body.manual_path else "legacy"
+        fields: dict[str, Any] = {
+            "destination_source": source,
+            "segment": download_presets.PRESETS_BY_ID[preset_id]["segment"]
+            if preset_id in download_presets.PRESETS_BY_ID
+            else download_presets.segment_for_kind(detected),
+        }
+        kind = detected
+        if preset_id in download_presets.PRESETS_BY_ID:
+            fields["preset"] = preset_id
+            try:
+                kind = download_presets.job_kind_for(
+                    preset_id, detected, body.kind if body.kind != "auto" else ""
+                )
+            except download_presets.PresetError as exc:
+                raise HTTPException(400, str(exc)) from exc
+        return kind, body.drive_id.strip(), body.folder_id.strip(), fields
+    category = str((body.torrent_meta or {}).get("category") or "")
+    if not preset_id:
+        preset_id = download_presets.suggest(body.url, detected, torrent_category=category)
+    try:
+        kind = download_presets.job_kind_for(
+            preset_id, detected, body.kind if body.kind != "auto" else ""
+        )
+    except download_presets.PresetError as exc:
+        raise HTTPException(400, str(exc)) from exc
+    res = _resolve_preset_or_raise(lib, preset_id)
+    fields = {
+        "preset": preset_id,
+        "segment": res["segment"],
+        "destination_source": "preset",
+        "saves_to": res["saves_to"],
+    }
+    dest = res["destination"] or {}
+    return kind, str(dest.get("drive_id") or ""), str(dest.get("folder_id") or ""), fields
+
+
 @app.post("/api/jobs")
 async def create_job(body: JobCreate) -> JSONResponse:
-    kind = body.kind if body.kind != "auto" else _detect_kind(body.url, body.source)
+    return JSONResponse({"ok": True, "job": _create_job(body)})
+
+
+def _create_job(body: JobCreate, extra: dict[str, Any] | None = None) -> dict[str, Any]:
+    """Build and enqueue a job; ``extra`` keys (e.g. ``requested_by``) are added as-is."""
+    lib = _load_library()
+    kind, drive_id, folder_id, preset_fields = _job_destination_plan(body, lib)
     # Archive-root kinds ignore drive/folder; legacy github/hf keep the drive path below.
     if is_archive_root_kind(kind) or is_repo_meta_kind(kind):
         worker = "repo"
@@ -2131,24 +2268,23 @@ async def create_job(body: JobCreate) -> JSONResponse:
             "tags": clean_tags,
             "options": {**body.options},
             "notes": body.notes.strip(),
+            **preset_fields,
         }
         if body.high_priority:
             job["options"]["high_priority"] = True
         if body.notify_on_complete:
             job["options"]["notify_on_complete"] = True
-        job = _enqueue_job(job)
-        return JSONResponse({"ok": True, "job": job})
+        job.update(extra or {})
+        return _enqueue_job(job)
 
-    lib = _load_library()
-    drive = lib.get("drives", {}).get(body.drive_id)
+    drive = lib.get("drives", {}).get(drive_id)
     if not drive:
         raise HTTPException(400, "Unknown drive")
     if drive.get("mounted") is False:
-        raise HTTPException(503, f"{drive.get('label', body.drive_id)} is not mounted on the worker")
-    folder = next((f for f in drive["folders"] if f["id"] == body.folder_id), None)
+        raise HTTPException(503, f"{drive.get('label', drive_id)} is not mounted on the worker")
+    folder = next((f for f in drive["folders"] if f["id"] == folder_id), None)
     if not folder:
         raise HTTPException(400, "Unknown folder")
-    kind = body.kind if body.kind != "auto" else _detect_kind(body.url, body.source)
     if folder.get("present") is False:
         # Nested torrent inbox folders are created by the Hub and may be absent
         # from the worker's shallow drive scan even when the path exists on disk.
@@ -2161,7 +2297,7 @@ async def create_job(body: JobCreate) -> JSONResponse:
     dest_path = str(_folder_abs_path(drive, folder))
 
     # persist any new tags onto folder catalog
-    key = _folder_key(body.drive_id, body.folder_id)
+    key = _folder_key(drive_id, folder_id)
     catalog = lib.setdefault("tags_by_folder", {}).setdefault(key, [])
     changed = False
     clean_tags: list[str] = []
@@ -2206,12 +2342,13 @@ async def create_job(body: JobCreate) -> JSONResponse:
         "title": body.title.strip() or (f"Archive {urlparse(body.url).netloc}" if kind == "website_archive" else ""),
         "kind": kind,
         "source": body.source or kind,
-        "drive_id": body.drive_id,
-        "folder_id": body.folder_id,
+        "drive_id": drive_id,
+        "folder_id": folder_id,
         "folder_name": folder["name"],
         "destination_path": dest_path,
         "worker": worker,
         "tags": clean_tags,
+        **preset_fields,
         "options": {
             "via_proton": True,
             "sensitive": True,
@@ -2241,8 +2378,8 @@ async def create_job(body: JobCreate) -> JSONResponse:
         }
     if kind == "website_archive":
         job["options"]["depth"] = body.archive_depth
-    job = _enqueue_job(job)
-    return JSONResponse({"ok": True, "job": job})
+    job.update(extra or {})
+    return _enqueue_job(job)
 
 
 class SyncCreate(BaseModel):
@@ -2397,6 +2534,8 @@ class JobUpdate(BaseModel):
     resolved: dict[str, Any] | None = None
     # ISO-8601 UTC; claim skips the job until then. Empty string clears it.
     not_before: str | None = None
+    # AP-4.1 gated HF repo waiting for access; explicit null clears it.
+    gate: dict[str, Any] | None = None
 
 
 @app.patch("/api/jobs/{job_id}")
@@ -2455,6 +2594,11 @@ def patch_job(
             job.pop("agent_review", None)
         else:
             job["agent_review"] = body.agent_review
+    if "gate" in body.model_fields_set:
+        if body.gate is None:
+            job.pop("gate", None)
+        else:
+            job["gate"] = body.gate
     if job.get("status") in ("done", "error") and prev_status not in ("done", "error"):
         entry = job.get("index_entry")
         if not isinstance(entry, dict):
@@ -2704,6 +2848,9 @@ def retry_job(job_id: str) -> dict[str, Any]:
     job["error"] = None
     job["finished_at"] = None
     job.pop("claimed_by", None)
+    # A retried gated job starts a fresh licence wait (AP-4.1).
+    job.pop("gate", None)
+    job.pop("not_before", None)
     if not keep_aria2:
         job["started_at"] = None
         job.pop("aria2_gid", None)
@@ -2716,6 +2863,20 @@ def retry_job(job_id: str) -> dict[str, Any]:
     _assign_queue_rank_if_queued(job)
     _write_job(job)
     return {"ok": True, "job": _job_public(job), "reattach_aria2": keep_aria2}
+
+
+@app.post("/api/jobs/{job_id}/gate-check")
+def gate_check_job(job_id: str) -> dict[str, Any]:
+    """"Check now" for a gated HF job: clear ``not_before`` so the next claim re-probes access."""
+    job = _read_job(job_id)
+    if not isinstance(job.get("gate"), dict) or job.get("status") != "queued":
+        raise HTTPException(404, "Job is not waiting on a Hugging Face licence")
+    job.pop("not_before", None)
+    gate = dict(job["gate"])
+    gate["next_check"] = _now()
+    job["gate"] = gate
+    _write_job(job)
+    return {"ok": True, "job": _job_public(job)}
 
 
 class QueueReorderBody(BaseModel):
@@ -3351,6 +3512,7 @@ class PhoneRequestBody(BaseModel):
     drive_id: str = ""
     folder_id: str = ""
     requested_by: str = "hub"
+    preset: str = ""
 
 
 @app.get("/api/requests/summary")
@@ -3426,52 +3588,25 @@ def create_phone_request(body: PhoneRequestBody) -> JSONResponse:
         or url.startswith("magnet:")
     ):
         raise HTTPException(400, "URL must start with http(s):// or magnet:")
-    kind = body.kind if body.kind != "auto" else _detect_kind(url, "")
     drive_id = body.drive_id.strip()
     folder_id = body.folder_id.strip()
-    if not drive_id or not folder_id:
-        raise HTTPException(400, "Pick a drive and folder")
-    drive = lib.get("drives", {}).get(drive_id)
-    if not drive:
-        raise HTTPException(400, "Unknown drive")
-    if drive.get("mounted") is False:
-        raise HTTPException(503, f"{drive.get('label', drive_id)} is not mounted")
-    folder = next((f for f in drive.get("folders") or [] if f.get("id") == folder_id), None)
-    if not folder:
-        raise HTTPException(400, "Unknown folder")
-    if folder.get("present") is False:
-        raise HTTPException(400, f"Folder not found on disk: {folder.get('rel')}")
-    dest_path = str(_folder_abs_path(drive, folder))
-    if kind == "video":
-        worker = "metube"
-    elif kind in ("github", "hf"):
-        worker = "repo"
-    else:
-        worker = "aria2"
+    manual = bool(drive_id and folder_id)
     title = (body.title or "").strip() or url[:80]
-    job = _enqueue_job(
-        {
-            "url": url,
-            "title": title,
-            "kind": kind,
-            "source": "phone-link",
-            "requested_by": who,
-            "drive_id": drive_id,
-            "folder_id": folder_id,
-            "folder_name": folder["name"],
-            "destination_path": dest_path,
-            "worker": worker,
-            "tags": ["phone"],
-            "options": {
-                "via_proton": True,
-                "sensitive": True,
-                "high_priority": False,
-                "notify_on_complete": False,
-                "captured_via": "phone",
-            },
-            "hf": {"repo_id": "", "mode": "whole", "files": []},
-            "notes": (body.text or "").strip(),
-        }
+    job = _create_job(
+        JobCreate(
+            url=url,
+            title=title,
+            kind=body.kind or "auto",
+            drive_id=drive_id,
+            folder_id=folder_id,
+            options={"captured_via": "phone"},
+            tags=["phone"],
+            notes=(body.text or "").strip() if body.text.strip() != url else "",
+            source="phone-link",
+            preset=body.preset.strip(),
+            manual_path=manual,
+        ),
+        extra={"requested_by": who, "hf": {"repo_id": "", "mode": "whole", "files": []}},
     )
     return JSONResponse(
         {
@@ -3479,7 +3614,7 @@ def create_phone_request(body: PhoneRequestBody) -> JSONResponse:
             "queued": True,
             "status": "queued",
             "job_id": job["id"],
-            "detail": f"Queued to {drive.get('label') or drive_id} / {folder['name']}",
+            "detail": f"Queued to {_job_destination_label(job)}",
         }
     )
 
@@ -3562,13 +3697,18 @@ def submitter_request(slug: str, body: SubmitterSubmit) -> dict[str, Any]:
 
 class ApproveBody(BaseModel):
     url: str = ""
+    preset: str = ""
+    drive_id: str = ""
+    folder_id: str = ""
 
 
 def _worker_for_kind(kind: str) -> str:
     if kind == "video":
         return "metube"
-    if kind in ("github", "hf"):
+    if is_repo_download_kind(kind):
         return "repo"
+    if kind == "website_archive":
+        return "httrack"
     return "aria2"
 
 
@@ -3583,8 +3723,52 @@ def approve_review_job(
     if not url:
         raise HTTPException(400, "Paste a download URL before approving")
     job["url"] = url
-    job["kind"] = _detect_kind(url, job.get("source") or "")
-    job["worker"] = _worker_for_kind(job["kind"])
+    # AP-UX-1: the note was parked on a placeholder folder; the link decides the
+    # destination through its preset unless the approver picks drive + folder.
+    manual = bool(body.drive_id.strip() and body.folder_id.strip())
+    lib = _load_library()
+    kind, drive_id, folder_id, fields = _job_destination_plan(
+        JobCreate(
+            url=url,
+            preset=body.preset,
+            drive_id=body.drive_id,
+            folder_id=body.folder_id,
+            manual_path=manual,
+        ),
+        lib,
+    )
+    job["kind"] = kind
+    job["worker"] = _worker_for_kind(kind)
+    for key in ("preset", "segment", "destination_source", "saves_to"):
+        job.pop(key, None)
+    job.update(fields)
+    if is_archive_root_kind(kind):
+        for key in ("drive_id", "folder_id", "folder_name", "destination_path"):
+            job.pop(key, None)
+    else:
+        drive = (lib.get("drives") or {}).get(drive_id)
+        if not drive:
+            raise HTTPException(400, "Unknown drive")
+        if drive.get("mounted") is False:
+            raise HTTPException(503, f"{drive.get('label', drive_id)} is not mounted on the worker")
+        folder = next((f for f in drive.get("folders") or [] if f.get("id") == folder_id), None)
+        if not folder:
+            raise HTTPException(400, "Unknown folder")
+        dest_path = str(_folder_abs_path(drive, folder))
+        if kind == "website_archive":
+            dest_path = str(Path(dest_path) / (urlparse(url).netloc or "unknown"))
+        if job["worker"] == "aria2":
+            aria_err = validate_aria2_destination(dest_path)
+            if aria_err:
+                raise HTTPException(400, aria_err)
+        job.update(
+            {
+                "drive_id": drive_id,
+                "folder_id": folder_id,
+                "folder_name": folder["name"],
+                "destination_path": dest_path,
+            }
+        )
     job["options"] = {**(job.get("options") or {}), "via_proton": True}
     job["status"] = "queued"
     job["error"] = None

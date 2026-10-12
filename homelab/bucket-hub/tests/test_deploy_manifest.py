@@ -9,7 +9,7 @@ MANIFEST = HUB / "scripts" / "deploy-manifest.txt"
 
 
 def _parse_manifest() -> dict[str, list[str]]:
-    sections: dict[str, list[str]] = {"pi": [], "worker": []}
+    sections: dict[str, list[str]] = {"pi": [], "worker": [], "gateway": []}
     cur = None
     for raw in MANIFEST.read_text(encoding="utf-8").splitlines():
         line = raw.split("#", 1)[0].strip()
@@ -20,6 +20,9 @@ def _parse_manifest() -> dict[str, list[str]]:
             continue
         if line == "[worker]":
             cur = "worker"
+            continue
+        if line == "[gateway]":
+            cur = "gateway"
             continue
         if cur:
             sections[cur].append(line)
@@ -63,3 +66,25 @@ def test_verify_script_syntax():
         text=True,
     )
     assert r.returncode == 0, r.stderr
+
+
+def test_gateway_section_ships_caddyfile_and_glance():
+    assert {"Caddyfile", "glance.yml"} <= set(_parse_manifest()["gateway"])
+
+
+def test_every_html_asset_is_routed_by_gateway_and_served_by_app():
+    """Glance loads form.html through hub-gateway (:3000): every absolute /assets/ file a
+    page references needs its own Caddy route to hub-form and an app.py route, or the
+    page breaks only behind the gateway (2026-10-12: hub-escape.js → escHtml undefined)."""
+    import re
+
+    caddy = (HUB / "Caddyfile").read_text(encoding="utf-8")
+    app_src = (HUB / "app.py").read_text(encoding="utf-8")
+    assets: set[str] = set()
+    for page in HUB.glob("*.html"):
+        assets |= set(re.findall(r'(?:src|href)="(/assets/[^"?#]+)', page.read_text(encoding="utf-8")))
+    assert assets, "expected at least one /assets/ reference"
+    unrouted = sorted(a for a in assets if f"handle {a} {{" not in caddy)
+    unserved = sorted(a for a in assets if f'@app.get("{a}")' not in app_src)
+    assert not unrouted, f"add `handle <path>` blocks to Caddyfile for {unrouted}"
+    assert not unserved, f"add app.py routes for {unserved}"

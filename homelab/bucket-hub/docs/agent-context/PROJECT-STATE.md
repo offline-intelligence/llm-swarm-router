@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-4 QC r1 blocked on env only; r1b resume issued `docs/pm/2026-10/handoffs/AP-4-r1b.md`; AP-4.1 gated-licence spec drafted)
+**Last updated:** 2026-10-12 (AP-UX-1 r2 + AP-4.2 r1 QC pass; `handoffs/PM-PASTE-2026-10-12-browser-qc.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -28,6 +28,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **`HUB_GITHUB_TOKEN` (2026-10-12):** set on ai-server `hub-worker.env` (fine-grained, public read); worker restarted. Still optional for single public clones; needed before AP-6/AP-7 volume for metadata rate limits.
 - **TNAS LAN IP (2026-10-12):** NAS at `192.168.50.187` (LAN 2 MAC `6c:bf:b5:04:69:67`). ASUS RT-AX57 **DHCP manual assignment** `tnas` → `.187` applied; Hub/Kuma/mount verified. TNAS may stay on DHCP or manual static — both aligned with reservation.
 - **PM ↔ Cursor loop (2026-10-12, Finn):** PM writes code, tests and smoke scripts on `pm/<packet>`; Cursor only integrates, deploys, tests and returns a QC report JSON (`bucket-hub-qc/v1`, `docs/pm/<yyyy-mm>/qc/<packet>-r<n>.json`); PM fixes findings in the next round. Cursor never edits app code to make checks pass. Spec: `docs/pm/PM-CURSOR-PROTOCOL.md`; Cursor rule `.cursor/rules/homelab-pm-context.mdc`.
+- **UI sign-off (2026-10-12):** integrator browser QC that Finn forwards to the PM counts as Finn's sign-off for ui.* checks; PM states acceptance in the next handoff.
+- **Merge rule (2026-10-12):** Cursor merges a PR only after its QC overall = pass and the PM handoff names the merge.
 - **AP-3.1 shape (2026-10-12):** lane-aware claim is opt-in per request (`{"lane": …}`), so Pi deploys before worker and an old worker keeps working. TNAS defer back-off uses a job-level `not_before` honoured by every claim, not worker-side sleeps.
 - **Worker restart recovery (2026-10-12, AP-3.1 r2):** at startup the worker re-queues every repo/repo_meta job the Pi shows as `running`/`claimed` (no repo thread survives a restart) and removes its archiver container `hub-repo-partial-<id>`; repo claims wait until this has run. Single-worker assumption: a second worker would need ownership tracking first.
 - **Repo archive content (2026-10-12, AP-3.1 r3):** `repo.git` is a bare repo with branches and tags only (`+refs/heads/*`, `+refs/tags/*`), `HEAD` = remote default branch. No `refs/pull/*`: `clone --mirror` pulled every PR head (fork commits the API `size` ignores) and blew the cap on `octocat/Spoon-Knife`. Image `bucket-hub-repo-archiver:3`.
@@ -42,6 +44,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Index free text is scrubbed (2026-10-12, AP-4):** `index_writer.scrub_free_text()` redacts `ghp_` / `github_pat_` / `hf_` tokens, `Bearer` values and `token=` query strings from readme excerpts and model cards (GitHub and HF).
 - **Form kinds (2026-10-12, AP-4):** the Hub form offers "GitHub repo (TNAS archive)", "Hugging Face repo (TNAS archive)" and "Hugging Face files (to drive)" (legacy `hf`); search results queue the archive kinds; a files-mode HF pick with selected files stays `hf`.
 - **HF gated models (2026-10-12, Finn):** pasting an HF link is the main use case and must not dead-end at a gated licence. AP-4.1 (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`): gated jobs wait as `queued` with `gate.state = awaiting_licence` and re-check every 10 min for 7 days; the Hub shows Accept licence / Check now, so one click finishes the job. `huggingface_hub` has no user-side accept API (owner-side only), so Finn chose **one click** (2026-10-12): no auto-accept, no HF session cookie stored. Gated downloads always need `HF_TOKEN` from the same HF account.
+- **Gated HF jobs are not errors (2026-10-12, AP-4.1):** a gated repo without access is `queued` + `gate` + `not_before`; the worker re-probes with one `HEAD` on the AP-4.2 schedule (gaps 1, 5, 30 min, then hourly; `HF_GATE_SCHEDULE_S`), shows `gate.state = granted` while downloading; it errors only after `HF_GATE_MAX_WAIT_H`. The Pi never calls huggingface.co (all HF traffic via the worker's Gluetun), so there is no paste-time licence check; the job shows the state within one claim.
 - **Pi restart command unknown (2026-10-12):** `sudo systemctl restart hub-form` reported "unit not found" in AP-4 r1. r1b finds the real unit/container and fixes `05-OPERATIONS-SSH-DEPLOY.md`. Until then a Pi deploy may leave old `app.py` running even when parity passes.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
 
@@ -56,6 +59,14 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Job UI cleanup | **Dismiss** `error`/`done` jobs; `dismiss-queue` clears failed strip; cancel+purge removes disk, not JSON until dismiss. |
 | TNAS power | WoL from Pi **best-effort**; hard-off NAS needs physical power or TOS WoL enabled. |
 | Website archive | “Website copy” = clone-to-disk system ([09-WEBSITE-ARCHIVE-SYSTEM.md](09-WEBSITE-ARCHIVE-SYSTEM.md)); local Docker preview **not built**. |
+| Gateway deploy | `Caddyfile` + `glance.yml` live in `~/homelab/glance/` on the Pi (not `hub-form/`); shipped via the `[gateway]` manifest section, checked by `verify-deploy-parity.sh gateway`. Every `/assets/` file a page uses needs a Caddy route (test enforces it). (2026-10-12) |
+| Pi restart | `ssh stackrise-pi 'systemctl --user restart hub-form.service'` (user unit). (2026-10-12) |
+| Download destinations | One server-side preset registry (`download_presets.py`, AP-UX-1) decides type → place for form, capture, Requests and API; drive/folder only behind "Manually set path". Film torrents default to the flat `torrents/` inbox like TV (Radarr imports). Finn agreed 2026-10-12 provided existing connections keep working: no *arr/aria2/Jellyfin config changes, R0 read-only before/after check. |
+| Index architecture | Truth = files + sidecars + JSONL journals; ai-server SQLite FTS5 catalogue (`~/homelab/data/hub-index/catalog.sqlite`, `hub-index` `:3031`) is a rebuildable cache; Pi proxies search and falls back to a snapshot while ai-server sleeps. Spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` (revises §A6). (Finn agreed 2026-10-12) |
+| Glance cache-buster | `glance.yml` `?v=` values are cache-busters: a live-only `?v=` difference may be overwritten on gateway deploy; any other gateway drift stops the deploy. Bump `v=` whenever `form.html` changes. (2026-10-12) |
+| Gated test model | AP-4.1 accepts manually gated repos (Hub re-checks for 168 h); `google/gemma-2-9b-it` used for QC. (2026-10-12) |
+| Priority (2026-10-12) | OPS-HF1 → AP-4.1 QC → MERGE-1 (parallel) → AP-UX-1 → AP-5a/b → hygiene. `docs/pm/2026-10/ROADMAP-2026-10.md`. |
+| Off-LAN Hub review (2026-10-12, Finn) | Use Tailscale `http://100.85.42.0:3000/` (and `/hub-form/`); not LAN `.138`. Direct uvicorn: `http://100.85.42.0:3020/hub-form/` only with **trailing slash**. See `01-ARCHITECTURE-AND-NETWORK.md` § Remote review. |
 
 ---
 
@@ -68,6 +79,33 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Awaiting Claude auditor:** findings + first Action Packet. Extra required topics: **overnight UI** (`overnight.html`) and **TV folder auto-creation** (`ensureTorrentShowFolder`).
 - ~~**Claude is not self-sufficient:** no MCP writes the Mac repo.~~ Superseded 2026-10-12: PM Claude now edits the repo via folder thread. See [15-CLAUDE-AUDITOR-WORKFLOW.md](15-CLAUDE-AUDITOR-WORKFLOW.md). Cursor still merges CONTEXT UPDATE and SSH-deploys via [SSH-PASTE.txt](SSH-PASTE.txt).
 - **Recommended auditor model:** Sonnet 4.6 (not Opus for the full read).
+
+---
+
+## Where things are tracked (master documents)
+
+| Question | Document |
+|----------|----------|
+| What is decided, what is next, what happened (this file) | `docs/agent-context/PROJECT-STATE.md`: decisions, backlog, learnings, session log |
+| Goals, priority order and the full todo list | `docs/pm/2026-10/ROADMAP-2026-10.md` |
+| What the audit found and the remediation phases | `docs/pm/2026-10/bucket-hub-audit-2026-10.md` (§7 phases) |
+| How PM and Cursor work, QC schema | `docs/pm/PM-CURSOR-PROTOCOL.md` |
+| Outcome of every round (machine-readable) | `docs/pm/2026-10/qc/<packet>-r<n>.json` |
+| What each packet must do | specs in `docs/pm/2026-10/` (AP-4.1, AP-UX-1, AP-5 v2, …) and handoffs in `docs/pm/2026-10/handoffs/` |
+| What shipped | repo-root `CHANGELOG.md`; `homelab/bucket-hub/TODO.md` for the short list |
+
+## Learnings (keep; newest first)
+
+- **Test against the config files that actually ship, and pin paths in smokes.** AP-UX-1 unit tests used a hand-made override file, so the shipped `capture-folders.json` (`magnet` → `nas/inbox`) silently moved TV off `torrents/`; smoke R1 only checked "available". Now a test loads the real file and R1 asserts tv/film paths (AP-UX-1 r1 F2).
+- **Verify external facts before writing them into a prompt.** PM picked Gemma as an "auto-gated, ~18 GB" test model without checking; it was manually gated and the base model 37 GB (AP-4.1 r2). Cursor's B3 check caught it. PM cannot reach huggingface.co from its tools, so such picks are labelled unverified and Cursor checks first.
+- **Every file a host reads must be in the deploy manifest.** The gateway `Caddyfile`/`glance.yml` live in `~/homelab/glance/`, outside the manifest, so a missing `/assets/hub-escape.js` route broke the Glance queue unseen (OPS-HF1). Now `[gateway]` + parity + an asset-route test.
+- **Diff live config before overwriting it, and say which differences are safe.** OPS-HF1 r1 stopped correctly on a cache-buster difference; the rule now names `?v=` values as safe.
+- **Restarts mid-smoke create false failures.** A worker restart orphaned a running repo job and held the slot (AP-3.1 r1). Smokes now forbid restarts/env edits, and the worker recovers orphans.
+- **External APIs report errors in unexpected ways.** aria2 returns JSON-RPC errors as HTTP 400; the uncaught `HTTPError` killed every worker tick (AP-3.1 r3b). Housekeeping is isolated in `main()`.
+- **Defaults of upstream tools matter.** `git clone --mirror` fetched GitHub `refs/pull/*` and blew the size cap (AP-3.1 r2); the archiver fetches heads + tags only.
+- **The Mac checkout is shared.** An uncommitted, damaged `hub-worker.py` appeared there (2026-10-12). Parity checks proved the deployed copy clean; never deploy from uncommitted files.
+- **PM inferences must be marked and tested.** "Legacy hf downloads are LFS pointers" was wrong (AP-4 r1); QC disk checks are the arbiter.
+- **Small packets with machine-readable QC work.** Every round since AP-1 ends in a `bucket-hub-qc/v1` JSON; failures were traceable to one cause per round.
 
 ---
 
@@ -96,7 +134,15 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
 - [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
-- [ ] AP-4.1 HF gated repos: detect gate, `awaiting_licence` wait + auto re-check, Hub Accept-licence / Check-now, one click (Finn, no auto-accept). Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`; after AP-4 QC pass.
+- [ ] AP-4.1 HF gated repos (one click) — **code done** on `pm/ap-4.1` (239 tests). QC r1 blocked (`HF_TOKEN`); r2 issued; `GATE_REPO` = `google/gemma-2-9b-it` (18.5 GB, gated manual; PM choice per Finn); needs Finn's Accept-licence click. Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`.
+- [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
+- [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
+- [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
+- [x] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r2 **pass** `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
+- [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
+- [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (`/ping` 000), so AP-UX-1 R0 compared Jellyfin only. Ops investigation.
+- [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
+- [ ] AP-5a/5b/5c per-download index (person + machine record; updated on finish, on delete, after nightly sync) — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` §Per-download record; after AP-UX-1.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
 ### P0 — TV season-first UX
@@ -148,7 +194,24 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM closed AP-UX-1 r2 and AP-4.2 r1 on integrator browser QC forwarded by Finn (`PM-PASTE-2026-10-12-browser-qc.md`). #queueLicenceBar "hidden" was the test view: the queue panel only renders with `?panel=hub` or `?panel=queue`. PRs #7, #8, #9 merged to main; #9 merged before its QC passed (rule restated: merge only after overall = pass). Next PM build: AP-5a per-download index. |
+| 2026-10-12 | Finn accepted the Gemma and Llama-3.2-1B licences; Gemma job was picked up by the 10-min re-check. Finn asked for re-checks at 1, 5, 30 min then hourly. PM built **AP-4.2** on `pm/ap-4.2` (schedule, `granted` state fixes "awaiting_licence while running", Licence needed / Approval needed copy, next-check line); 286 tests. Decisions: resume AP-4.1 r3 phase 2 now; close AP-UX-1 r2 on Finn's one-line R5; *arr R0 split to OPS-ARR1. Cursor prompt `handoffs/AP-4.2.md`. |
+| 2026-10-12 | **Finn UI validation (Tailscale):** queue GitHub URL → **`escAttr is not defined`**; queue panel **Could not load queue**; `:3000/assets/hub-escape.js` **404** (OPS-HF1). Tried `:3020/hub-form` without slash → 404 JSON; use **`/hub-form/`**. PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`. |
+| 2026-10-12 | **AP-4.2 QC r1** (`docs/pm/2026-10/qc/AP-4.2-r1.json`): **blocked** — progressive HF gate schedule deployed; schedule smokes pass; Finn gate UI copy pending. |
+| 2026-10-12 | **AP-4.2 QC r1** (`docs/pm/2026-10/qc/AP-4.2-r1.json`): **blocked** — gate schedule live; smokes S1–S3 pass; Finn `ui.gate_copy` pending. PR #9. |
+| 2026-10-12 | **AP-UX-1 QC r2** (`docs/pm/2026-10/qc/AP-UX-1-r2.json`): **blocked** — smoke R0–R4 pass; Finn one-line R5 pending. |
+| 2026-10-12 | PM review of AP-UX-1 r1: R4 root cause was PM code (legacy `capture-folders.json` `magnet` → `nas/inbox` imported as a TV override), not the ai-server mount. Fix on `pm/ap-ux-1`: tv/film fixed to `torrents/`, legacy magnet/website keys dropped, smoke R1 pins tv/film/website paths; 279 tests. F1 closed by OPS-HF1 r2 pass. r1 ran before AP-4.1 r3 (explains live `?v=ux1`). Cursor prompt `handoffs/AP-UX-1-r2.md`. |
+| 2026-10-12 | **AP-UX-1 QC r1** (`docs/pm/2026-10/qc/AP-UX-1-r1.json`): **fail** — Pi deploy + presets API + smoke R0–R3 pass; gateway Caddy parity fail; R4 manual tv→inbox HTTP 400 (/mnt/media on ai-server); PR #8 draft; Finn R5 pending. |
+| 2026-10-12 | PM implemented **AP-UX-1** on `pm/ap-ux-1`: `download_presets.py` (8 presets, 4 segments), `/api/presets`, `/api/presets/resolve`, jobs store `preset`/`segment`/`destination_source`, Firefox capture + Requests through presets (fixes magnet → `nas/inbox` and Request approve → aria2 for GitHub links), form preset chips + Saves-to + Manually set path, queue segment filter; 241 → 277 tests; `smoke-apux1-presets.sh`. Finding: aria2 already put film `movies/` jobs in `torrents/movies/`. |
+| 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |
+| 2026-10-12 | PM review: OPS-HF1 r1 fail = glance.yml cache-buster drift only (deploy correctly stopped); repo bumped to `v=20261012hf1`, overwrite of `?v=` diffs authorised. AP-4.1 r2 blocked: PM's Gemma picks are gated manual (and base 9b is 37 GB); rule relaxed, `GATE_REPO=google/gemma-2-9b-it`. #5, #6 merged to `main`; #7 retargeted. Issued `OPS-HF1-r2-AP-4.1-r3.md`. |
+| 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |
+| 2026-10-12 | **AP-4.1 QC r2** (`docs/pm/2026-10/qc/AP-4.1-r2.json`): **blocked** — `HF_TOKEN` + worker restart pass; `google/gemma-2-9b` / `-it` both `gated: manual` on HF API (no smoke); MERGE-1 #5/#6 merged to `main`, #7 draft on `main`. |
+| 2026-10-12 | Finn: PM picks a ~20 GB gated model (→ `google/gemma-2-9b`), HF token stays active during testing, film inbox OK if existing connections keep working, Cursor does MERGE-1. Prompt `OPS-HF1-AP-4.1-r2.md` updated (Part F merges, `WAIT_S=14400`). |
+| 2026-10-12 | PM: Glance queue P0 root-caused (no Caddy route for `hub-escape.js`; gateway files never in manifest/parity) → **OPS-HF1** `4458018`, 241 tests. Restored an indentation-damaged uncommitted `hub-worker.py` in the Mac checkout (patch saved in `.tmp-hub-ui/`). Specs: AP-UX-1 presets, AP-5 index v2, ROADMAP-2026-10. Cursor prompt `handoffs/OPS-HF1-AP-4.1-r2.md` (gateway deploy, worker check, AP-4.1 QC r2). |
+| 2026-10-12 | PM implemented **AP-4.1** (one-click gated HF licence, Finn's choice) on `pm/ap-4.1`: gate probe + `awaiting_licence`/`needs_token` waits, `gate-check` endpoint, Hub Licence-needed UI, index `licence_accepted_by`; 217 → 239 tests; `smoke-ap41-gate.sh` 7/7 on a local Hub. One Cursor prompt issued: AP-4 r1b, then AP-4.1 r1. |
 | 2026-10-12 | PM review of AP-4 QC r1 (`AP-4-r1.json`): blocked on env only (F1, image `:4` not set); since fixed with Finn's OK. Legacy `hf` downloads had real weights, not LFS pointers (PM inference was wrong). Issued r1b: Pi app reload check, worker restart, smoke + disk checks. Finn's gated-licence requirement specced as AP-4.1. |
+| 2026-10-12 | **AP-4.1 QC r1** (`docs/pm/2026-10/qc/AP-4.1-r1.json`): 239 tests, PR #7; Pi gate-check + form UI **pass**; **blocked** on `HF_TOKEN` and gated smoke. |
 | 2026-10-12 | **AP-4 QC r1b** (`docs/pm/2026-10/qc/AP-4-r1b.json`): **overall pass** — `hub-form.service` reload, worker restart, URL→`huggingface_repo`, smoke 7/7, `model.safetensors` 453864 B (not LFS). |
 | 2026-10-12 | **AP-4 QC r1** (`docs/pm/2026-10/qc/AP-4-r1.json`): 217 tests; draft PR #6 (base `pm/ap-3.1`); Pi/worker parity + image `:4` built; **blocked** on `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env — smoke not run. Legacy hf LFS check: real weights at SmokeTest. |
 | 2026-10-12 | PM implemented **AP-4** on `pm/ap-4`: `repo_archive_hf.py` (`huggingface_repo` lane), archiver `:4` `hf_snapshot`, `build_hf_entry` + `scrub_free_text`, form options, archive-root drive fix for legacy `hf`/`github` jobs; 193 → 217 tests; `scripts/smoke-ap4-hf.sh` (7 checks). Cursor round 1 issued. |

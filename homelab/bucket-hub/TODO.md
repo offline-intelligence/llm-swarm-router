@@ -10,6 +10,7 @@ Maintainer plans also in llm-swarm-router `docs/superpowers/`.
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | **Repo archive:** AP-3 / AP-3.1 done (GitHub repos to TNAS); AP-4 `huggingface_repo` in QC; AP-4.1 gated HF licences (one click) coded — see `docs/agent-context/PROJECT-STATE.md` |
 | 2026-10-09 | **Process backlog:** Jellyfin lib cleanup (TV Show removed), LVM `/`+`/models`, Chromium-for-Jellyfin, website archive QC (`example.com` httrack) — see § Process improvements (2026-10-09) |
 | 2026-10-08 | **Torrent → Jellyfin E2E:** compose + Sonarr/Radarr import path, Hub torrent tags → Jellyfin Tags API, smoke script |
 | 2026-10-06 | **Next priority:** Torrent → Jellyfin pipeline (Expansion HDD compose volumes, Jellyfin `/tv`+`/movies`+staging `/torrents`, Sonarr/Radarr import, hub-worker API keys, import *The Office*) — see `docs/MEDIA-JELLYFIN-PIPELINE.md` |
@@ -165,6 +166,23 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [x] **File conflict fix** — All pages stored as `<path>/index.html`; handles URL paths that are both pages and directory prefixes
 - [x] **FlareSolverr crash detection** — 20 consecutive errors = bail with error message instead of silently burning through queue
 - [ ] **soyjakwiki.org full site** — Re-queue after stability fix deployment; previous runs: v1 132 pages, v2 351 pages, v3 687 pages (all hit bugs now fixed)
+
+### Active — Repo archive (PM ↔ Cursor, 2026-10-12)
+
+- [x] AP-3 / AP-3.1 GitHub repo archive to TNAS (QC r4 pass; PR #5 awaiting merge)
+- [x] AP-4 `huggingface_repo` archive lane (QC r1b pass)
+- [ ] AP-4.1 gated HF licences: one click, then it downloads by itself (`docs/pm/2026-10/AP-4.1-hf-gated-access.md`)
+- [x] Finn: `HF_TOKEN` in `hub-worker.env` on ai-server (presence checked in AP-4.1 r2)
+- [ ] Finn: revoke and replace the HF token (it was pasted in chat) once the gated tests are done, in a few days
+- [ ] OPS-HF1 gateway route for `hub-escape.js` + `[gateway]` deploy (Glance queue broken) — `docs/pm/2026-10/handoffs/OPS-HF1-AP-4.1-r2.md`
+- [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b-it`, 18.5 GB, gated manual)
+- [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
+- [x] AP-UX-1 download presets + segments; drive/folder only behind "Manually set path" — QC r2 pass `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12)
+- [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly) — QC r1 pass `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12)
+- [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (AP-UX-1 R0)
+- [ ] AP-5a/5b index: ai-server SQLite catalogue + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
+- [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
+- [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking
 
 ### Active — Hub / ops next
 

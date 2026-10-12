@@ -3,8 +3,8 @@
 set -euo pipefail
 
 ROLE="${1:-}"
-if [[ "$ROLE" != "pi" && "$ROLE" != "worker" ]]; then
-  echo "usage: $0 pi|worker" >&2
+if [[ "$ROLE" != "pi" && "$ROLE" != "worker" && "$ROLE" != "gateway" ]]; then
+  echo "usage: $0 pi|worker|gateway" >&2
   exit 2
 fi
 
@@ -18,6 +18,9 @@ fi
 if [[ "$ROLE" == "pi" ]]; then
   HOST="${HUB_PI_SSH:-stackrise-pi}"
   REMOTE_ROOT="${HUB_PI_HUB_FORM:-~/homelab/hub-form}"
+elif [[ "$ROLE" == "gateway" ]]; then
+  HOST="${HUB_PI_SSH:-stackrise-pi}"
+  REMOTE_ROOT="${HUB_PI_GLANCE:-~/homelab/glance}"
 else
   HOST="${HUB_WORKER_SSH:-ai-server-ts}"
   REMOTE_ROOT="${HUB_WORKER_SCRIPTS:-~/homelab/scripts}"
@@ -35,6 +38,10 @@ while IFS= read -r line || [[ -n "$line" ]]; do
   fi
   if [[ "$line" == "[worker]" ]]; then
     section="worker"
+    continue
+  fi
+  if [[ "$line" == "[gateway]" ]]; then
+    section="gateway"
     continue
   fi
   [[ "$section" == "$ROLE" ]] || continue

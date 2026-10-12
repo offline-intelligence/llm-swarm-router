@@ -389,10 +389,16 @@ def test_pi_hf_url_auto_is_huggingface_repo_without_drive(hub_client):
 
 
 def test_pi_legacy_hf_keeps_drive_path(hub_client):
-    """Legacy ``hf`` (select files) needs destination_path; it must not skip the drive check."""
+    """Legacy ``hf`` (select files) needs destination_path; it must not skip the drive check.
+
+    Since AP-UX-1 an empty drive resolves through the ``hf_files`` preset, which
+    needs TNAS › ai_language; with no drives the preset is unavailable (503).
+    """
     client, jobs_dir, _app = hub_client
     (jobs_dir / "library.json").write_text('{"drives": {}}', encoding="utf-8")
     r = client.post("/api/jobs", json={"url": URL, "kind": "hf", "drive_id": "", "folder_id": ""})
+    assert r.status_code == 503 and "selected files" in r.text
+    r = client.post("/api/jobs", json={"url": URL, "kind": "hf", "drive_id": "nas", "folder_id": "x"})
     assert r.status_code == 400 and "Unknown drive" in r.text
 
 

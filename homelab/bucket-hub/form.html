@@ -91,6 +91,14 @@
       cursor: not-allowed;
     }
     .chip.missing { opacity: 0.55; border-style: dashed; }
+    /* AP-UX-1 download presets */
+    .preset-groups { display: flex; flex-direction: column; gap: 0.3rem; }
+    .preset-group { display: flex; flex-wrap: wrap; align-items: center; gap: 0.3rem; }
+    .preset-group-label { font-size: 0.68rem; text-transform: uppercase; letter-spacing: 0.04em; opacity: 0.7; min-width: 6.5rem; }
+    .chip.preset-off { opacity: 0.5; border-style: dashed; }
+    .saves-to { margin: 0.35rem 0 0.2rem; font-size: 0.78rem; }
+    .saves-to.warn { color: #d9a441; }
+    .manual-toggle { display: inline-flex; align-items: center; gap: 0.3rem; font-size: 0.74rem; cursor: pointer; }
     .chip.removable { border-color: #4a6a8a; }
     .panel {
       background: var(--card); border: 1px solid var(--border); border-radius: 8px; padding: 0.65rem 0.75rem;
@@ -1161,6 +1169,11 @@
       font-size: 0.78rem;
     }
     .queue-lilly-bar.hidden { display: none; }
+    .queue-licence-bar { margin: 0 0 0.5rem; padding: 0.45rem 0.6rem; border: 1px solid var(--border); border-radius: 8px; font-size: 0.8rem; }
+    .queue-licence-bar a { color: var(--accent); }
+    .queue-licence-bar.hidden { display: none; }
+    .queue-licence-bar .licence-row { display: flex; gap: 0.5rem; align-items: center; flex-wrap: wrap; margin-top: 0.3rem; }
+    .gate-block { margin-top: 0.3rem; }
     .queue-lilly-bar a { color: var(--accent); }
     .queue-detail {
       margin-top: 0.45rem; padding: 0.55rem 0.65rem; border: 1px solid var(--border);
@@ -1400,6 +1413,14 @@
       </div>
     </div>
 
+    <div id="presetBlock">
+      <div class="label">Download type</div>
+      <div id="presetChips" class="preset-groups" role="group" aria-label="Download type"></div>
+      <div id="savesTo" class="saves-to" role="status" aria-live="polite"></div>
+      <label class="manual-toggle"><input type="checkbox" id="manualPath"/> Manually set path</label>
+    </div>
+
+    <div id="manualPathWrap" class="hidden">
     <div>
       <div class="label">1 · Drive</div>
       <div class="chips" id="drives"></div>
@@ -1416,6 +1437,7 @@
         <button type="button" class="secondary" id="addFolder">Add</button>
       </div>
     </div>
+    </div>
 
     <div style="display:flex;gap:0.5rem;align-items:center;flex-wrap:wrap">
       <button type="button" id="go">Queue download</button>
@@ -1429,18 +1451,7 @@
         <input id="title" name="title" type="text" placeholder="Friendly name"/>
       </div>
       <div>
-        <div class="label">Type</div>
-        <select id="kind" name="kind" aria-describedby="kindHint">
-          <option value="auto">Auto</option>
-          <option value="video">Video</option>
-          <option value="http">HTTP file</option>
-          <option value="magnet">Magnet / torrent</option>
-          <option value="github_repo">GitHub repo (TNAS archive)</option>
-          <option value="huggingface_repo">Hugging Face repo (TNAS archive)</option>
-          <option value="hf">Hugging Face files (to drive)</option>
-          <option value="website_archive">Website archive</option>
-        </select>
-        <div id="kindHint" class="kind-hint">All worker downloads use Proton VPN. YouTube often blocked on VPN — use a direct MP4 URL for video smoke tests.</div>
+        <div class="kind-hint">All worker downloads use Proton VPN. YouTube often blocked on VPN — use a direct MP4 URL for video smoke tests.</div>
       </div>
     </div>
 
@@ -1593,9 +1604,17 @@
       <a id="queueLillyLink" href="#">Open Requests</a>
       <span id="queueLillyBadge" class="badge"></span>
     </div>
+    <div id="queueLicenceBar" class="queue-licence-bar hidden" aria-live="polite"></div>
     <div class="queue-tabs" role="tablist" aria-label="Queue views">
       <button type="button" class="chip on" role="tab" aria-selected="true" data-qtab="active" id="qTabActive">Active</button>
       <button type="button" class="chip" role="tab" aria-selected="false" data-qtab="history" id="qTabHistory">History</button>
+    </div>
+    <div class="queue-tabs" id="queueSegChips" role="group" aria-label="Download segment">
+      <button type="button" class="chip on" data-qseg="all" aria-pressed="true">All</button>
+      <button type="button" class="chip" data-qseg="tv" aria-pressed="false">TV &amp; film</button>
+      <button type="button" class="chip" data-qseg="repo" aria-pressed="false">Repo archive</button>
+      <button type="button" class="chip" data-qseg="website" aria-pressed="false">Websites</button>
+      <button type="button" class="chip" data-qseg="other" aria-pressed="false">Other</button>
     </div>
     <div id="queueList" class="queue-list" role="tabpanel"><p class="queue-empty">Loading…</p></div>
     <div id="queueDetail" class="queue-detail hidden" aria-live="polite"></div>
@@ -1673,6 +1692,11 @@ if (torrentCat === 'anime') {
 }
 let userPickedDrive = false;
 let lastSearchSeriesInfo = null;
+// AP-UX-1: the server's preset registry decides where a download lands.
+let presetsData = { segments: [], presets: [] };
+let presetId = null;          // chosen or suggested preset id
+let presetUserPicked = false; // true once the user clicks a chip or picks a search result
+let presetResolveTimer = null;
 const TORRENT_CATEGORIES = [
   { id: 'all',    label: 'All',        cats: [] },
   { id: 'tv',     label: 'TV',         cats: [5000, 5030, 5040, 5045, 5060, 5070, 5080] },
@@ -1776,6 +1800,7 @@ function setHubMode(mode) {
     renderProviderChips();
     updateTorrentSearchHint();
   }
+  renderSavesTo();
   updateDetectBar();
 }
 
@@ -2245,8 +2270,9 @@ function scheduleArchiveProbe() {
 document.getElementById('url').addEventListener('input', () => {
   updateDetectBar();
   scheduleArchiveProbe();
+  schedulePresetResolve();
 });
-document.getElementById('url').addEventListener('paste', () => setTimeout(() => { updateDetectBar(); scheduleArchiveProbe(); }, 0));
+document.getElementById('url').addEventListener('paste', () => setTimeout(() => { updateDetectBar(); scheduleArchiveProbe(); schedulePresetResolve(); }, 0));
 loadSearchProviders().then(() => setHubMode(hubMode));
 
 async function smartDownload(prompt, autoQueue) {
@@ -2379,7 +2405,8 @@ function queuedJobLabel(job, fallbackTitle) {
 
 function notifyQueuedSuccess(job, fallbackTitle) {
   const label = queuedJobLabel(job, fallbackTitle);
-  setMsg(`Successfully queued "${label}"`, true);
+  const where = (job && (job.saves_to || job.folder_name)) || '';
+  setMsg(where ? `Queued "${label}" to ${where}` : `Successfully queued "${label}"`, true);
   playQueueSuccessChime();
 }
 
@@ -3003,6 +3030,81 @@ function renderMachineStrip(machines) {
   }).join('');
 }
 
+// AP-4.1: gated Hugging Face repos wait for a one-click licence accept.
+// AP-4.2: the worker re-checks after 1, 5 and 30 min, then hourly; "manual" gates say approval.
+function gateWaiting(j) {
+  const g = j && j.gate;
+  return !!g && j.status === 'queued' && (g.state === 'awaiting_licence' || g.state === 'needs_token');
+}
+
+function gateNextCheck(g) {
+  const t = g && g.next_check ? Date.parse(g.next_check) : NaN;
+  if (!Number.isFinite(t)) return '';
+  const mins = Math.round((t - Date.now()) / 60000);
+  if (mins <= 0) return 'Checking again now.';
+  if (mins < 60) return `Next automatic check in ${mins} min.`;
+  return `Next automatic check in ${Math.round(mins / 60)} h.`;
+}
+
+function gateBlock(j) {
+  if (!gateWaiting(j)) return '';
+  const g = j.gate;
+  const next = gateNextCheck(g);
+  if (g.state === 'needs_token') {
+    return `<div class="gate-block"><div class="url">Gated model: add HF_TOKEN to hub-worker.env on ai-server, then Check now.</div>
+      <div class="row-actions"><button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
+  }
+  const manual = g.gated === 'manual';
+  const how = manual
+    ? 'Approval needed. Request access on Hugging Face; the model owner approves requests by hand, which can take days.'
+    : 'Licence needed. Accept the licence on Hugging Face; the download starts by itself once access is granted.';
+  const label = manual ? 'Request access' : 'Accept licence';
+  return `<div class="gate-block"><div class="url">${escHtml(how)} ${escHtml(next)}</div>
+    <div class="row-actions"><a class="btn secondary" href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">${escHtml(label)}</a>
+    <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div></div>`;
+}
+
+async function gateCheckJob(id) {
+  const r = await fetch(hubUrl(`/api/jobs/${encodeURIComponent(id)}/gate-check`), { method: 'POST' });
+  const data = await r.json().catch(() => ({}));
+  if (!r.ok) { setMsg(JSON.stringify(data.detail || data), false); return; }
+  setMsg('Checking licence for ' + id + ' on the next worker pass', true);
+  await loadJobs();
+  await loadQueuePanel();
+}
+
+document.addEventListener('click', (ev) => {
+  const btn = ev.target && ev.target.closest ? ev.target.closest('[data-gate-check]') : null;
+  if (!btn) return;
+  ev.preventDefault();
+  ev.stopPropagation();
+  gateCheckJob(btn.dataset.gateCheck);
+});
+
+function renderLicenceBar(jobs) {
+  const el = document.getElementById('queueLicenceBar');
+  if (!el) return;
+  const waiting = (jobs || []).filter(gateWaiting);
+  if (!waiting.length) {
+    el.classList.add('hidden');
+    el.innerHTML = '';
+    return;
+  }
+  el.classList.remove('hidden');
+  const rows = waiting.map(licenceBarRow).join('');
+  el.innerHTML = `<div class="sub"><strong>Waiting for Hugging Face access (${escHtml(String(waiting.length))})</strong></div>${rows}`;
+}
+
+function licenceBarRow(j) {
+  const g = j.gate || {};
+  const label = g.gated === 'manual' ? 'Request access' : 'Accept licence';
+  const link = g.state === 'needs_token'
+    ? '<span class="sub">needs HF_TOKEN</span>'
+    : `<a href="${escAttr(safeHref(g.url || ''))}" target="_blank" rel="noopener">${escHtml(label)}</a>`;
+  return `<div class="licence-row"><span>${escHtml(j.title || j.url || j.id)}</span> ${link} <span class="sub">${escHtml(gateNextCheck(g))}</span>
+    <button type="button" class="secondary" data-gate-check="${escAttr(j.id)}">Check now</button></div>`;
+}
+
 async function retryJob(id) {
   const r = await fetch(hubUrl(`/api/jobs/${id}/retry`), { method: 'POST' });
   const data = await r.json();
@@ -3132,7 +3234,131 @@ async function loadLibrary() {
   } else if (driveId) selectDrive(driveId);
   applyArchiveDestinationDefaults();
   renderSyncSelectors();
+  loadPresets();
 }
+
+// ---- AP-UX-1 download presets ---------------------------------------------
+function presetById(id) {
+  return (presetsData.presets || []).find((p) => p.id === id) || null;
+}
+
+function isArchiveRootPreset(id) {
+  const p = presetById(id);
+  return !!(p && p.destination && p.destination.archive_root !== undefined);
+}
+
+function manualPathOn() {
+  const el = document.getElementById('manualPath');
+  return !!(el && el.checked);
+}
+
+function presetForSearchItem(item) {
+  if (!item) return null;
+  if (item.source === 'github') return 'github_repo';
+  if (item.source === 'hf') return 'hf_repo';
+  if (item.source === 'torrent' || item.kind_hint === 'torrent') return torrentCat === 'movies' ? 'film' : 'tv';
+  if (item.source === 'youtube' || item.kind_hint === 'media') return 'video';
+  return 'file';
+}
+
+async function loadPresets() {
+  try {
+    const r = await fetch(hubUrl('/api/presets'));
+    if (!r.ok) return;
+    presetsData = await r.json();
+  } catch (_) {
+    return;
+  }
+  renderPresetChips();
+}
+
+function setPreset(id, opts) {
+  presetId = id || null;
+  if (opts && opts.user) presetUserPicked = true;
+  renderPresetChips();
+}
+
+function presetChip(p) {
+  const on = p.id === presetId;
+  const off = p.available === false;
+  const cls = 'chip' + (on ? ' on' : '') + (off ? ' preset-off' : '');
+  const hint = off ? (p.reason || 'Unavailable') : (p.saves_to || '');
+  return `<button type="button" class="${escAttr(cls)}" data-preset="${escAttr(p.id)}" aria-pressed="${on ? 'true' : 'false'}" title="${escAttr(hint)}">${escHtml(p.label)}</button>`;
+}
+
+function renderPresetChips() {
+  const el = document.getElementById('presetChips');
+  if (!el) return;
+  const presets = presetsData.presets || [];
+  const groups = (presetsData.segments || []).map((seg) => {
+    const chips = presets.filter((p) => p.segment === seg.id).map(presetChip).join('');
+    return chips ? `<div class="preset-group"><span class="preset-group-label">${escHtml(seg.label)}</span>${chips}</div>` : '';
+  });
+  el.innerHTML = groups.join('');
+  el.querySelectorAll('[data-preset]').forEach((btn) => btn.addEventListener('click', () => {
+    setPreset(btn.dataset.preset, { user: true });
+  }));
+  renderSavesTo();
+}
+
+function renderSavesTo() {
+  const el = document.getElementById('savesTo');
+  if (!el) return;
+  const manual = manualPathOn();
+  const wrap = document.getElementById('manualPathWrap');
+  if (wrap) wrap.classList.toggle('hidden', !manual);
+  const go = document.getElementById('go');
+  if (manual) {
+    const drive = library && library.drives ? library.drives[driveId] : null;
+    const folder = drive ? (drive.folders || []).find((f) => f.id === folderId) : null;
+    el.className = 'saves-to';
+    el.textContent = drive && folder ? `Manual: ${drive.label || driveId} › ${folder.name}` : 'Manual: pick a drive and folder below';
+    if (go) go.disabled = false;
+    return;
+  }
+  const id = hubMode === 'archive' ? 'website' : presetId;
+  const p = presetById(id);
+  if (!p) {
+    el.className = 'saves-to sub';
+    el.textContent = 'Paste a link and the Hub picks where it saves';
+    if (go) go.disabled = false;
+    return;
+  }
+  if (p.available === false) {
+    el.className = 'saves-to warn';
+    el.textContent = `${p.label}: ${p.reason || 'unavailable'}. Tick Manually set path to choose another drive.`;
+    if (go) go.disabled = true;
+    return;
+  }
+  el.className = 'saves-to';
+  el.textContent = `Saves to: ${p.saves_to}${p.fallback_used ? ' (fallback)' : ''}`;
+  if (go) go.disabled = false;
+}
+
+function schedulePresetResolve() {
+  clearTimeout(presetResolveTimer);
+  presetResolveTimer = setTimeout(resolvePresetForUrl, 350);
+}
+
+async function resolvePresetForUrl() {
+  if (presetUserPicked || hubMode === 'archive') return;
+  const url = document.getElementById('url').value.trim();
+  if (!/^(https?:\/\/|magnet:)/i.test(url)) {
+    if (!url) setPreset(null);
+    return;
+  }
+  try {
+    const r = await fetch(hubUrl('/api/presets/resolve'), {
+      method: 'POST', headers: {'Content-Type': 'application/json'},
+      body: JSON.stringify({ url, torrent_category: torrentCat === 'movies' ? 'movies' : '' }),
+    });
+    if (!r.ok) return;
+    const data = await r.json();
+    if (!presetUserPicked) setPreset(data.preset);
+  } catch (_) { /* keep the current preset */ }
+}
+
+document.getElementById('manualPath').addEventListener('change', renderSavesTo);
 
 async function searchForNewDrives(msgId) {
   const msg = document.getElementById(msgId || 'scanDrivesMsg');
@@ -3197,6 +3423,7 @@ function selectDrive(id, opts) {
 
 async function selectFolder(id) {
   folderId = id;
+  renderSavesTo();
   document.querySelectorAll('#folders .chip').forEach(c => {
     const on = c.dataset.folder === id;
     c.classList.toggle('on', on);
@@ -3638,13 +3865,7 @@ async function pickResult(item, opts) {
   selectedSource = item.source;
   document.getElementById('url').value = item.url;
   document.getElementById('title').value = item.title || '';
-  let kind = 'http';
-  if (item.source === 'github') kind = 'github_repo';
-  else if (item.source === 'hf') kind = 'huggingface_repo';
-  else if (item.source === 'torrent' || item.kind_hint === 'torrent') kind = 'magnet';
-  else if (item.source === 'youtube' || item.kind_hint === 'media') kind = 'video';
-  else if (item.source === 'web') kind = 'http';
-  document.getElementById('kind').value = kind;
+  setPreset(presetForSearchItem(item), { user: true });
   if (item.magnet || (typeof item.url === 'string' && item.url.startsWith('magnet:'))) {
     document.getElementById('url').value = item.magnet || item.url;
   }
@@ -3680,6 +3901,9 @@ function setHfMode(mode) {
   if (whole) whole.classList.toggle('on', mode === 'whole');
   if (filesBtn) filesBtn.classList.toggle('on', mode === 'files');
   if (wrap) wrap.classList.toggle('hidden', mode !== 'files');
+  if (presetId === 'hf_repo' || presetId === 'hf_files') {
+    setPreset(mode === 'files' ? 'hf_files' : 'hf_repo', { user: true });
+  }
 }
 document.getElementById('hfWhole').addEventListener('click', () => setHfMode('whole'));
 document.getElementById('hfFilesBtn').addEventListener('click', () => setHfMode('files'));
@@ -3764,8 +3988,9 @@ function renderJobRow(j) {
     ? `${escHtml(j.source_folder_name || '')} → ${escHtml(j.folder_name || '')} · ${escHtml(j.source_path || '')} → ${escHtml(j.destination_path || '')}`
     : `${escHtml(j.folder_name || '')} · ${escHtml(j.destination_path || '')}`;
   const urlLine = j.url ? `<div class="url">${escHtml(redactSecrets(j.url))}</div>` : (j.notes ? `<div class="url">${escHtml(j.notes)}</div>` : '');
+  const gateHtml = gateBlock(j);
   return `<div class="job"><div class="top"><strong>${escHtml(j.title || j.kind)}</strong><span>${by}<span class="status-${escAttr(j.status)}">${escHtml(j.status)}</span>${approve}${cancelBtn}${retry}</span></div>
-    ${urlLine}${err}
+    ${urlLine}${err}${gateHtml}
     <div>${line} ${tags}</div></div>`;
 }
 
@@ -4149,6 +4374,10 @@ function statusLabel(st, j) {
     if (j) return stageShortLabel(j);
     return 'Downloading';
   }
+  if (st === 'queued' && gateWaiting(j)) {
+    if (j.gate.state === 'needs_token') return 'Needs HF token';
+    return j.gate.gated === 'manual' ? 'Approval needed' : 'Licence needed';
+  }
   if (st === 'queued') return 'Queued';
   if (st === 'paused') return 'Paused';
   if (st === 'purging') return 'Removing…';
@@ -4450,6 +4679,7 @@ function renderQueueDetail(j) {
     ${j.notes ? `<div class="url">${escHtml(j.notes)}</div>` : ''}
     ${j.download_dir ? `<div class="url">Downloaded to ${escHtml(j.download_dir)}${(j.media_pipeline && (j.media_pipeline.sonarr === 'added' || j.media_pipeline.sonarr === 'exists')) ? ' · Sonarr will file this under TV › ' + escHtml((j.torrent_meta && j.torrent_meta.show_title_guess) || 'Show') : ''}</div>` : ''}
     ${j.error ? `<div class="url">${escHtml(j.error_display || humanError(j.error))}</div>` : ''}
+    ${gateBlock(j)}
     ${archiveDetail || (pct != null ? `<div class="url">Progress ${pct}%${escHtml(aria2ThroughputHint(j))}</div>` : (aria2ThroughputHint(j) ? `<div class="url">${escHtml(aria2ThroughputHint(j).replace(/^ · /, ''))}</div>` : ''))}
     <div class="url">${escHtml(j.id)} · ${escHtml(kindLabel(j))} · ${escHtml(j.folder_name || j.destination_path || '')}</div>
     <div class="url">${escHtml(j.requested_by || j.source || '')} · ${proton}${tags ? ' · ' + escHtml(tags) : ''}</div>
@@ -4495,6 +4725,26 @@ function renderQueueDetail(j) {
   }
 }
 
+let queueSegment = (() => {
+  try { return localStorage.getItem('hubQueueSegment') || 'all'; } catch (_) { return 'all'; }
+})();
+
+function paintQueueSegChips() {
+  document.querySelectorAll('#queueSegChips [data-qseg]').forEach((btn) => {
+    const on = btn.dataset.qseg === queueSegment;
+    btn.classList.toggle('on', on);
+    btn.setAttribute('aria-pressed', on ? 'true' : 'false');
+  });
+}
+
+document.querySelectorAll('#queueSegChips [data-qseg]').forEach((btn) => btn.addEventListener('click', () => {
+  queueSegment = btn.dataset.qseg || 'all';
+  try { localStorage.setItem('hubQueueSegment', queueSegment); } catch (_) { /* per-viewer only */ }
+  paintQueueSegChips();
+  paintQueueLists();
+}));
+paintQueueSegChips();
+
 function paintQueueLists() {
   const listEl = document.getElementById('queueList');
   const badge = document.getElementById('queueBadge');
@@ -4502,7 +4752,8 @@ function paintQueueLists() {
   const tabHistory = document.getElementById('qTabHistory');
   if (!listEl) return;
   const hub = isHubPanel();
-  const { processing, paused, waiting, failed, history } = splitQueueJobs(queueJobsCache);
+  const segJobs = queueSegment === 'all' ? queueJobsCache : queueJobsCache.filter((j) => (j.segment || 'other') === queueSegment);
+  const { processing, paused, waiting, failed, history } = splitQueueJobs(segJobs);
   const activeCount = processing.length + waiting.length + paused.length;
   if (tabActive) tabActive.textContent = `Active${activeCount ? ' ' + activeCount : ''}`;
   if (tabHistory) {
@@ -4627,6 +4878,7 @@ async function loadQueuePanel() {
     const data = await r.json();
     queueJobsCache = data.jobs || [];
     renderQueueLillyBar(queueJobsCache);
+    renderLicenceBar(queueJobsCache);
     paintQueueLists();
   } catch (e) {
     listEl.innerHTML = '<p class="sub">Could not load queue.</p>';
@@ -4994,21 +5246,28 @@ async function queueDownload(opts) {
     runSearch();
     return;
   }
-  let kindVal = document.getElementById('kind').value;
+  const isArchive = hubMode === 'archive';
   // "Select files" keeps the legacy drive download; whole repos go to the TNAS archive.
-  if (kindVal === 'huggingface_repo' && hfMode === 'files' && hfSelectedFiles.size) kindVal = 'hf';
-  const archiveRootKind = ['github_repo', 'huggingface_repo'].includes(kindVal);
-  if (!archiveRootKind && (!driveId || !folderId)) { setMsg('Pick a drive and folder', false); return; }
+  let queuePreset = isArchive ? 'website' : presetId;
+  if (hfMode === 'files' && hfSelectedFiles.size && (queuePreset === 'hf_repo' || !queuePreset)) queuePreset = 'hf_files';
+  const manual = manualPathOn();
+  const chosen = presetById(queuePreset);
+  if (manual && !isArchiveRootPreset(queuePreset) && (!driveId || !folderId)) { setMsg('Pick a drive and folder', false); return; }
+  if (!manual && chosen && chosen.available === false) {
+    setMsg(`${chosen.label}: ${chosen.reason || 'destination unavailable'} — tick Manually set path to choose another drive`, false);
+    return;
+  }
   const btn = document.getElementById('go');
   btn.disabled = true;
   setMsg('');
-  const isArchive = hubMode === 'archive';
   const body = {
     url: urlVal,
     title: document.getElementById('title').value.trim(),
-    kind: isArchive ? 'website_archive' : kindVal,
-    drive_id: driveId || '',
-    folder_id: folderId || '',
+    kind: isArchive ? 'website_archive' : (queuePreset === 'hf_files' ? 'hf' : 'auto'),
+    preset: queuePreset || '',
+    manual_path: manual,
+    drive_id: manual ? (driveId || '') : '',
+    folder_id: manual ? (folderId || '') : '',
     tags: Array.from(new Set([...selectedTags, ...pendingTorrentTags])),
     high_priority: downloadForm.high_priority.checked,
     notify_on_complete: downloadForm.notify_on_complete.checked,
@@ -5022,12 +5281,12 @@ async function queueDownload(opts) {
     body.archive_depth = parseInt(document.getElementById('archiveDepth').value, 10) || 0;
     const drive = library.drives && library.drives[driveId];
     const folder = drive && (drive.folders || []).find((f) => f.id === folderId);
-    if (!drive || drive.mounted === false) {
+    if (manual && (!drive || drive.mounted === false)) {
       setMsg('Archive drive is offline on the worker — wake TNAS or pick Expansion HDD', false);
       btn.disabled = false;
       return;
     }
-    if (folder && folder.present === false) {
+    if (manual && folder && folder.present === false) {
       setMsg('Folder not on disk — wake TNAS or choose _nas_staging on movies', false);
       btn.disabled = false;
       return;
@@ -5062,6 +5321,7 @@ async function queueDownload(opts) {
     pendingTorrentDestRel = null;
     selectedSource = 'manual';
     document.getElementById('hfPanel').classList.add('hidden');
+    if (!keepSearch) { presetUserPicked = false; presetId = null; renderPresetChips(); }
     await loadJobs();
     await loadLillyInbox();
     await loadNightSummary();
