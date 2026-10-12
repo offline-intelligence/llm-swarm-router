@@ -18,6 +18,8 @@
 
 Deployed 2026-10-12, QC r1 **blocked** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1.json`): integrate + parity + image `:4` ok; `REPO_ARCHIVER_IMAGE=:4` not set; smoke not run.
 
+QC r1b **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-4-r1b.json`): Pi `hub-form.service` reload; worker restart; `smoke-ap4-hf.sh` 7/7; real weights on TNAS.
+
 ## 2026-10-12 — AP-3.1 repo lane fast-follow (PM)
 
 **Packet:** AP-3.1 (`pm/ap-3.1`), written by the PM; Cursor deploys.

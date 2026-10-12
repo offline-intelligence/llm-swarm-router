@@ -55,11 +55,12 @@ Code reading: legacy `hf` whole-repo mode runs `git clone --depth 1` in `GIT_IMA
 
 `scripts/smoke-ap4-hf.sh` (fake Hub: 7/7).
 
-| Check | Result (QC r1) |
-|-------|----------------|
-| Integrate (217 tests, draft PR #6) | **pass** |
-| Pi/worker parity + image `:4` build | **pass** |
-| `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env | **blocked** (Finn) |
-| Worker restart + smoke + disk | **not run** |
+| Check | Result (QC r1 / r1b) |
+|-------|------------------------|
+| Integrate (217 tests, draft PR #6) | **pass** (r1) |
+| Pi/worker parity + image `:4` build | **pass** (r1) |
+| Pi `hub-form.service` reload + kind detect | **pass** (r1b) |
+| `smoke-ap4-hf.sh` | **7/7 pass** (r1b) |
+| `live.hf_real_weights` (453864 B safetensors, LFS 0) | **pass** (r1b) |
 
-QC: `docs/pm/2026-10/qc/AP-4-r1.json` (**overall blocked**).
+QC: `docs/pm/2026-10/qc/AP-4-r1.json` (**blocked** env only); `docs/pm/2026-10/qc/AP-4-r1b.json` (**overall pass**).

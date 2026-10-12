@@ -63,7 +63,7 @@ Enqueue smoke: `POST http://100.85.42.0:3000/api/jobs` with `kind: github_repo`,
 | **Step 1 — worker** | `./scripts/verify-deploy-parity.sh worker` | **0** (before and after) | **pass** |
 | **Step 2 — parallel** | QC r4 `smoke-ap31-lanes.sh` (Sintel) | Torrent + repo drain **pass** — [AP-3.1-r4.json](../pm/2026-10/qc/AP-3.1-r4.json) | **pass** |
 | **Step 3 — README / Spoon-Knife** | QC r4 `smoke.readme_excerpt` + r3 live archive checks | Hello-World excerpt **pass**; Spoon-Knife 1 MB / no pull refs (r3) | **pass** |
-| **Step 6 — HF archive weights** | AP-4 QC r1 `live.hf_real_weights` (`tiny-random-gpt2`) | **not run** — blocked on `REPO_ARCHIVER_IMAGE=:4` — [AP-4-r1.json](../pm/2026-10/qc/AP-4-r1.json) | **blocked** |
+| **Step 6 — HF archive weights** | AP-4 QC r1b `live.hf_real_weights` (`tiny-random-gpt2`) | 453864 B `model.safetensors`, LFS grep 0 — [AP-4-r1b.json](../pm/2026-10/qc/AP-4-r1b.json) | **pass** |
 | **Task 6 — heartbeat** | `GET /api/status` `heartbeat_age_s` ~10s; worker log tail has historical `heartbeat failed` / `loop error` bursts | Pi reachable now; not blocking single-repo smokes | **note** |
 
 §T6 step 2 commands:

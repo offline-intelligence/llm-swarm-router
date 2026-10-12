@@ -95,7 +95,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
   - [x] Replace `192.168.50.186` with `.187` in tracked repo files + Pi deploy (`machines_ctl.py`, `glance.yml`, smoke scripts); runtime `~/homelab/data/hub-jobs/machines.json` on Pi edited in place (2026-10-12). Uptime Kuma TNAS monitor → `http://192.168.50.187:8181/` (API edit on Pi, 2026-10-12).
   - [x] Mac `~/.ssh/config`: `Host stackrise-pi` → `100.85.42.0` (2026-10-12); `verify-deploy-parity.sh pi` **exit 0** after deploy.
   - [x] Re-run §T6 step **2** after AP-3.1 — **pass** QC r4 (2026-10-12).
-- [ ] AP-4 `huggingface_repo` — **code done** on `pm/ap-4` (stacked on `pm/ap-3.1` until PR #5 merges; 217 tests). Cursor round 1 (`docs/pm/2026-10/handoffs/AP-4.md`): push, draft PR, deploy, image `:4`, `smoke-ap4-hf.sh`, disk checks, QC `AP-4-r1.json`.
+- [x] AP-4 `huggingface_repo` — QC r1b **pass** (`docs/pm/2026-10/qc/AP-4-r1b.json`): smoke 7/7, real weights on TNAS. PR #6 draft (base `pm/ap-3.1` until #5 merges).
 - [ ] AP-4.1 HF gated repos: detect gate, `awaiting_licence` wait + auto re-check, Hub Accept-licence / Check-now, one click (Finn, no auto-accept). Spec `docs/pm/2026-10/AP-4.1-hf-gated-access.md`; after AP-4 QC pass.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
@@ -149,6 +149,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Date | Note |
 |------|------|
 | 2026-10-12 | PM review of AP-4 QC r1 (`AP-4-r1.json`): blocked on env only (F1, image `:4` not set); since fixed with Finn's OK. Legacy `hf` downloads had real weights, not LFS pointers (PM inference was wrong). Issued r1b: Pi app reload check, worker restart, smoke + disk checks. Finn's gated-licence requirement specced as AP-4.1. |
+| 2026-10-12 | **AP-4 QC r1b** (`docs/pm/2026-10/qc/AP-4-r1b.json`): **overall pass** — `hub-form.service` reload, worker restart, URL→`huggingface_repo`, smoke 7/7, `model.safetensors` 453864 B (not LFS). |
 | 2026-10-12 | **AP-4 QC r1** (`docs/pm/2026-10/qc/AP-4-r1.json`): 217 tests; draft PR #6 (base `pm/ap-3.1`); Pi/worker parity + image `:4` built; **blocked** on `REPO_ARCHIVER_IMAGE=:4` in hub-worker.env — smoke not run. Legacy hf LFS check: real weights at SmokeTest. |
 | 2026-10-12 | PM implemented **AP-4** on `pm/ap-4`: `repo_archive_hf.py` (`huggingface_repo` lane), archiver `:4` `hf_snapshot`, `build_hf_entry` + `scrub_free_text`, form options, archive-root drive fix for legacy `hf`/`github` jobs; 193 → 217 tests; `scripts/smoke-ap4-hf.sh` (7 checks). Cursor round 1 issued. |
 | 2026-10-12 | **PM sign-off: AP-3.1 and AP-3 done** (QC r4 overall pass, 0 findings). PR #5 ready for Finn to merge. Next: AP-4 on `pm/ap-4` after the merge. Open P2: stale aria2 gid job stays `running` (no longer blocks lanes). |

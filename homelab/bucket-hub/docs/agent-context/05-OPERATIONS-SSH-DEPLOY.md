@@ -26,7 +26,8 @@ cd homelab/bucket-hub
 ./scripts/verify-deploy-parity.sh pi   # expect mismatch before first AP-1 deploy
 # rsync every path in the [pi] section of scripts/deploy-manifest.txt to ~/homelab/hub-form/
 # including static/hub-escape.js, job_kinds.py, index_writer.py
-ssh stackrise-pi 'sudo systemctl restart hub-form hub-gateway glance'
+ssh stackrise-pi 'systemctl --user restart hub-form.service'
+ssh stackrise-pi 'docker restart glance hub-gateway'   # if Glance/Caddy need reload after glance.yml change
 # bump glance.yml iframe ?v=
 ./scripts/verify-deploy-parity.sh pi   # must exit 0
 ```
