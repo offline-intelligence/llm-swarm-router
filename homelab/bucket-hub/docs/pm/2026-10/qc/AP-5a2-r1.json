@@ -5,7 +5,7 @@
   "generated_at": "2026-10-13T00:45:00+10:00",
   "git": {
     "branch": "pm/ap-5a2",
-    "head": "a06f18d",
+    "head": "cae77c7",
     "base": "main@bcfe9b3",
     "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/14",
     "rebase_conflicts": [],
@@ -173,10 +173,10 @@
     },
     {
       "id": "git.pr_comment",
-      "status": "skip",
-      "value": null,
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/14#issuecomment-6126486518",
       "expected": "QC summary on PR after write",
-      "evidence": "posted with this commit",
+      "evidence": "gh pr comment 14",
       "log": null
     },
     {
