@@ -1,6 +1,6 @@
 # AP-UX-1 — Download presets: the type picks the place, "Manually set path" overrides
 
-**Status:** spec (PM, 2026-10-12). Code by the PM after AP-4.1 QC passes; Cursor deploys and QCs.
+**Status:** built by the PM on `pm/ap-ux-1`, 277 tests (2026-10-12); Cursor deploys after AP-4.1 QC r3 passes. See "As built" at the end.
 **Depends on:** OPS-HF1 (gateway assets) deployed, so the Glance UI works. **Touches:** `app.py`, `form.html`, new `download_presets.py`, `capture-folders.json` handling, tests.
 
 ## Problem (Finn, 2026-10-12)
@@ -110,3 +110,19 @@ Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveI
 - Per-show folder creation (stays with Sonarr).
 - New drives or folder creation flows (unchanged, behind Manually set path).
 - Index/search (AP-5).
+
+
+## As built (PM, 2026-10-12)
+
+- Built as specced, with these decisions:
+  - **Firefox "Website" capture keeps saving the single page** (preset `file`, tag `website`). A full website copy is a bigger job (unlimited depth by default), so it stays a deliberate choice in the Hub's Websites segment.
+  - Firefox "GitHub" / "Hugging Face" captures use the repo archive presets (`github_repo`, `hf_repo`), consistent with the Repo archive segment.
+  - Requests: link mode no longer requires a drive (preset decides); approving a note re-resolves the destination from the link's preset. This also fixes approving a GitHub/HF link, which used to get `worker: aria2`.
+  - A preset that does not fit the link (YouTube with `tv`, a non-GitHub URL with `github_repo`) → 400 "does not look like a … link".
+  - Queue panel: segment filter chips; the choice is remembered per browser.
+- **Finding:** `aria2_dir_for()` maps an Expansion HDD `movies/` destination to `/mnt/torrents/movies` (host `torrents/movies/`), because aria2 only mounts the torrents inbox. Film torrents never landed in `movies/` directly; the `film` preset makes the flat inbox explicit.
+- Tests and local checks: `docs/testing/AP-UX-1-test-report.md`. Smoke: `scripts/smoke-apux1-presets.sh` (PHASE=before / after).
+
+### Round 2 (PM, 2026-10-12)
+
+`tv` and `film` are fixed presets (Expansion HDD `torrents/` only; overrides ignored) so Sonarr/Radarr keep importing from the one place they watch. `capture-folders.json` legacy keys imported: `media`/`video` → video, `http` → file, `hf` → hf_files. Not imported: `magnet`, `website`, `github`, `default`. Found by QC r1 R4.

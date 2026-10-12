@@ -21,6 +21,19 @@
 
 Base URL **`/jellyfin`** on Jellyfin is required (Dashboard → Networking).
 
+### Remote review (off home LAN, 2026-10-12)
+
+Use **Tailscale** for Hub UI and API while away; LAN `192.168.50.138` is not required.
+
+| Use | URL |
+|-----|-----|
+| Glance + Download iframe | `http://100.85.42.0:3000/` |
+| Form (via gateway) | `http://100.85.42.0:3000/hub-form/` |
+| Form (direct uvicorn; debug) | `http://100.85.42.0:3020/hub-form/` — **trailing slash required** (`/hub-form` alone returns 404 JSON) |
+| Shared JS (must be 200 on `:3000` after OPS-HF1) | `http://100.85.42.0:3000/assets/hub-escape.js` |
+
+Public: `https://bucket-hub.stackrise.com.au` (Cloudflare Access). Cursor QC smokes and Finn UI sign-off should use the Tailscale `:3000` URLs until back on LAN.
+
 ## Request flow (downloads)
 
 ```text

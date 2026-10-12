@@ -1,0 +1,258 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-UX-1",
+  "round": 2,
+  "generated_at": "2026-10-12T19:30:00+10:00",
+  "git": {
+    "branch": "pm/ap-ux-1",
+    "head": "d5d0ed55354feed6f188b3e142fa1807bc177444",
+    "base": "pm/ap-4.1@3c4d984896930aa7b62d61a825192dda48f72224",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
+    "rebase_conflicts": []
+  },
+  "overall": "blocked",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "277 passed, 2 skipped, 0 failed in 6.54s",
+      "expected": "279 passed (or more), 0 failed",
+      "evidence": "uv run python -m pytest -q (2 skipped: huggingface_hub missing locally)",
+      "log": "/tmp/apux1r2-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "d5d0ed55354feed6f188b3e142fa1807bc177444",
+      "expected": "pushed",
+      "evidence": "git push offline-intelligence pm/ap-ux-1 after QC commit",
+      "log": "/tmp/apux1r2-git.push.log"
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
+      "expected": "draft PR base pm/ap-4.1",
+      "evidence": "carried from AP-UX-1-r1.json",
+      "log": null
+    },
+    {
+      "id": "info.gate_job_before",
+      "status": "pass",
+      "value": { "status": "queued", "gate": "awaiting_licence" },
+      "expected": "AP-4.1 job unchanged by deploy",
+      "evidence": "GET /api/jobs/7407b085aa83",
+      "log": "/tmp/apux1r2-gate-before.json"
+    },
+    {
+      "id": "info.arr_reachable",
+      "status": "pass",
+      "value": {
+        "url_lines": [
+          "JELLYFIN_URL=http://127.0.0.1:8096/jellyfin",
+          "SONARR_URL=http://127.0.0.1:8989",
+          "RADARR_URL=http://127.0.0.1:7878"
+        ],
+        "containers": "sonarr radarr gluetun (ports include 8989 7878)",
+        "ping_codes": { "8989": "000", "7878": "000" }
+      },
+      "expected": "diagnostic before S1",
+      "evidence": "ssh ai-server-ts hub-worker.env + docker ps + curl /ping",
+      "log": "/tmp/apux1r2-arr-reachable.log"
+    },
+    {
+      "id": "smoke.r0_snapshot",
+      "status": "pass",
+      "value": {
+        "radarr": [{ "error": "ConnectionResetError" }],
+        "sonarr": [{ "error": "ConnectionResetError" }],
+        "jellyfin": [
+          { "name": "Documentaries", "locations": ["/media/Media/Documentaries"] },
+          { "name": "Movies", "locations": ["/media/Media/Movies"] },
+          { "name": "Movies (Radarr)", "locations": ["/movies"] },
+          { "name": "Music (Lidarr)", "locations": ["/music"] },
+          { "name": "Other", "locations": ["/media/Media/Other"] },
+          { "name": "TV Shows (Sonarr)", "locations": ["/tv"] },
+          { "name": "YouTube Videos", "locations": ["/media/Media/YouTube Videos"] }
+        ]
+      },
+      "expected": "pass",
+      "evidence": "PHASE=before smoke-apux1-presets.sh",
+      "log": "/tmp/apux1r2-before.log"
+    },
+    {
+      "id": "smoke.r0b_snapshot",
+      "status": "pass",
+      "value": { "active_jobs": 2 },
+      "expected": "pass",
+      "evidence": "PHASE=before",
+      "log": "/tmp/apux1r2-before.json"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "rsync [pi] manifest + hub-form.service restart",
+      "log": "/tmp/apux1r2-pi.parity.log"
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "process_lstart": "Mon Oct 12 19:24:40 2026",
+        "app_py_mtime": "2026-10-12 19:20:19 +1000"
+      },
+      "expected": "process newer than app.py",
+      "evidence": "stackrise-pi ps lstart vs stat hub-form/app.py",
+      "log": null
+    },
+    {
+      "id": "deploy.gateway_parity",
+      "status": "pass",
+      "value": {
+        "caddyfile_sha_match": true,
+        "hub_escape_http": 200,
+        "verify_gateway_exit": 1,
+        "glance_diff_lines": 4,
+        "note": "glance.yml ?v= only (live 20261012hf1, repo 20261012ux1); Caddy OK per OPS-HF1 r2"
+      },
+      "expected": "exit 0; F1 closed by OPS-HF1 r2",
+      "evidence": "Caddyfile sha match; curl :3000/assets/hub-escape.js 200; no gateway deploy",
+      "log": "/tmp/apux1r2-gateway.parity.log"
+    },
+    {
+      "id": "deploy.presets_endpoint",
+      "status": "pass",
+      "value": 200,
+      "expected": "HTTP 200",
+      "evidence": "curl http://100.85.42.0:3000/api/presets",
+      "log": null
+    },
+    {
+      "id": "deploy.tv_film_path",
+      "status": "pass",
+      "value": [
+        { "id": "tv", "path": "/mnt/external/movies/torrents", "folder": "torrents" },
+        { "id": "film", "path": "/mnt/external/movies/torrents", "folder": "torrents" },
+        { "id": "website", "path": "/mnt/tnas/Website Backups", "folder": "website_backups" }
+      ],
+      "expected": "tv/film torrents; website website_backups",
+      "evidence": "GET /api/presets jq after deploy",
+      "log": null
+    },
+    {
+      "id": "info.gate_job_after",
+      "status": "pass",
+      "value": { "status": "queued", "gate": "awaiting_licence" },
+      "expected": "same as gate_job_before",
+      "evidence": "GET /api/jobs/7407b085aa83 after restart",
+      "log": null
+    },
+    {
+      "id": "smoke.r0_connections",
+      "status": "pass",
+      "value": {
+        "radarr_clients": [{ "error": "ConnectionResetError" }],
+        "sonarr_clients": [{ "error": "ConnectionResetError" }]
+      },
+      "expected": "pass",
+      "evidence": "before = after",
+      "log": "/tmp/apux1r2-after.log"
+    },
+    {
+      "id": "smoke.r0b_jobs",
+      "status": "pass",
+      "value": { "checked": 2 },
+      "expected": "pass",
+      "evidence": "no destination_path changed",
+      "log": "/tmp/apux1r2-after.json"
+    },
+    {
+      "id": "smoke.r1_presets",
+      "status": "pass",
+      "value": "8/8 available; tv/film path /mnt/external/movies/torrents",
+      "expected": "pass",
+      "evidence": "PHASE=after",
+      "log": "/tmp/apux1r2-after.json"
+    },
+    {
+      "id": "smoke.r2_resolve",
+      "status": "pass",
+      "value": "5/5",
+      "expected": "pass",
+      "evidence": "PHASE=after",
+      "log": "/tmp/apux1r2-after.json"
+    },
+    {
+      "id": "smoke.r3_hf_preset",
+      "status": "pass",
+      "value": {
+        "id": "7d639ca70123",
+        "preset": "hf_repo",
+        "segment": "repo",
+        "status": "done",
+        "note": "Already archived on 2026-10-12"
+      },
+      "expected": "pass",
+      "evidence": "R3_WAIT_S=600 smoke-apux1-presets.sh",
+      "log": "/tmp/apux1r2-after.json"
+    },
+    {
+      "id": "smoke.r4_manual",
+      "status": "pass",
+      "value": {
+        "id": "1dc6adb3dee8",
+        "destination_path": "/mnt/external/movies/torrents",
+        "destination_source": "manual",
+        "preset": "tv"
+      },
+      "expected": "pass",
+      "evidence": "manual tv job created and cancelled",
+      "log": "/tmp/apux1r2-after.json"
+    },
+    {
+      "id": "info.radarr_path",
+      "status": "pass",
+      "value": {
+        "download_clients": [{ "error": "ConnectionResetError" }],
+        "root_folders": [],
+        "remote_path_mappings": { "error": "ConnectionResetError" }
+      },
+      "expected": "Radarr paths from R0 snapshot",
+      "evidence": "/tmp/apux1-smoke/connections-before.json radarr block",
+      "log": "/tmp/apux1-smoke/connections-before.json"
+    },
+    {
+      "id": "ui.presets",
+      "status": "blocked",
+      "value": null,
+      "expected": "Finn R5 one line in his own words",
+      "evidence": "PM 2026-10-12: close on Finn verbatim + r2 smoke/browser evidence; not yet received",
+      "log": null
+    },
+    {
+      "id": "merge.pr8",
+      "status": "skip",
+      "value": { "reason": "overall blocked on ui.presets" },
+      "expected": "merge if pass and #7 merged",
+      "evidence": "gh pr ready/merge skipped",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [
+    "One line in your own words: Download tab on http://100.85.42.0:3000/ — segment chips, Saves to, Manually set path, queue filter, magnet → Expansion HDD › torrents (for ui.presets)"
+  ],
+  "deviations": [
+    "First rsync loop used broken remote path (tilde expanded locally); redeployed with stackrise-pi:homelab/hub-form/",
+    "verify-deploy-parity.sh gateway exit 1 on glance ?v= only; live hf1 kept (OPS-HF1); Caddy + hub-escape 200",
+    "OPS-ARR1: Sonarr/Radarr /ping 000 on worker host; R0 compared Jellyfin only (not an AP-UX-1 blocker)"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r2.json",
+    "homelab/bucket-hub/docs/testing/AP-UX-1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}
