@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 round 4 issued: aria2 RPC errors no longer abort the worker tick; `docs/pm/2026-10/handoffs/AP-3.1-r4.md`)
+**Last updated:** 2026-10-12 (AP-3.1 QC r4 **pass**; PR #5 ready, `docs/pm/2026-10/qc/AP-3.1-r4.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
