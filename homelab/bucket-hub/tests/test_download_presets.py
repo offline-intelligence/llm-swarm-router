@@ -3,6 +3,7 @@ from __future__ import annotations
 
 import copy
 import json
+from pathlib import Path
 
 import pytest
 
@@ -246,6 +247,28 @@ def test_p8_capture_folders_override(tmp_path):
     r = dp.resolve(LIB, "video", overrides=ov)
     assert r["destination"]["drive_id"] == "media_hdd"
     assert r["fallback_used"] is False
+
+
+def test_p8_repo_capture_folders_keeps_tv_film_website_defaults():
+    """AP-UX-1 r1 F2: the shipped file maps magnet/website to nas/inbox."""
+    ov = dp.load_overrides(Path(__file__).resolve().parents[1] / "capture-folders.json")
+    assert "tv" not in ov and "film" not in ov and "website" not in ov
+    for pid in ("tv", "film"):
+        r = dp.resolve(LIB, pid, overrides=ov)
+        assert r["destination"]["path"] == "/mnt/external/movies/torrents"
+    assert dp.resolve(LIB, "website", overrides=ov)["destination"]["folder_id"] == "website_backups"
+
+
+def test_p8_fixed_presets_ignore_explicit_override(tmp_path):
+    f = tmp_path / "capture-folders.json"
+    f.write_text(
+        json.dumps({"preset_folder_map": {"tv": {"drive_id": "nas", "folder_id": "inbox"}}}),
+        encoding="utf-8",
+    )
+    ov = dp.load_overrides(f)
+    assert ov == {}
+    r = dp.resolve(LIB, "tv", overrides={"tv": {"drive_id": "nas", "folder_id": "inbox"}})
+    assert r["destination"]["path"] == "/mnt/external/movies/torrents"
 
 
 def test_p8_override_ignored_for_archive_root(tmp_path):

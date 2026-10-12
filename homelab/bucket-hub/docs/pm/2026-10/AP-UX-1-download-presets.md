@@ -122,3 +122,7 @@ Drive ids are matched the way the form does today (`resolveMoviesExpansionDriveI
   - Queue panel: segment filter chips; the choice is remembered per browser.
 - **Finding:** `aria2_dir_for()` maps an Expansion HDD `movies/` destination to `/mnt/torrents/movies` (host `torrents/movies/`), because aria2 only mounts the torrents inbox. Film torrents never landed in `movies/` directly; the `film` preset makes the flat inbox explicit.
 - Tests and local checks: `docs/testing/AP-UX-1-test-report.md`. Smoke: `scripts/smoke-apux1-presets.sh` (PHASE=before / after).
+
+### Round 2 (PM, 2026-10-12)
+
+`tv` and `film` are fixed presets (Expansion HDD `torrents/` only; overrides ignored) so Sonarr/Radarr keep importing from the one place they watch. `capture-folders.json` legacy keys imported: `media`/`video` → video, `http` → file, `hf` → hf_files. Not imported: `magnet`, `website`, `github`, `default`. Found by QC r1 R4.

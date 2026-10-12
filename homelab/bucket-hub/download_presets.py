@@ -21,7 +21,8 @@ SEGMENTS: tuple[dict[str, str], ...] = (
 )
 
 # ``targets`` are tried in order: (drive role, folder key). Archive-root presets
-# have no targets; the worker writes under HUB_REPO_ARCHIVE_ROOT.
+# have no targets; the worker writes under HUB_REPO_ARCHIVE_ROOT. ``fixed``
+# presets ignore capture-folders.json: Sonarr/Radarr import from torrents/ only.
 PRESETS: tuple[dict[str, Any], ...] = (
     {
         "id": "tv",
@@ -31,6 +32,7 @@ PRESETS: tuple[dict[str, Any], ...] = (
         "accepts": ("magnet", "http"),
         "default_kind": "magnet",
         "targets": (("expansion_movies", "torrents"),),
+        "fixed": True,
         "note": "Sonarr files it under TV",
     },
     {
@@ -41,6 +43,7 @@ PRESETS: tuple[dict[str, Any], ...] = (
         "accepts": ("magnet", "http"),
         "default_kind": "magnet",
         "targets": (("expansion_movies", "torrents"),),
+        "fixed": True,
         "note": "Radarr files it under Films",
     },
     {
@@ -107,14 +110,14 @@ ROLE_LABELS = {
     "media_hdd": "Media HDD",
 }
 
-# Old capture-folders.json ``type_folder_map`` keys → preset ids.
+# Old capture-folders.json ``type_folder_map`` keys → preset ids. ``magnet``
+# (now a fixed preset) and ``website`` (it meant "direct file found on a web
+# page", not a site copy) are deliberately not carried over.
 LEGACY_MAP_KEYS = {
     "media": "video",
     "video": "video",
-    "magnet": "tv",
     "http": "file",
     "hf": "hf_files",
-    "website": "website",
 }
 
 
@@ -186,7 +189,9 @@ def load_overrides(path: Path | None) -> dict[str, dict[str, str]]:
                 continue
             k = str(key).strip().lower()
             pid = keymap.get(k) if keymap is not None else k
-            if pid not in PRESETS_BY_ID or PRESETS_BY_ID[pid].get("archive_root"):
+            if pid not in PRESETS_BY_ID:
+                continue
+            if PRESETS_BY_ID[pid].get("archive_root") or PRESETS_BY_ID[pid].get("fixed"):
                 continue
             did = str(row.get("drive_id") or "").strip()
             fid = str(row.get("folder_id") or "").strip()
@@ -233,7 +238,7 @@ def resolve(
 
     drives = (lib or {}).get("drives") or {}
     candidates: list[tuple[str | None, str, str]] = []
-    ov = (overrides or {}).get(p["id"])
+    ov = None if p.get("fixed") else (overrides or {}).get(p["id"])
     if ov:
         candidates.append((ov["drive_id"], ov["folder_id"], "override"))
     for role, folder_key in p["targets"]:

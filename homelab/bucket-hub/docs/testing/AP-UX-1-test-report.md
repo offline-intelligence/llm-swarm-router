@@ -21,6 +21,15 @@
 - Approving a Request with a GitHub/HF link now routes to the repo lane (before: `worker: aria2`, a latent bug).
 - PM finding: `aria2_dir_for()` already maps an Expansion HDD `movies/` destination to `/mnt/torrents/movies`, i.e. `torrents/movies/` on the host. So film torrents never reached `movies/` directly; the film preset making `torrents/` explicit changes no path Radarr sees except that subfolder (R0 records Radarr's paths).
 
+## Round 2 fix (PM, after QC r1)
+
+QC r1 `smoke.r4_manual` failed with HTTP 400 because the `tv` preset resolved to **TNAS inbox**, not Expansion HDD `torrents/`. Cause: the shipped `capture-folders.json` maps `magnet` → `nas/inbox`, and `load_overrides()` imported that legacy key as a `tv` override (same for `website` → `nas/inbox`). So the r1 "Behaviour changes" line about magnets was not true live. R1 passed because it only checked `available`.
+
+- `tv` and `film` are now `fixed`: always Expansion HDD `torrents/` (where Sonarr/Radarr import), capture-folders.json cannot move them.
+- Legacy `magnet` and `website` keys are no longer imported (`website` meant "direct file found on a web page"; the File preset already defaults to `nas/inbox`).
+- Smoke R1 now fails if tv/film are not `/mnt/external/movies/torrents` or website is not `website_backups` / `nas_staging`.
+- New tests `test_p8_repo_capture_folders_keeps_tv_film_website_defaults`, `test_p8_fixed_presets_ignore_explicit_override`. **279 passed.**
+
 ## Unit tests (PM)
 
 `PYTHONPATH=. pytest tests/ -q` → **277 passed** (241 before + 33 in `tests/test_download_presets.py` + 3 in `tests/test_form_escaping.py`). `test_pi_legacy_hf_keeps_drive_path` updated: an `hf` job with no drive now gets 503 from the `hf_files` preset instead of 400 "Unknown drive" (an unknown drive id still gives 400).

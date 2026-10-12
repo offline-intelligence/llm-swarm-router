@@ -137,11 +137,15 @@ fi
 if p="$(api "$HUB/api/presets")"; then
   ids="$(echo "$p" | jq -c '[.presets[].id] | sort')"
   bad="$(echo "$p" | jq -c '[.presets[] | select(.available != true and ((.reason // "") | test("mounted|library|folder") | not)) | .id]')"
-  summary="$(echo "$p" | jq -c '[.presets[] | {id, available, saves_to, reason}]')"
-  if [[ "$ids" == '["file","film","github_repo","hf_files","hf_repo","tv","video","website"]' && "$bad" == "[]" ]]; then
-    qc r1_presets pass "$summary" "8 presets; unavailable ones name a drive or folder"
+  summary="$(echo "$p" | jq -c '[.presets[] | {id, available, saves_to, path: (.destination.path // .destination.subdir // null), reason}]')"
+  # r2: TV and film must land where Sonarr/Radarr import from (r1 F2 sent tv to TNAS inbox).
+  pinned="$(echo "$p" | jq -c '[.presets[] | select(.available == true)
+    | select((.id == "tv" or .id == "film") and .destination.path != "/mnt/external/movies/torrents"
+      or .id == "website" and ((.destination.folder_id // "") | test("website_backups|nas_staging") | not)) | .id]')"
+  if [[ "$ids" == '["file","film","github_repo","hf_files","hf_repo","tv","video","website"]' && "$bad" == "[]" && "$pinned" == "[]" ]]; then
+    qc r1_presets pass "$summary" "8 presets; unavailable ones name a drive or folder; tv/film -> /mnt/external/movies/torrents"
   else
-    qc r1_presets fail "$summary" "ids=$ids unexplained=$bad"
+    qc r1_presets fail "$summary" "ids=$ids unexplained=$bad wrong_destination=$pinned"
   fi
 else
   qc r1_presets fail null "GET /api/presets failed (old app.py?)"

@@ -94,6 +94,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 ## Learnings (keep; newest first)
 
+- **Test against the config files that actually ship, and pin paths in smokes.** AP-UX-1 unit tests used a hand-made override file, so the shipped `capture-folders.json` (`magnet` → `nas/inbox`) silently moved TV off `torrents/`; smoke R1 only checked "available". Now a test loads the real file and R1 asserts tv/film paths (AP-UX-1 r1 F2).
 - **Verify external facts before writing them into a prompt.** PM picked Gemma as an "auto-gated, ~18 GB" test model without checking; it was manually gated and the base model 37 GB (AP-4.1 r2). Cursor's B3 check caught it. PM cannot reach huggingface.co from its tools, so such picks are labelled unverified and Cursor checks first.
 - **Every file a host reads must be in the deploy manifest.** The gateway `Caddyfile`/`glance.yml` live in `~/homelab/glance/`, outside the manifest, so a missing `/assets/hub-escape.js` route broke the Glance queue unseen (OPS-HF1). Now `[gateway]` + parity + an asset-route test.
 - **Diff live config before overwriting it, and say which differences are safe.** OPS-HF1 r1 stopped correctly on a cache-buster difference; the rule now names `?v=` values as safe.
@@ -135,7 +136,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
 - [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
-- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — **code done** on `pm/ap-ux-1` (277 tests); Cursor deploys after AP-4.1 r3 (`docs/pm/2026-10/handoffs/AP-UX-1.md`). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
+- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r1 fail → **r2 fix** on `pm/ap-ux-1` (279 tests), PR #8; Cursor r2 `docs/pm/2026-10/handoffs/AP-UX-1-r2.md`, then Finn R5. Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
 - [ ] AP-5a/5b/5c per-download index (person + machine record; updated on finish, on delete, after nightly sync) — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` §Per-download record; after AP-UX-1.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
@@ -189,6 +190,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | Date | Note |
 |------|------|
 | 2026-10-12 | **Finn UI validation (Tailscale):** queue GitHub URL → **`escAttr is not defined`**; queue panel **Could not load queue**; `:3000/assets/hub-escape.js` **404** (OPS-HF1). Tried `:3020/hub-form` without slash → 404 JSON; use **`/hub-form/`**. PM paste `handoffs/PM-PASTE-2026-10-12-ui-blocker-ops-hf1.md`. |
+| 2026-10-12 | PM review of AP-UX-1 r1: R4 root cause was PM code (legacy `capture-folders.json` `magnet` → `nas/inbox` imported as a TV override), not the ai-server mount. Fix on `pm/ap-ux-1`: tv/film fixed to `torrents/`, legacy magnet/website keys dropped, smoke R1 pins tv/film/website paths; 279 tests. F1 closed by OPS-HF1 r2 pass. r1 ran before AP-4.1 r3 (explains live `?v=ux1`). Cursor prompt `handoffs/AP-UX-1-r2.md`. |
 | 2026-10-12 | **AP-UX-1 QC r1** (`docs/pm/2026-10/qc/AP-UX-1-r1.json`): **fail** — Pi deploy + presets API + smoke R0–R3 pass; gateway Caddy parity fail; R4 manual tv→inbox HTTP 400 (/mnt/media on ai-server); PR #8 draft; Finn R5 pending. |
 | 2026-10-12 | PM implemented **AP-UX-1** on `pm/ap-ux-1`: `download_presets.py` (8 presets, 4 segments), `/api/presets`, `/api/presets/resolve`, jobs store `preset`/`segment`/`destination_source`, Firefox capture + Requests through presets (fixes magnet → `nas/inbox` and Request approve → aria2 for GitHub links), form preset chips + Saves-to + Manually set path, queue segment filter; 241 → 277 tests; `smoke-apux1-presets.sh`. Finding: aria2 already put film `movies/` jobs in `torrents/movies/`. |
 | 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |
