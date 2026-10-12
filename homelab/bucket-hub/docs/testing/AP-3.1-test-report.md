@@ -77,3 +77,13 @@ Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy (emits `QC {json}` lines 
 | Token not in `ps` (1200 samples) | **pass** |
 
 QC: `docs/pm/2026-10/qc/AP-3.1-r2.json` (**overall fail**).
+
+## Round 3 (PM fixes, 2026-10-12)
+
+| Finding (r2) | Fix | Tests |
+|--------------|-----|-------|
+| F1 Spoon-Knife `error` (size limit) | `repo_archiver_entry.py`: bare repo, fetch heads + tags only, `HEAD` from `ls-remote --symref`; image `:3` | `test_entry_mirror_and_readme_copy` (argv), `test_entry_real_git_skips_pull_refs` (real git: `refs/pull/1/head` and its commit absent, `HEAD` = `trunk`, `Readme.md` copied) |
+| F2 R1 stuck on `TNAS offline, will retry` | `repo_path_ready` re-check after `HUB_REPO_RECHECK_S`; `_recover_stale_mounts` clears a mount that answers `stat`; `path_ready` names a stale TNAS; defer note carries the reason; smoke `R1_WAIT_S=150` | `test_repo_path_ready_rechecks_before_defer`, `test_repo_path_ready_reports_second_reason`, `test_repo_path_ready_no_sleep_when_ready`, `test_stale_mount_cleared_when_responsive`, `test_stale_mount_kept_while_stat_hangs`, `test_mount_offline_defers` (note) |
+| F3 Sintel collision | Handoff S0 `prep.torrent_dest_clean` | n/a |
+
+Unit tests: **189 passed** (PM run, Python 3.13). Smoke script checked against a fake Hub with a TNAS defer on R1 for 8 s: 6/6 pass, `tnas_defer` recorded. Live QC: `docs/pm/2026-10/qc/AP-3.1-r3.json` (pending Cursor).
