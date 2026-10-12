@@ -34,4 +34,10 @@
 
 ## Manual acceptance (Cursor + Finn)
 
-_To be filled by Cursor from `docs/pm/2026-10/qc/AP-5a1-r1.json`._
+| Check | Result |
+|-------|--------|
+| Unit (integrator) | **fail** — 300 passed, 1 failed (`test_entry_hf_error_kinds` / `GatedRepoError` needs `response=`) |
+| Deploy + smoke X1–X7 | **skipped** (blocked on unit) |
+| Finn card (S3) | **not run** |
+
+QC: `docs/pm/2026-10/qc/AP-5a1-r1.json` (**overall fail**).
