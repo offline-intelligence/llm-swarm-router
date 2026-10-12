@@ -51,10 +51,12 @@
 
 | id | result |
 |----|--------|
-| R0 | |
-| R0b | |
-| R1 | |
-| R2 | |
-| R3 | |
-| R4 | |
-| R5 (Finn) | |
+| R0 | **pass** (Jellyfin paths; Radarr/Sonarr ConnectionResetError) |
+| R0b | **pass** (1 active job unchanged) |
+| R1 | **pass** (8/8 presets available) |
+| R2 | **pass** (5/5 resolve) |
+| R3 | **pass** (hf_repo job done) |
+| R4 | **fail** (manual tv → nas/inbox HTTP 400; needs /mnt/media on worker) |
+| R5 (Finn) | **blocked** — awaiting UI confirmation |
+
+QC: `docs/pm/2026-10/qc/AP-UX-1-r1.json` (**overall fail**: gateway Caddy parity, R4).

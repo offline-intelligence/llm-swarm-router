@@ -12,6 +12,8 @@
 - Hub: Download type chips, "Saves to" line, Drive/Folder only behind **Manually set path**, Type select removed, queue segment filter.
 - Tests 241 → 277; `scripts/smoke-apux1-presets.sh` (checks Sonarr/Radarr/Jellyfin paths are unchanged before vs after).
 
+Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r1.json`): Pi presets deploy ok; gateway Caddyfile parity fail (OPS-HF1 not live); smoke R4 manual path blocked on /mnt/media mount.
+
 ## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
 
 **Why:** the Glance queue failed with `escHtml is not defined`: AP-1's shared `/assets/hub-escape.js` was served by the Hub app but the `hub-gateway` Caddyfile had no route for it. The gateway files (`Caddyfile`, `glance.yml` in `~/homelab/glance/`) were never in the deploy manifest, so parity checks could not catch it.

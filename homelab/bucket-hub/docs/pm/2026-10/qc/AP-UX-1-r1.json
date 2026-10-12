@@ -1,0 +1,223 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-UX-1",
+  "round": 1,
+  "generated_at": "2026-10-12T18:35:00+10:00",
+  "git": {
+    "branch": "pm/ap-ux-1",
+    "head": "e84f741cfd67080253d0d5a2cb7d872265b7da9c",
+    "base": "pm/ap-4.1@76ba30e",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
+    "rebase_conflicts": []
+  },
+  "overall": "fail",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "277 passed, 149 warnings in 6.87s",
+      "expected": "277 passed, 0 failed",
+      "evidence": "PYTHONPATH=. pytest tests/ -q",
+      "log": "/tmp/apux1-unit.pytest.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "e84f741cfd67080253d0d5a2cb7d872265b7da9c",
+      "expected": "pushed pm/ap-ux-1",
+      "evidence": "git push -u offline-intelligence pm/ap-ux-1",
+      "log": "/tmp/apux1-git.push.log"
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/8",
+      "expected": "draft PR base pm/ap-4.1",
+      "evidence": "gh pr create --draft --base pm/ap-4.1 (#7 still open)",
+      "log": "/tmp/apux1-git.pr.log"
+    },
+    {
+      "id": "smoke.r0_snapshot",
+      "status": "pass",
+      "value": {
+        "radarr": [{ "error": "ConnectionResetError" }],
+        "sonarr": [{ "error": "ConnectionResetError" }],
+        "jellyfin": [
+          { "name": "Documentaries", "locations": ["/media/Media/Documentaries"] },
+          { "name": "Movies", "locations": ["/media/Media/Movies"] },
+          { "name": "Movies (Radarr)", "locations": ["/movies"] },
+          { "name": "Music (Lidarr)", "locations": ["/music"] },
+          { "name": "Other", "locations": ["/media/Media/Other"] },
+          { "name": "TV Shows (Sonarr)", "locations": ["/tv"] },
+          { "name": "YouTube Videos", "locations": ["/media/Media/YouTube Videos"] }
+        ]
+      },
+      "expected": "pass",
+      "evidence": "PHASE=before smoke-apux1-presets.sh",
+      "log": "/tmp/apux1-before.log"
+    },
+    {
+      "id": "smoke.r0b_snapshot",
+      "status": "pass",
+      "value": { "active_jobs": 1 },
+      "expected": "pass",
+      "evidence": "PHASE=before",
+      "log": "/tmp/apux1-before.json"
+    },
+    {
+      "id": "info.library_ids",
+      "status": "pass",
+      "value": { "drive_count": 8, "note": "full ids/rels in log" },
+      "expected": "live library snapshot",
+      "evidence": "GET /api/library jq",
+      "log": "/tmp/apux1-library-ids.json"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "verify-deploy-parity.sh pi exit 0",
+      "evidence": "rsync [pi] manifest + hub-form.service restart",
+      "log": "/tmp/apux1-pi.parity.log"
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "process_lstart": "Mon Oct 12 18:31:22 2026",
+        "app_py_mtime": "2026-10-12 18:30:22 +1000"
+      },
+      "expected": "process newer than app.py",
+      "evidence": "stackrise-pi ps lstart vs stat app.py",
+      "log": null
+    },
+    {
+      "id": "deploy.gateway_parity",
+      "status": "fail",
+      "value": 1,
+      "expected": "exit 0",
+      "evidence": "MISMATCH Caddyfile (live missing OPS-HF1 hub-escape route); glance.yml OK after scp",
+      "log": "/tmp/apux1-gateway.parity.log"
+    },
+    {
+      "id": "deploy.presets_endpoint",
+      "status": "pass",
+      "value": 200,
+      "expected": "HTTP 200",
+      "evidence": "curl http://100.85.42.0:3000/api/presets",
+      "log": null
+    },
+    {
+      "id": "smoke.r0_connections",
+      "status": "pass",
+      "value": {
+        "radarr_clients": [{ "error": "ConnectionResetError" }],
+        "sonarr_clients": [{ "error": "ConnectionResetError" }]
+      },
+      "expected": "pass",
+      "evidence": "before = after",
+      "log": "/tmp/apux1-after.log"
+    },
+    {
+      "id": "smoke.r0b_jobs",
+      "status": "pass",
+      "value": { "checked": 1 },
+      "expected": "pass",
+      "evidence": "no destination_path changed",
+      "log": "/tmp/apux1-after.json"
+    },
+    {
+      "id": "smoke.r1_presets",
+      "status": "pass",
+      "value": "8/8 available true",
+      "expected": "pass",
+      "evidence": "all presets available; none offline-drive reasons",
+      "log": "/tmp/apux1-after.json"
+    },
+    {
+      "id": "smoke.r2_resolve",
+      "status": "pass",
+      "value": "5/5",
+      "expected": "pass",
+      "evidence": "PHASE=after",
+      "log": "/tmp/apux1-after.json"
+    },
+    {
+      "id": "smoke.r3_hf_preset",
+      "status": "pass",
+      "value": {
+        "id": "216f66b3b490",
+        "preset": "hf_repo",
+        "segment": "repo",
+        "status": "done"
+      },
+      "expected": "pass",
+      "evidence": "preset huggingface_repo job done",
+      "log": "/tmp/apux1-after.json"
+    },
+    {
+      "id": "smoke.r4_manual",
+      "status": "fail",
+      "value": {
+        "http_code": 400,
+        "detail": "Destination '/mnt/tnas/inbox' needs /mnt/media mounted on ai-server (aria2: /mnt/media:/media + post-copy from _nas_staging)."
+      },
+      "expected": "pass",
+      "evidence": "POST /api/jobs manual_path tv → nas/inbox rejected",
+      "log": "/tmp/apux1-r4-repro.log"
+    },
+    {
+      "id": "info.radarr_path",
+      "status": "pass",
+      "value": {
+        "download_clients": [{ "error": "ConnectionResetError" }],
+        "root_folders": [],
+        "remote_path_mappings": { "error": "ConnectionResetError" }
+      },
+      "expected": "Radarr paths from R0 snapshot",
+      "evidence": "connections-before.json radarr block",
+      "log": "/tmp/apux1-smoke/connections-before.json"
+    },
+    {
+      "id": "ui.presets",
+      "status": "blocked",
+      "value": null,
+      "expected": "Finn R5 verbatim confirmation",
+      "evidence": "awaiting Finn hard-refresh Hub Download tab",
+      "log": null
+    }
+  ],
+  "findings": [
+    {
+      "id": "F1",
+      "severity": "major",
+      "check": "deploy.gateway_parity",
+      "where": "stackrise-pi:~/homelab/glance/Caddyfile",
+      "observed": "local sha256 != remote; live Caddyfile never received OPS-HF1 hub-escape.js route",
+      "expected": "parity ok gateway",
+      "repro": "cd homelab/bucket-hub && ./scripts/verify-deploy-parity.sh gateway"
+    },
+    {
+      "id": "F2",
+      "severity": "blocker",
+      "check": "smoke.r4_manual",
+      "where": "POST http://100.85.42.0:3000/api/jobs",
+      "observed": "HTTP 400: Destination '/mnt/tnas/inbox' needs /mnt/media mounted on ai-server",
+      "expected": "manual_path tv job created with destination_source manual",
+      "repro": "tvdest=$(curl -s http://100.85.42.0:3000/api/presets | jq -c '.presets[]|select(.id==\"tv\")|.destination'); jq -nc --argjson d \"$tvdest\" '{url:\"magnet:?xt=urn:btih:0000000000000000000000000000000000000000\",preset:\"tv\",manual_path:true,drive_id:$d.drive_id,folder_id:$d.folder_id,title:\"apux1-smoke-manual\",tags:[\"apux1-smoke\"]}' | curl -sS -X POST http://100.85.42.0:3000/api/jobs -H 'Content-Type: application/json' -d @-"
+    }
+  ],
+  "needs_finn": [
+    "R5: hard-refresh Hub, confirm four segment rows, Saves to lines, Manually set path, queue segment filter (verbatim reply for ui.presets)",
+    "PM/ops: resolve R4 — tv preset resolves to TNAS inbox but manual magnet enqueue requires /mnt/media on ai-server, or adjust smoke to use ext_movies/torrents"
+  ],
+  "deviations": [
+    "glance.yml diff before deploy was only ?v=20261012ops1 → 20261012ux1 (allowed); Caddyfile not copied per handoff"
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-UX-1-r1.json",
+    "homelab/bucket-hub/docs/testing/AP-UX-1-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}
