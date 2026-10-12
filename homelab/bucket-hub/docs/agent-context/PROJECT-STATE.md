@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 QC r3 **fail** — Spoon-Knife `:3` + full repo drain pass; `torrent_bytes_rise` fail; `docs/pm/2026-10/qc/AP-3.1-r3.json`)
+**Last updated:** 2026-10-12 (AP-3.1 r3 reviewed: code accepted; one smoke re-run with Sintel issued, `docs/pm/2026-10/handoffs/AP-3.1-r3b.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -32,6 +32,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - **Worker restart recovery (2026-10-12, AP-3.1 r2):** at startup the worker re-queues every repo/repo_meta job the Pi shows as `running`/`claimed` (no repo thread survives a restart) and removes its archiver container `hub-repo-partial-<id>`; repo claims wait until this has run. Single-worker assumption: a second worker would need ownership tracking first.
 - **Repo archive content (2026-10-12, AP-3.1 r3):** `repo.git` is a bare repo with branches and tags only (`+refs/heads/*`, `+refs/tags/*`), `HEAD` = remote default branch. No `refs/pull/*`: `clone --mirror` pulled every PR head (fork commits the API `size` ignores) and blew the cap on `octocat/Spoon-Knife`. Image `bucket-hub-repo-archiver:3`.
 - **TNAS defer (2026-10-12, AP-3.1 r3):** a repo job is deferred only after a second mount check `HUB_REPO_RECHECK_S` (5 s) later; a stale mark clears once the mount answers `stat`. The defer note names the reason.
+- **Smoke torrent (2026-10-12):** `smoke-ap31-lanes.sh` uses the Sintel magnet (proven well-seeded in r1). A torrent that is claimed on time but gets 0 bytes points at the swarm, not the lane fix; swap back to Sintel rather than changing code.
 - **Smoke validity rule:** a smoke run with a worker restart or env edit during it is invalid; re-run from scratch.
 - **AP-3 is done when `scripts/smoke-ap31-lanes.sh` passes** (adversarial §T6 step 2 plus Hello-World `README.md`). AP-4 starts after that.
 - **Cursor prompt shape (2026-10-12):** every Cursor prompt includes an explicit **READ FIRST** file list and a **DOCUMENTS TO UPDATE** list (CHANGELOG.md, PROJECT-STATE.md, deps file, API docs, module docstrings, packet handoff).
@@ -68,7 +69,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [x] AP-1 (#1) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [x] AP-2 (#2) — merged into `hub/audit-handoff-2026-10` (2026-10-12).
 - [ ] AP-3 (#3) — **merged**, deployed. §T6 2026-10-12: 1 pass (worker), 3 partial (no `README.md`), 4 pass, 5 pass, **2 not run**. Done when AP-3.1 makes 2 and 3 pass. Evidence: job `694e010971e2`, `docs/testing/AP-3-test-report.md` §T6 success.
-- [ ] AP-3.1 fast-follow — PR #5 (draft), `pm/ap-3.1`. r1 and r2 QC **fail**; round 3 code `4842a71` (189 passed), Cursor runs `docs/pm/2026-10/handoffs/AP-3.1-r3.md` → `docs/pm/2026-10/qc/AP-3.1-r3.json`. Sub-items below are implemented, pending live acceptance:
+- [ ] AP-3.1 fast-follow — PR #5 (draft), `pm/ap-3.1`. r1 and r2 QC **fail**; r3 code `4842a71` accepted (all repo checks pass); r3 only failed `torrent_bytes_rise` on a Tears of Steel magnet. Cursor re-runs the smoke once with Sintel per `docs/pm/2026-10/handoffs/AP-3.1-r3b.md`; on pass PR #5 goes ready for review. Sub-items below are implemented, pending live acceptance:
   - [x] **Lane-blind claim starves torrents:** `hub-worker.py` main loop calls `claim_next()` with no lane, so a queued `github_repo` sorted ahead of torrents is claimed by the aria2 loop, re-queued and `break`s. With TNAS offline the repo job bounces back to `queued` every cycle (no backoff), so torrents queued after it are never claimed. Fix: `POST /api/jobs/claim {"lane": …}` filtered by `_job_kind_bucket`, plus a retry backoff on TNAS defer.
   - [x] `error_display` sent by `repo_archive_github.py` is silently dropped (not in Pi `JobUpdate`), so "TNAS offline, will retry" never shows in the UI; tests only check the fake `update_job`.
   - [x] Deferred §T2 tests: mirror argv and `--network container:gluetun`.
@@ -138,6 +139,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM review of QC r3: Spoon-Knife and TNAS fixes proven live; no code change. `torrent_bytes_rise` 0 judged swarm-side (claimed at 10 s with 3 repo jobs ahead; r1 showed ~129 MB with Sintel during git/git). Issued r3b: one smoke re-run with Sintel, then PR #5 ready for review. |
 | 2026-10-12 | **AP-3.1 QC r3** (`docs/pm/2026-10/qc/AP-3.1-r3.json`): image `:3`, 189 tests; Spoon-Knife 1 MB / 0 pull refs; smoke repo drain **pass**; `torrent_bytes_rise` **fail** (Tears of Steel). |
 | 2026-10-12 | AP-3.1 QC r2 reviewed (`AP-3.1-r2.json`): orphan recovery **proven** (S4 job `27d1993819a1`), Hello-World README **pass**, token sampler **pass**. Two real defects: (1) `git clone --mirror` fetched GitHub `refs/pull/*`, so Spoon-Knife `74ad6f30004f` hit the 64 MB cap; (2) one failed TNAS mount check deferred R1 for 120 s and the smoke waited 60 s. Round 3 (`4842a71`): heads+tags bare fetch, image `:3`, `repo_path_ready` re-check, stale-mount clear, smoke `R1_WAIT_S=150`; 183 → 189 tests. Sintel collision = test hygiene (S0 prep check). |
 | 2026-10-12 | AP-3.1 QC r1 (`docs/pm/2026-10/qc/AP-3.1-r1.json`, PR #5): 15 pass, 4 fail. Lane fix proven live (torrent claimed 10 s, 129 MB during git/git clone; token absent from `ps`). Fails traced by PM to one root cause: worker restart mid-smoke orphaned Spoon-Knife as `running`, holding the repo slot. Round 2: `recover_orphaned_repo_jobs()` + named containers; 183 tests. F3 stale aria2 gid → P2 backlog. |
