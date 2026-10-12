@@ -6,6 +6,8 @@
 
 Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a2-r1.json`): catalogue live (13403 items); smoke C5 overnight SSH + C6 schedule placement.
 
+Deployed 2026-10-13, QC r2 **pass** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a2-r2.json`); merged PR #14.
+
 ## 2026-10-12 — OPS-ARR2 worker → Sonarr/Radarr (PM)
 
 **Why:** *The Office US S03* finished downloading but the Hub said "Library import failed": the host worker got `Connection reset by peer` from Sonarr, and nothing told that apart from Sonarr refusing the show. **What changed:** new `arr_client.py` for every Sonarr/Radarr call, over HTTP (as before) or `docker exec <app> curl` when `SONARR_VIA_DOCKER` / `RADARR_VIA_DOCKER` is set, with the API key on stdin; `media_pipeline` records `api_unreachable` separately from `add_failed`, plus `sonarr_scan` / `radarr_scan`; queue shows "Library import failed: Sonarr not reachable"; agent review `sonarr_unreachable`; the Hub worker token is no longer sent to Sonarr/Radarr; `scripts/smoke-ops-arr2.sh` and `arr_client.py --check`. Tests 301 → 316. Spec `homelab/bucket-hub/docs/pm/2026-10/OPS-ARR2-arr-reachability.md`.
