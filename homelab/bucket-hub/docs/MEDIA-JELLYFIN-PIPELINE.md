@@ -80,6 +80,23 @@ RADARR_API_KEY=<Radarr → Settings → General>
 
 Restart the worker after editing.
 
+### 7. Worker → Sonarr/Radarr (OPS-ARR2)
+
+Sonarr and Radarr live in Gluetun's network namespace; the worker runs on the host. The worker calls them through `arr_client.py`:
+
+- **HTTP (default):** `SONARR_URL` / `RADARR_URL`. On 2026-10-12 `127.0.0.1:8989` gave `Connection reset by peer` from the host while the API worked inside the container.
+- **docker exec:** `SONARR_VIA_DOCKER=sonarr` / `RADARR_VIA_DOCKER=radarr` → `docker exec -i <name> curl -K -` to `127.0.0.1:<port>` inside the container (the worker's user needs `docker`; the key goes on stdin).
+
+Check the worker's own path (prints no key):
+
+```bash
+cd ~/homelab/scripts && set -a && . ./hub-worker.env && set +a && python3 arr_client.py --check
+```
+
+`./scripts/smoke-ops-arr2.sh` (from the Mac) adds read-only probes (loopback, LAN IP, Gluetun IP, inside the containers, stale namespace after a Gluetun restart, `BindAddress`). Pick the transport with the table in `docs/pm/2026-10/OPS-ARR2-arr-reachability.md`. If Gluetun was restarted, `docker restart sonarr radarr` re-attaches them.
+
+Queue copy: **Library import failed: Sonarr not reachable** (`media_pipeline.sonarr` or `sonarr_scan` = `api_unreachable`) means the API did not answer. Plain **Library import failed** (`add_failed`) means Sonarr answered but refused the add. Manual import for one download: Sonarr **DownloadedEpisodesScan** on `/data/torrents/<release-folder>`, then a Jellyfin library refresh.
+
 ## The Office (already in `torrents/`)
 
 1. Open Jellyfin → **Dashboard → Libraries → Scan** (or add `/torrents` as Shows if missing).

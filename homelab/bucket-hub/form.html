@@ -4393,6 +4393,9 @@ function mediaPipelineHint(j) {
   const tv = mp.sonarr;
   const mv = mp.radarr;
   if (j.status === 'done') {
+    if (tv === 'api_unreachable' || mp.sonarr_scan === 'api_unreachable') return 'Library import failed: Sonarr not reachable';
+    if (mv === 'api_unreachable' || mp.radarr_scan === 'api_unreachable') return 'Library import failed: Radarr not reachable';
+    if (mp.sonarr_scan === 'failed' || mp.radarr_scan === 'failed') return 'Library import failed: scan refused';
     if (tv === 'added' || tv === 'exists' || mv === 'added' || mv === 'exists') return 'In library';
     if (tv === 'lookup_failed' || mv === 'lookup_failed') return 'Library lookup failed';
     if (tv === 'add_failed' || mv === 'add_failed') return 'Library import failed';

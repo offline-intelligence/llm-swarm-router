@@ -141,7 +141,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
 - [x] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — QC r2 **pass** `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly; Licence needed vs Approval needed copy; `granted` state) — QC r1 **pass** `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12). Spec `docs/pm/2026-10/AP-4.2-gate-schedule.md`.
-- [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (`/ping` 000), so AP-UX-1 R0 compared Jellyfin only. Ops investigation.
+- [ ] OPS-ARR1 folded into OPS-ARR2 (same fault: worker host cannot reach Sonarr/Radarr).
+- [ ] **OPS-ARR2** Host `hub-worker` → Sonarr/Radarr HTTP reset on `127.0.0.1:8989` / `:7878` (Gluetun + `network_mode: service:gluetun`); torrents finish but `media_pipeline` **Library import failed** until `docker exec sonarr` scan. PM built `pm/ops-arr2`: `arr_client.py` (HTTP or `*_VIA_DOCKER`), `api_unreachable` vs `add_failed`, `sonarr_scan`/`radarr_scan`, smoke `smoke-ops-arr2.sh`. Spec `docs/pm/2026-10/OPS-ARR2-arr-reachability.md`, Cursor `handoffs/OPS-ARR2.md`.
 - [ ] Backlog: dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos (Finn, 2026-10-12).
 - [x] AP-5a.1 per-download record — QC r4 **pass** `docs/pm/2026-10/qc/AP-5a1-r4.json`; PR **#11 merged** (2026-10-12). Operator doc `docs/DOWNLOAD-INDEX.md`.
 - [ ] AP-5a.2 ai-server catalogue (`hub_index.py`, SQLite FTS5 on the system SSD, scans every root, outside-Hub deletes → `missing`, worker nudge, overnight `index_rebuild` after the nightly sync, Pi snapshot) — PM builds after AP-5a.1 QC.
@@ -199,6 +200,8 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 |------|------|
 | 2026-10-12 | **AP-5a.1 QC r4** (`docs/pm/2026-10/qc/AP-5a1-r4.json`): **pass** — F1 boundary proved (r3 overlap); smoke 7/7; **PR #11 merged**. |
 | 2026-10-12 | **AP-5a.1 QC r3** (`docs/pm/2026-10/qc/AP-5a1-r3.json`): **fail** — back-fill **25 written**; smoke **X1** `after_cursor=25`; PR **#11 not merged**. |
+| 2026-10-12 | PM built **OPS-ARR2** on `pm/ops-arr2` (folds OPS-ARR1): `arr_client.py`, pipeline `api_unreachable`, smoke `smoke-ops-arr2.sh`. Tests 301 → 316. |
+| 2026-10-12 | **OPS — Sonarr import from hub-worker:** Office S03 complete; **Library import failed** until manual `docker exec sonarr` scan. PM paste `handoffs/PM-PASTE-2026-10-12-sonarr-import.md`. |
 | 2026-10-12 | PM reviewed the AP-5a.1 r2 back-fill dry run (27 to write): accepted except 2 `minecraft` jobs (Minecraft-server housekeeping, no such kind in current code). r3 on `pm/ap-5a1-r3`: `minecraft` added to `NOT_DOWNLOADS` + test (301 pass). Cursor runs the real back-fill (expect 25), then merges PR #11 (`cursor-prompts/cursor-ap5a1-r3.md`). Next PM build: AP-5a.2. |
 | 2026-10-12 | **AP-5a.1 QC r2** (`docs/pm/2026-10/qc/AP-5a1-r2.json`): **pass** — PM test fix `d39f4ea`; 301 unit tests (`huggingface_hub==0.26.2`); Pi/worker deploy + parity; smoke X1–X7 7/7; PR #11 marked ready (not merged). |
 | 2026-10-12 | **AP-5a.1 QC r1** (`docs/pm/2026-10/qc/AP-5a1-r1.json`): **fail** — rebase onto `main` ok; `unit.pytest` 300/301 (`test_entry_hf_error_kinds` vs newer `huggingface_hub`); deploy/smokes skipped. |

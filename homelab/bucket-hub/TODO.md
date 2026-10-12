@@ -179,8 +179,9 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
 - [x] AP-UX-1 download presets + segments; drive/folder only behind "Manually set path" — QC r2 pass `docs/pm/2026-10/qc/AP-UX-1-r2.json` (2026-10-12)
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly) — QC r1 pass `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12)
-- [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (AP-UX-1 R0)
 - [x] AP-5a.1 per-download record — QC r4 pass, PR #11 merged `docs/pm/2026-10/qc/AP-5a1-r4.json` (2026-10-12)
+- [ ] OPS-ARR2 worker → Sonarr/Radarr reachability + `api_unreachable` copy (folds OPS-ARR1) — `docs/pm/2026-10/OPS-ARR2-arr-reachability.md`
+- [ ] Backlog: Retry library import button for a finished torrent; restart *arr after a Gluetun restart (OPS-ARR2 out of scope)
 - [ ] AP-5a.2 ai-server catalogue + nightly rebuild; AP-5b Index panel + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
 - [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking

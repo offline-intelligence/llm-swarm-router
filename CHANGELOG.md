@@ -1,5 +1,9 @@
 # Changelog
 
+## 2026-10-12 — OPS-ARR2 worker → Sonarr/Radarr (PM)
+
+**Why:** *The Office US S03* finished downloading but the Hub said "Library import failed": the host worker got `Connection reset by peer` from Sonarr, and nothing told that apart from Sonarr refusing the show. **What changed:** new `arr_client.py` for every Sonarr/Radarr call, over HTTP (as before) or `docker exec <app> curl` when `SONARR_VIA_DOCKER` / `RADARR_VIA_DOCKER` is set, with the API key on stdin; `media_pipeline` records `api_unreachable` separately from `add_failed`, plus `sonarr_scan` / `radarr_scan`; queue shows "Library import failed: Sonarr not reachable"; agent review `sonarr_unreachable`; the Hub worker token is no longer sent to Sonarr/Radarr; `scripts/smoke-ops-arr2.sh` and `arr_client.py --check`. Tests 301 → 316. Spec `homelab/bucket-hub/docs/pm/2026-10/OPS-ARR2-arr-reachability.md`.
+
 ## 2026-10-12 — AP-5a.1 per-download record (PM)
 
 **Why:** Finn wants every download indexed for a person and for a machine, and the index to change when something is deleted. **What changed:** `download_record.py` merges the Pi journal (entries, note edits, delete tombstones); `/api/index/search`, `/card`, `PATCH` note, `/export?since=<cursor>`, `/sources`, `POST /entries`; finished jobs record `segment`/`preset`/`saves_to`; Storage delete and cancel + purge mark records `deleted`; deletes and syncs no longer appear as downloads; GitHub/HF archives get `ABOUT-THIS-DOWNLOAD.md`; `scripts/rebuild-download-index.py --from-jobs`. Tests 286 → 301. Doc `homelab/bucket-hub/docs/DOWNLOAD-INDEX.md`.

@@ -51,6 +51,7 @@ hub_torrent_parse.py
 media_pipeline.py
 torrent_indexer_catalog.py
 torrent-indexers-catalog.json
+arr_client.py
 # Archiver image build context (AP-3.1). Build on ai-server from ~/homelab/scripts/docker/repo-archiver.
 docker/repo-archiver/Dockerfile
 docker/repo-archiver/repo_archiver_entry.py
