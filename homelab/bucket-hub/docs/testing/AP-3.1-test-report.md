@@ -63,3 +63,17 @@ Cursor runs `scripts/smoke-ap31-lanes.sh` after deploy (emits `QC {json}` lines 
 | R2, R3 finish after R1 | **fail** — 15 min drain window ended with Spoon-Knife still `running`, Hello-World `queued` (see `docs/pm/2026-10/qc/AP-3.1-r1.json`) |
 | Hello-World `README.md` + non-empty `readme_excerpt` | **fail** — R3 not finished in smoke window; `git/git` archive on TNAS has `README.md` (manual spot-check) |
 | `ps` on ai-server during smoke shows no `Authorization` in argv | **pass** (sampler output `0` only) |
+
+## Round 2 (2026-10-12)
+
+| Check | Result |
+|-------|--------|
+| Unit tests | **183 passed** |
+| Deploy parity pi/worker | **pass** |
+| Orphan recover log (74ad) | **skip/fail** — job already `error` before restart; **S4** job `27d1993819a1` shows `repo recover … container_removed=True` |
+| Hello-World excerpt + TNAS README | **pass** (`b946a1e27485`) |
+| S4 restart regression (`git/git`) | **pass** — named container removed, job `done`, README on TNAS |
+| Full `smoke-ap31-lanes.sh` | **fail** — run1 stale Sintel dir; run2 R1 stuck `TNAS offline, will retry` |
+| Token not in `ps` (1200 samples) | **pass** |
+
+QC: `docs/pm/2026-10/qc/AP-3.1-r2.json` (**overall fail**).

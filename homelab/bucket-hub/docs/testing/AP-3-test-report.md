@@ -61,8 +61,8 @@ Enqueue smoke: `POST http://100.85.42.0:3000/api/jobs` with `kind: github_repo`,
 |------|-----------------|---------------|-------|
 | **Step 1 — parity** | `./scripts/verify-deploy-parity.sh pi` (before deploy: mismatch `machines_ctl.py`, `glance.yml`) | after rsync + `hub-form` restart: **0** | **pass** |
 | **Step 1 — worker** | `./scripts/verify-deploy-parity.sh worker` | **0** (before and after) | **pass** |
-| **Step 2 — parallel** | `scripts/smoke-ap31-lanes.sh` (AP-3.1 QC r1, 2026-10-12) | Torrent claimed at 10 s and bytes rose while `git/git` clone ran; see [AP-3.1-r1.json](../pm/2026-10/qc/AP-3.1-r1.json) `smoke.torrent_*` | **pass** (lane fix); full smoke drain/readme **fail** in same QC |
-| **Step 3 — README** | `live.tnas_readme_file` + `smoke.readme_excerpt` (QC r1) | Hello-World not `done` before smoke timeout; `git__git` folder has `README.md` | **partial** — link QC r1 |
+| **Step 2 — parallel** | QC r1 `smoke.torrent_*` + QC r2 S4 restart | Lane fix **pass** (r1); full smoke **not pass** in r2 (environment); deliberate restart recovery **pass** | **partial** — [AP-3.1-r2.json](../pm/2026-10/qc/AP-3.1-r2.json) |
+| **Step 3 — README** | `live.tnas_readme_file` (QC r2) | `octocat__Hello-World` has `README.md` + sidecars | **pass** (QC r2) |
 | **Task 6 — heartbeat** | `GET /api/status` `heartbeat_age_s` ~10s; worker log tail has historical `heartbeat failed` / `loop error` bursts | Pi reachable now; not blocking single-repo smokes | **note** |
 
 §T6 step 2 commands:

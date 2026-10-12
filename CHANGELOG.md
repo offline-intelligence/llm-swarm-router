@@ -18,6 +18,8 @@
 
 Deployed 2026-10-12, QC r1 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r1.json`): Pi/worker deploy + parity ok; §T6 adversarial torrent lane **pass**; repo drain/readme smoke timeout; worker log had aria2 `hub http 400` lines.
 
+QC r2 **fail** (`homelab/bucket-hub/docs/pm/2026-10/qc/AP-3.1-r2.json`): orphan recovery proven on deliberate restart; Hello-World README on TNAS; full smoke not clean (stale Sintel + TNAS defer).
+
 ## 2026-10-12 — Home ops: TNAS `.187`, Pi SSH, deploy
 
 **Packet:** ops (`cursor/ops-2026-10-12-home`).

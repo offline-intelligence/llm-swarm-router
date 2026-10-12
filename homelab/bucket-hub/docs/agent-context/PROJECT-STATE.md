@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-3.1 QC r1 **fail** on orphaned repo job after mid-smoke worker restart; lane fix itself proven (torrent claimed at 10 s during git/git clone). PM round 2 adds orphan recovery; handoff `docs/pm/2026-10/handoffs/AP-3.1-r2.md`)
+**Last updated:** 2026-10-12 (AP-3.1 QC r2 **fail** — S4 recovery + Hello-World README pass; full smoke blocked; `docs/pm/2026-10/qc/AP-3.1-r2.json`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
