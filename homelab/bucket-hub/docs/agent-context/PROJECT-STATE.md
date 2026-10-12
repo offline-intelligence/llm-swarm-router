@@ -204,6 +204,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-13 | PM r2 fix for **AP-5a.2** on `pm/ap-5a2-r2` (from `qc/AP-5a2-r1.json`): F1 `overnight-run.py` falls back to `$JOBS_DIR/machines_ssh` when the timer has no `MACHINES_SSH_IDENTITY` (all nightly ai-server steps were affected); F2 was a smoke expectation, C6 now accepts the rebuild last when no sleep step is enabled. Tests 340 → 342. Prompt `handoffs/AP-5a2-r2.md`. Finn's live schedule has no enabled download-drain or sleep step (noted to Finn). |
 | 2026-10-13 | **AP-5a.2 QC r1** (`docs/pm/2026-10/qc/AP-5a2-r1.json`): **fail** — deployed hub-index + parity; smoke C0–C4 pass; **C5** Pi SSH to `bucket@192.168.50.65` denied (smoke inline Python did not load `.env`; configured identity file `machines_ssh`); **C6** live schedule has `index_rebuild` but no `machine_sleep`. PR **#14** draft, not merged. |
 | 2026-10-12 | PM built **AP-5a.2** on `pm/ap-5a2`: `hub_index.py` catalogue (FTS5, incremental child-process scans, offline/missing/deleted, 30-day purge), `hub-index.service`, worker nudge on `done`, overnight `index_rebuild` step (schedule migration, once), Pi `PUT /api/index/snapshot`. Tests 316 → 340. Deviations from the spec listed in `AP-5-index-architecture-v2.md` § AP-5a.2 as built. Handoff `handoffs/AP-5a2.md`. |
 | 2026-10-13 | **DOCS-1 QC r1** (`docs/pm/2026-10/qc/DOCS-1-r1.json`): **pass** — backlog audit FF merge; PR **#13** merged **`c71bb69`**. |

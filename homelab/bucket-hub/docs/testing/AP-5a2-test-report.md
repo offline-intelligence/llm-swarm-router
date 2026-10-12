@@ -4,7 +4,7 @@
 
 ## Unit (PM, container, Python 3.13, SQLite with FTS5)
 
-`PYTHONPATH=. python -m pytest -q`: **340 passed** (316 before; 24 new in `tests/test_hub_index.py`).
+`PYTHONPATH=. python -m pytest -q`: **340 passed** (316 before; 24 new in `tests/test_hub_index.py`). r2: **342 passed** (2 new).
 
 | id | test | proves |
 |----|------|--------|
@@ -17,6 +17,7 @@
 | I9 | `test_i9_overnight_step_calls_rebuild_over_ssh_within_its_limit` | the step runs `hub_index.py rebuild` over `ssh_ubuntu` with the worker env, inside `timeout_min`; failure raises |
 | I11 | `test_i11_tombstone_marks_item_and_files_deleted`, `test_pi_nudges_hub_index_after_a_tombstone`, `test_purge_after_30_days` | a tombstone hides the item and marks its files `deleted`; the Pi nudges only when something was deleted; purge after 30 days |
 | I14 | `test_i14_step_counts_reach_the_last_night_card` | `result_text` = `N new, N changed, N missing, N deleted` reaches the last-night card row |
+| r2 | `test_r2_overnight_ssh_key_falls_back_to_the_hub_key`, `test_r2_schedule_without_a_sleep_step_gets_the_rebuild_last` | with `MACHINES_SSH_IDENTITY` unset the step uses `$JOBS_DIR/machines_ssh` (and none when that file is absent); a schedule with no sleep step gets the rebuild last, once |
 | — | `test_journal_tail_cursor_and_reset`, `test_pi_fetch_falls_back_across_hub_urls`, `test_service_rebuild_health_item_and_nudge`, `test_subprocess_walker_matches_in_process`, `test_worker_nudge*`, `test_schedule_gains_the_step_once`, `test_manifest_and_unit`, `test_discover_roots` | cursor reset when the journal shrinks; HUB_URL fallback; HTTP service end to end; worker nudge only on `done`; schedule migration runs once; manifest and unit |
 
 Load check (PM, container): 50 000 files in 1 202 folders, first scan 1.3 s, unchanged rescan 0.4 s, search 7–60 ms, catalogue 21 MB.

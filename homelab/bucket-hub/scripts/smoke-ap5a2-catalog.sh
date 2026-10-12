@@ -12,7 +12,8 @@
 #     done (worker nudge, no full scan).
 # C5  The overnight index_rebuild step run on its own (on the Pi) → counts in result_text; the Pi
 #     snapshot file is rewritten.
-# C6  The live overnight schedule has "Rebuild download index" just before "Sleep ai-server".
+# C6  The live overnight schedule has "Rebuild download index" enabled: just before "Sleep ai-server"
+#     when that step is enabled, otherwise last (r2: Finn's live schedule has no sleep step).
 #
 # Optional: HUB, PI_HOST (stackrise-pi), WORKER_HOST (ai-server-ts), PI_JOBS_DIR, PI_APP_DIR, SHOW,
 # SHOW_FILE, C4_WAIT_S (600), QC_OUT.
@@ -125,7 +126,8 @@ fi
 
 # C5
 snap_before="$(ssh "$PI_HOST" "stat -c %Y $PI_JOBS_DIR/index-snapshot.jsonl.gz 2>/dev/null || echo 0")"
-step="$(ssh "$PI_HOST" "cd $PI_APP_DIR && JOBS_DIR=$PI_JOBS_DIR python3 - <<'PY'
+# env -u: run like the systemd timer does (no MACHINES_SSH_IDENTITY), so C5 proves the fallback key
+step="$(ssh "$PI_HOST" "cd $PI_APP_DIR && env -u MACHINES_SSH_IDENTITY JOBS_DIR=$PI_JOBS_DIR python3 - <<'PY'
 import importlib.util, json
 spec = importlib.util.spec_from_file_location('ovr', 'scripts/overnight-run.py')
 m = importlib.util.module_from_spec(spec); spec.loader.exec_module(m)
@@ -147,10 +149,10 @@ fi
 # C6
 sched="$(api "$HUB/api/overnight/schedule")"
 order="$(echo "$sched" | jq -c '[.schedule.steps[] | select(.enabled != false) | .type]')"
-if echo "$order" | jq -e 'index("index_rebuild") != null and (index("index_rebuild") + 1) == index("machine_sleep")' >/dev/null 2>&1; then
-  qc c6_schedule pass "$order" "rebuild runs before ai-server sleeps"
+if echo "$order" | jq -e 'index("index_rebuild") != null and (if index("machine_sleep") != null then (index("index_rebuild") + 1) == index("machine_sleep") else index("index_rebuild") == (length - 1) end)' >/dev/null 2>&1; then
+  qc c6_schedule pass "$order" "rebuild runs last, before ai-server sleeps if that step is on"
 else
-  qc c6_schedule fail "$order" "index_rebuild missing or not just before machine_sleep"
+  qc c6_schedule fail "$order" "index_rebuild missing, or not just before machine_sleep / last"
 fi
 
 finish

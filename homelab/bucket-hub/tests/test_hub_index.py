@@ -538,3 +538,32 @@ def test_discover_roots(tmp_path, monkeypatch):
         ("tnas", "TNAS"), ("media", "Media HDD"), ("ext_big_drive", "USB Big Drive"), ("ext_movies", "Expansion HDD")
     ]
     assert [r.root_id for r in hub_index.discover_roots({"HUB_INDEX_ROOTS": "tnas=/mnt/tnas, x=/data/x/"})] == ["tnas", "x"]
+
+
+def test_r2_overnight_ssh_key_falls_back_to_the_hub_key(tmp_path, monkeypatch):
+    """F1 (r1): the timer runs without MACHINES_SSH_IDENTITY; use $JOBS_DIR/machines_ssh."""
+    monkeypatch.delenv("MACHINES_SSH_IDENTITY", raising=False)
+    monkeypatch.setenv("JOBS_DIR", str(tmp_path))
+    assert _overnight().SSH_IDENTITY == ""
+    (tmp_path / "machines_ssh").write_text("not a real key")
+    mod = _overnight()
+    assert mod.SSH_IDENTITY == str(tmp_path / "machines_ssh")
+    seen = []
+    monkeypatch.setattr(mod.subprocess, "run", lambda args, **kw: seen.append(args) or mod.subprocess.CompletedProcess(args, 0, "{}", ""))
+    mod.ssh_ubuntu("true", timeout=5)
+    assert seen[0][seen[0].index("-i") + 1] == str(tmp_path / "machines_ssh")
+    monkeypatch.setenv("MACHINES_SSH_IDENTITY", "/explicit/key")
+    assert _overnight().SSH_IDENTITY == "/explicit/key"
+
+
+def test_r2_schedule_without_a_sleep_step_gets_the_rebuild_last(tmp_path, monkeypatch):
+    """F2 (r1): Finn's live schedule has no machine_sleep step; the rebuild goes last."""
+    monkeypatch.setenv("JOBS_DIR", str(tmp_path / "jobs"))
+    (tmp_path / "jobs").mkdir()
+    sys.path.insert(0, str(HUB_ROOT))
+    import app as app_mod
+
+    app_mod = importlib.reload(app_mod)
+    live = {"steps": [{"type": t} for t in ("machine_wake", "mount_check", "llm_start", "dsh_research", "dsh_log_review", "llm_stop")]}
+    out = app_mod._migrate_overnight_schedule(live)
+    assert [s["type"] for s in out["steps"]][-2:] == ["llm_stop", "index_rebuild"]

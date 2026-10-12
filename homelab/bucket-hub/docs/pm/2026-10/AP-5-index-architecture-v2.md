@@ -114,6 +114,7 @@ The two JSONL journals are never replaced; the catalogue is added beside them. D
 - Recovery is `hub_index.py rebuild --local --fresh` instead of `rebuild-download-index.py --catalog` (the catalogue code lives on ai-server, the back-fill script on the Pi).
 - I7 (Pi proxy + fallback) moves to AP-5b with the proxy itself; I8 covers the snapshot upload and reader.
 - An empty listing of a root that had more than 100 files is treated as `offline`, never as a mass `missing`.
+- r2 (from `qc/AP-5a2-r1.json`): the Pi timer runs `overnight-run.py` without `MACHINES_SSH_IDENTITY`, so it now falls back to `$JOBS_DIR/machines_ssh`, the key the Hub already uses for ai-server. This fixes every nightly ai-server step, not only the rebuild. When the live schedule has no enabled "Sleep ai-server" step, the rebuild step is added last (as the migration already did); smoke C6 now accepts that.
 
 **AP-5b Search API and Index panel.** Pi proxy + fallback + snapshot reader, Index panel UI per §A6 "UI", context cards, note editing, queue links.
 

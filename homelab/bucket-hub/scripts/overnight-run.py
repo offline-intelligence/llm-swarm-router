@@ -36,7 +36,11 @@ RUNS_DIR = JOBS_DIR / "overnight-runs"
 STATE_FILE = JOBS_DIR / "overnight-run-state.json"
 TZ = ZoneInfo(os.environ.get("HUB_TZ", "Australia/Brisbane"))
 UBUNTU_SSH = os.environ.get("OVERNIGHT_UBUNTU_SSH", "bucket@192.168.50.65")
-SSH_IDENTITY = os.environ.get("MACHINES_SSH_IDENTITY", "").strip()
+# The timer runs with only HUB_BASE/JOBS_DIR/HUB_TZ set, so fall back to the key the Hub
+# itself uses for ai-server (machines + vLLM controls) when MACHINES_SSH_IDENTITY is unset.
+SSH_IDENTITY = os.environ.get("MACHINES_SSH_IDENTITY", "").strip() or (
+    str(JOBS_DIR / "machines_ssh") if (JOBS_DIR / "machines_ssh").is_file() else ""
+)
 DSH_SCRIPT = os.environ.get("OVERNIGHT_DSH_SCRIPT", "~/homelab/scripts/overnight-dsh-task.sh")
 # AP-5a.2: the catalogue rebuild runs on ai-server with the worker env (token, HUB_URL).
 INDEX_REBUILD_CMD = os.environ.get(
