@@ -200,6 +200,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM scoped **AP-9.1** from `qc/AP-9.0-r2.json`: YouTube + X in; Instagram in with `cookies-instagram.txt` (Finn exports, secondary account advised); Facebook best effort; Reddit deferred (blocks VPN exits; non-VPN egress is Finn's call); Threads/TikTok out. All video jobs move to `METUBE_IMAGE` (ffmpeg; `python:3.11-slim` lacks it). Fixed format chips (metadata ~16 s, no live picker). Spec § AP-9.1 in `docs/pm/2026-10/AP-9-social-video.md`. Build after AP-5a.2. |
 | 2026-10-12 | **AP-9.0 QC r2** (`docs/pm/2026-10/qc/AP-9.0-r2.json`): **pass** — Gluetun metadata probe (YouTube+cookies, X ok; IG/FB/Reddit fail classes recorded). Finn: skip Threads/TikTok. |
 | 2026-10-12 | **AP-9.0 QC r1** (`docs/pm/2026-10/qc/AP-9.0-r1.json`): **blocked** — probe not run; need Finn public URLs per platform (S0). |
 | 2026-10-12 | **OPS-ARR2 QC r2** (`docs/pm/2026-10/qc/OPS-ARR2-r2.json`): **pass** — rebase on main; root cause Gluetun publish; live parity ok; **PR #12 merged**. |

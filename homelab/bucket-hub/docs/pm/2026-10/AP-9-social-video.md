@@ -75,14 +75,35 @@ Finn cut scope: **Threads** and **TikTok** not probed (Hub social lane does not 
 
 QC: `docs/pm/2026-10/qc/AP-9.0-r2.json` (**overall pass**, 2026-10-12). `info.ffmpeg_needed` true; ffmpeg **missing** in `python:3.11-slim`; median format-list time **16 s**.
 
-## AP-9.1 build (PM), sketch
+## AP-9.1 build (PM), scope after probe r2
 
-- `detect_kind` and the platform registry, plus a test per platform.
-- Video preset format chips, `options.format` = `best` | `1080` | `720` | `mp3`, mapped to yt-dlp args (tested).
-- `run_video_job`:
-  - per-platform cookie selection;
-  - platform-specific output template `%(uploader)s/%(title)s [%(id)s].%(ext)s`;
-  - `--write-info-json` for the index;
-  - error classification (`needs_cookies`, `rate_limited`, `unavailable`).
-- A Social segment and presets in `download_presets.py`.
-- Smoke `smoke-ap9-social.sh`: one short public clip per platform Finn approves, plus a size cap.
+PM decisions from `qc/AP-9.0-r2.json` (2026-10-12):
+
+| Platform | Probe r2 | AP-9.1 |
+|----------|----------|--------|
+| YouTube | pass with cookies (1080p, split A/V) | **in**: unchanged path, now with format chips |
+| X | pass without cookies (1440p, split A/V) | **in** |
+| Instagram | `login_required` | **in, needs cookies**: `cookies-instagram.txt` exported by Finn, preferably from a secondary account (Instagram can lock accounts that scrape). Until the file exists, the job fails fast with "Instagram needs cookies". |
+| Facebook | extractor "Cannot parse data" | **best effort**: detected as video and tried with `cookies-facebook.txt` if present; a clear "Facebook not supported right now" error otherwise. No promise. |
+| Reddit | HTTP 404 through the VPN | **deferred**: Reddit blocks VPN exits. Fixing it means cookies, or sending Reddit traffic outside the VPN; the second is a privacy choice for Finn. Detected and rejected with a clear message for now. |
+| Threads, TikTok | skipped (Finn: not needed) | **out** (TikTok stays a `video` kind as today, untested) |
+
+Build items:
+
+- **Image with ffmpeg.** `python:3.11-slim` has no ffmpeg, and YouTube and X both serve split audio/video, so merges and mp3 need it. Run every video job in `METUBE_IMAGE` (already used for YouTube; it ships yt-dlp, Deno and ffmpeg). That also drops the per-job `pip install -U yt-dlp`. Cursor confirms `ffmpeg -version` in that image before deploy.
+- **Fixed format chips, no live picker.** A metadata call takes about 16 s, too slow to fetch formats while the form is open. The chips are **Best**, **1080p**, **720p** and **Audio (mp3)**. They set `options.format`, mapped to `-S res:<h>` / `-x --audio-format mp3`.
+- **Platform registry** (`video_platforms.py`, Pi + worker): host patterns → `platform`, cookie file name, support level (`ok` / `needs_cookies` / `best_effort` / `deferred`). `detect_kind` uses it; the form shows the support level under the URL ("Instagram: needs cookies, not set up yet").
+- **Cookies per platform:**
+  - path `~/homelab/data/ytdlp/cookies-<platform>.txt` (mode 600, never in git);
+  - YouTube keeps `cookies.txt`;
+  - the worker mounts only the matching file;
+  - a presence check (names and sizes only) in the worker heartbeat lets the Hub show which platforms are ready.
+- **`run_video_job`:**
+  - output `%(uploader)s/%(title).120B [%(id)s].%(ext)s` under `videos/social/<platform>/`;
+  - `--write-info-json` (feeds the AP-5c video builder);
+  - error classes `needs_cookies`, `blocked_vpn`, `extractor_broken`, `unavailable`, shown in the queue.
+- **Social segment** in `download_presets.py`: presets YouTube, X, Instagram, plus "Other video" (today's preset).
+- **Tests:** a registry test per platform, chip → args mapping, cookie selection (only the matching file mounted), error classification from captured yt-dlp stderr, and the presets.
+- **Smoke `smoke-ap9-social.sh`:** downloads the probe r2 YouTube and X clips (short, size cap 200 MB), checks the merged file plays (`ffprobe` streams) and that the info JSON is there; Instagram only if its cookies file exists.
+
+Order: after AP-5a.2 (the catalogue), unless Finn moves it up.
