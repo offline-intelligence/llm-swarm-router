@@ -80,3 +80,4 @@ Cursor writes it to `homelab/bucket-hub/docs/pm/<yyyy-mm>/qc/<packet>-r<round>.j
 - Parity evidence: exit code in `value`, mismatched paths in `evidence`.
 - Logs: save full output under `/tmp/<packet>-*.log` on the Mac and reference the path; never paste env files, tokens or `~/.ssh` content. Redact anything matching `ghp_`, `github_pat_`, `hf_`, `Bearer `.
 - Times in `Australia/Brisbane` ISO-8601.
+- After writing a QC file for a packet with a PR, post its summary (overall, check ids + status, file path) as a PR comment; no values that could hold secrets.

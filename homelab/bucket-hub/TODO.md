@@ -10,6 +10,7 @@ Maintainer plans also in llm-swarm-router `docs/superpowers/`.
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | **Backlog audit:** missed asks from 2026-10-11/12 added (REPO-SYNC as its own project, Looping Jobs tab, overnight visual workflow, archive preview, parked social downloader, final Claude QC, audit leftovers) — ROADMAP rows 28–42 |
 | 2026-10-12 | **Repo archive:** AP-3 / AP-3.1 done (GitHub repos to TNAS); AP-4 `huggingface_repo` in QC; AP-4.1 gated HF licences (one click) coded — see `docs/agent-context/PROJECT-STATE.md` |
 | 2026-10-09 | **Process backlog:** Jellyfin lib cleanup (TV Show removed), LVM `/`+`/models`, Chromium-for-Jellyfin, website archive QC (`example.com` httrack) — see § Process improvements (2026-10-09) |
 | 2026-10-08 | **Torrent → Jellyfin E2E:** compose + Sonarr/Radarr import path, Hub torrent tags → Jellyfin Tags API, smoke script |
@@ -181,10 +182,24 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [x] AP-4.2 HF access re-check schedule (1/5/30 min then hourly) — QC r1 pass `docs/pm/2026-10/qc/AP-4.2-r1.json` (2026-10-12)
 - [x] AP-5a.1 per-download record — QC r4 pass, PR #11 merged `docs/pm/2026-10/qc/AP-5a1-r4.json` (2026-10-12)
 - [x] OPS-ARR2 worker → Sonarr/Radarr reachability + `api_unreachable` copy (folds OPS-ARR1) — QC r2 pass, PR #12 merged `docs/pm/2026-10/qc/OPS-ARR2-r2.json` (2026-10-12)
+- [ ] AP-9 video polish: resolution chips, X links → video, video jobs in the MeTube image (ffmpeg) — `docs/pm/2026-10/AP-9-social-video.md` § AP-9.1
 - [ ] Backlog: Retry library import button for a finished torrent; restart *arr after a Gluetun restart (OPS-ARR2 out of scope)
 - [ ] AP-5a.2 ai-server catalogue + nightly rebuild; AP-5b Index panel + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
 - [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking
+- [ ] Local agent over the catalogue (Finn asked 2026-10-11; after AP-5b)
+- [ ] Audit leftovers: season-first TV ranking (1b), import truth (2), folder sanitise (2b), Jackett apikey + no-redirect egress + "Waiting for VPN" (3/3b)
+- [ ] Dedupe repeated queue clicks; size warning for large ungated HF repos; heartbeat timeouts; aria2 error 13 policy
+- [ ] PM ↔ Cursor audit trail: QC summary as a PR comment on each packet PR
+
+### Separate projects / ideas (Finn, 2026-10-12) — `docs/pm/2026-10/ROADMAP-2026-10.md` rows 28–33
+
+- [ ] **REPO-SYNC:** nightly check of archived GitHub/HF repos for new commits; pull without deleting, keep some history; not covered by AP-8 (releases only)
+- [ ] **Looping Jobs tab** + daily top-starred GitHub repo to TNAS (`looping-jobs-ui.md`, `looping-jobs-github-daily.md`)
+- [ ] **Overnight visual workflow:** critical steps locked, items queued during the day added automatically
+- [ ] **Archived website preview** in a local Docker web server (audit §4)
+- [ ] **Social downloader (parked):** Instagram / Facebook / Reddit / TikTok / Threads; `https://github.com/pablostanley/yoinks`
+- [ ] **Final technical QC pass** by Claude in a terminal once the build list is done
 
 ### Active — Hub / ops next
 
