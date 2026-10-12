@@ -1,0 +1,17 @@
+[Unit]
+Description=Bucket-HUB download catalogue (AP-5a.2: search over every drive)
+After=network-online.target
+
+[Service]
+Type=simple
+EnvironmentFile=%h/homelab/scripts/hub-worker.env
+Environment=HUB_INDEX_DB=%h/homelab/data/hub-index/catalog.sqlite
+Environment=PYTHONUNBUFFERED=1
+ExecStart=/usr/bin/python3 %h/homelab/scripts/hub_index.py serve
+Restart=on-failure
+RestartSec=10
+Nice=10
+IOSchedulingClass=idle
+
+[Install]
+WantedBy=default.target

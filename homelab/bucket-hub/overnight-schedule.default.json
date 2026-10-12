@@ -62,6 +62,14 @@
       "critical": false
     },
     {
+      "id": "index-rebuild",
+      "type": "index_rebuild",
+      "label": "Rebuild download index",
+      "timeout_min": 30,
+      "enabled": true,
+      "critical": false
+    },
+    {
       "id": "sleep-ubuntu",
       "type": "machine_sleep",
       "label": "Sleep ai-server",

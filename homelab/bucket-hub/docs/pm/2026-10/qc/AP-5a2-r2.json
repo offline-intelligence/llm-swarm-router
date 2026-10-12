@@ -1,0 +1,190 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-5a.2",
+  "round": 2,
+  "generated_at": "2026-10-13T01:00:00+10:00",
+  "git": {
+    "branch": "pm/ap-5a2",
+    "head": "pending-commit",
+    "base": "main@bcfe9b3",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/14",
+    "rebase_conflicts": [],
+    "merged": null
+  },
+  "overall": "pass",
+  "checks": [
+    {
+      "id": "git.ff",
+      "status": "pass",
+      "value": "36464ea atop 18979f9 (pm/ap-5a2-r2 FF)",
+      "expected": "fast-forward to 36464ea",
+      "evidence": "git merge --ff-only pm/ap-5a2-r2",
+      "log": null
+    },
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "342 passed, 0 failed in 15.47s",
+      "expected": "342 passed",
+      "evidence": "PYTHONPATH=. uv run python -m pytest -q",
+      "log": null
+    },
+    {
+      "id": "info.key",
+      "status": "pass",
+      "value": { "mode": "-rw-------", "file": "machines_ssh", "ssh": "ok ai-server" },
+      "expected": "key -rw-------; ssh ok hostname",
+      "evidence": "ssh stackrise-pi S1 script",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0 after deploy",
+      "evidence": "verify-deploy-parity.sh pi",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "verify-deploy-parity.sh worker (unchanged from r1)",
+      "log": null
+    },
+    {
+      "id": "deploy.method",
+      "status": "pass",
+      "value": { "pi_manifest_paths": 30, "worker_deploy": "skipped (parity already 0)" },
+      "expected": "manifest loop all [pi] paths",
+      "evidence": "deploy-manifest.txt [pi] section walked; parity ok",
+      "log": null
+    },
+    {
+      "id": "smoke.c0_prereqs",
+      "status": "pass",
+      "value": { "fts5": "fts5", "service": "active", "db_mount": "/" },
+      "expected": "pass",
+      "evidence": "smoke-ap5a2-catalog.sh",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c1_health",
+      "status": "pass",
+      "value": { "items": 13403, "files": 235773 },
+      "expected": "pass",
+      "evidence": "smoke C1",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c2_search",
+      "status": "pass",
+      "value": "repo, tv, episode hits",
+      "expected": "pass",
+      "evidence": "smoke C2",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c3_note_tail",
+      "status": "pass",
+      "value": { "secs": 17 },
+      "expected": "pass",
+      "evidence": "smoke C3",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c4_nudge",
+      "status": "pass",
+      "value": { "job": "9f00f8db112f", "fresh_files": 9 },
+      "expected": "pass",
+      "evidence": "smoke C4",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c5_overnight_step",
+      "status": "pass",
+      "value": {
+        "result_text": "0 new, 1 changed, 0 missing, 0 deleted",
+        "snapshot_pushed": true
+      },
+      "expected": "pass with counts line",
+      "evidence": "smoke C5",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "smoke.c6_schedule",
+      "status": "pass",
+      "value": ["machine_wake", "mount_check", "llm_start", "dsh_research", "dsh_log_review", "llm_stop", "index_rebuild"],
+      "expected": "pass",
+      "evidence": "smoke C6",
+      "log": "/tmp/ap5a2-r2-smoke.log"
+    },
+    {
+      "id": "info.catalogue",
+      "status": "pass",
+      "value": {
+        "items": 13404,
+        "files": 235773,
+        "db_bytes": 213348352,
+        "last_rebuild": "2026-10-12T14:50:32.377450+00:00"
+      },
+      "expected": "health JSON",
+      "evidence": "curl 127.0.0.1:3031/health",
+      "log": null
+    },
+    {
+      "id": "info.warnings",
+      "status": "pass",
+      "value": { "count_24h": 0 },
+      "expected": "count and sample if nonzero",
+      "evidence": "journalctl hub-index WARNING|ERROR",
+      "log": null
+    },
+    {
+      "id": "info.schedule",
+      "status": "pass",
+      "value": [
+        { "type": "machine_wake", "enabled": true },
+        { "type": "mount_check", "enabled": true },
+        { "type": "llm_start", "enabled": true },
+        { "type": "dsh_research", "enabled": true },
+        { "type": "dsh_log_review", "enabled": true },
+        { "type": "sync_job", "enabled": false },
+        { "type": "llm_stop", "enabled": true },
+        { "type": "index_rebuild", "enabled": true }
+      ],
+      "expected": "overnight step list",
+      "evidence": "GET /api/overnight/schedule",
+      "log": null
+    },
+    {
+      "id": "git.pr_comment",
+      "status": "skip",
+      "value": null,
+      "expected": "QC summary on PR #14",
+      "evidence": "pending with commit",
+      "log": null
+    },
+    {
+      "id": "git.merged",
+      "status": "skip",
+      "value": null,
+      "expected": "merge SHA after gh pr merge 14",
+      "evidence": "pending",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [],
+  "deviations": [
+    "Manifest [pi] loop in bash copied one path per invocation in zsh subshell; parity confirmed all 30 paths after explicit rsync of scripts/overnight-run.py (only mismatch)."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-5a2-r2.json",
+    "homelab/bucket-hub/docs/testing/AP-5a2-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "homelab/bucket-hub/TODO.md",
+    "CHANGELOG.md"
+  ]
+}

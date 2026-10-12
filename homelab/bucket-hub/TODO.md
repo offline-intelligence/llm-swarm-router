@@ -10,6 +10,7 @@ Maintainer plans also in llm-swarm-router `docs/superpowers/`.
 
 | Date | Change |
 |------|--------|
+| 2026-10-12 | **AP-5a.2 coded:** ai-server catalogue `hub_index.py` searches every drive; nightly rebuild step; worker nudge (awaiting deploy + QC) |
 | 2026-10-12 | **Backlog audit:** missed asks from 2026-10-11/12 added (REPO-SYNC as its own project, Looping Jobs tab, overnight visual workflow, archive preview, parked social downloader, final Claude QC, audit leftovers) — ROADMAP rows 28–42 |
 | 2026-10-12 | **Repo archive:** AP-3 / AP-3.1 done (GitHub repos to TNAS); AP-4 `huggingface_repo` in QC; AP-4.1 gated HF licences (one click) coded — see `docs/agent-context/PROJECT-STATE.md` |
 | 2026-10-09 | **Process backlog:** Jellyfin lib cleanup (TV Show removed), LVM `/`+`/models`, Chromium-for-Jellyfin, website archive QC (`example.com` httrack) — see § Process improvements (2026-10-09) |
@@ -184,7 +185,8 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [x] OPS-ARR2 worker → Sonarr/Radarr reachability + `api_unreachable` copy (folds OPS-ARR1) — QC r2 pass, PR #12 merged `docs/pm/2026-10/qc/OPS-ARR2-r2.json` (2026-10-12)
 - [ ] AP-9 video polish: resolution chips, X links → video, video jobs in the MeTube image (ffmpeg) — `docs/pm/2026-10/AP-9-social-video.md` § AP-9.1
 - [ ] Backlog: Retry library import button for a finished torrent; restart *arr after a Gluetun restart (OPS-ARR2 out of scope)
-- [ ] AP-5a.2 ai-server catalogue + nightly rebuild; AP-5b Index panel + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
+- [x] AP-5a.2 ai-server catalogue + nightly rebuild — QC r2 pass `docs/pm/2026-10/qc/AP-5a2-r2.json` (2026-10-13)
+- [ ] AP-5b Index panel + Pi search proxy + fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
 - [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking
 - [ ] Local agent over the catalogue (Finn asked 2026-10-11; after AP-5b)

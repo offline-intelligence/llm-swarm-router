@@ -14,6 +14,7 @@ downloads). Stdlib only.
 """
 from __future__ import annotations
 
+import gzip
 import json
 import logging
 from datetime import datetime, timezone
@@ -325,3 +326,45 @@ def write_about_file(folder: Path, entry: dict[str, Any]) -> Path:
     path = Path(folder) / ABOUT_FILENAME
     path.write_text(context_card(entry), encoding="utf-8")
     return path
+
+
+def count_snapshot_bytes(data: bytes, max_lines: int = 2_000_000) -> int:
+    """Validate an AP-5a.2 snapshot (gzip JSONL of objects with ``entry_id``); return its size."""
+    try:
+        text = gzip.decompress(data).decode("utf-8")
+    except (OSError, EOFError, UnicodeDecodeError) as exc:
+        raise ValueError(f"not a gzip JSONL snapshot: {type(exc).__name__}") from exc
+    n = 0
+    for line in text.splitlines():
+        if not line.strip():
+            continue
+        try:
+            row = json.loads(line)
+        except json.JSONDecodeError as exc:
+            raise ValueError(f"bad JSON on snapshot line {n + 1}") from exc
+        if not isinstance(row, dict) or not row.get("entry_id"):
+            raise ValueError(f"snapshot line {n + 1} has no entry_id")
+        n += 1
+        if n > max_lines:
+            raise ValueError("snapshot too long")
+    return n
+
+
+def load_snapshot(path: str | Path) -> dict[str, dict[str, Any]]:
+    """Records from the catalogue snapshot (AP-5b fallback search reads this with ``search``)."""
+    p = Path(path)
+    if not p.is_file():
+        return {}
+    out: dict[str, dict[str, Any]] = {}
+    with gzip.open(p, "rt", encoding="utf-8") as fh:
+        for line in fh:
+            line = line.strip()
+            if not line:
+                continue
+            try:
+                row = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            if isinstance(row, dict) and row.get("entry_id"):
+                out[str(row["entry_id"])] = row
+    return out
