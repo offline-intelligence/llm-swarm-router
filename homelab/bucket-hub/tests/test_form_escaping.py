@@ -48,6 +48,8 @@ SAFE_EXPR = (
     "tone",
     "cls",
     "i === 1 && outcome !== 'ok' ? cls : ''",
+    "on ? 'true' : 'false'",
+    "chips",
 )
 
 
@@ -88,7 +90,16 @@ def _interpolations(chunk: str) -> list[str]:
 
 @pytest.mark.parametrize(
     "fn",
-    ["loadNightSummary", "renderJobRow", "renderQueueRow", "gateBlock", "renderLicenceBar", "licenceBarRow"],
+    [
+        "loadNightSummary",
+        "renderJobRow",
+        "renderQueueRow",
+        "gateBlock",
+        "renderLicenceBar",
+        "licenceBarRow",
+        "presetChip",
+        "renderPresetChips",
+    ],
 )
 def test_innerhtml_interpolations_escaped(fn):
     src = FORM.read_text(encoding="utf-8")
@@ -148,3 +159,16 @@ def test_node_escape_helpers():
         text=True,
     )
     assert r.returncode == 0, r.stdout + r.stderr
+
+
+def test_p12_drive_and_folder_hidden_behind_manual_path():
+    """AP-UX-1: drive/folder chips live inside #manualPathWrap, hidden by default."""
+    src = FORM.read_text(encoding="utf-8")
+    start = src.index('<div id="manualPathWrap" class="hidden">')
+    end = src.index('<button type="button" id="go">')
+    block = src[start:end]
+    assert 'id="drives"' in block and 'id="folders"' in block
+    assert 'id="manualPath"' in src and 'id="presetChips"' in src and 'id="savesTo"' in src
+    # The Type select is gone; presets replace it.
+    assert 'id="kind"' not in src
+    assert "getElementById('kind')" not in src

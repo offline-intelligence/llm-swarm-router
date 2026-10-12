@@ -7,6 +7,7 @@ app.py
 form.html
 job_health.py
 download_destinations.py
+download_presets.py
 index_writer.py
 job_kinds.py
 hub_worker.py

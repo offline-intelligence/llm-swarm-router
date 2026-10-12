@@ -134,7 +134,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 - [ ] OPS-HF1 (P0) gateway route `/assets/hub-escape.js` (Glance queue `escHtml is not defined`) — **code done** `4458018` (241 tests); Cursor deploy + QC `OPS-HF1-r1.json`.
 - [x] MERGE-1: **Cursor** merged #5 → `main` (`872dcb4`), retargeted/merged #6 (`0663c39`); #7 retargeted to `main`, merge deferred until OPS-HF1 + AP-4.1 QC pass (2026-10-12 r2).
 - [ ] Security: HF token pasted in chat is still active (Finn's choice, for testing); Finn revokes/replaces it in a few days.
-- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — Finn: pressing; PM coding on `pm/ap-ux-1`; spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
+- [ ] AP-UX-1 download presets + segments (TV & film · Repo archive · Websites · Other) + "Manually set path" — **code done** on `pm/ap-ux-1` (277 tests); Cursor deploys after AP-4.1 r3 (`docs/pm/2026-10/handoffs/AP-UX-1.md`). Spec `docs/pm/2026-10/AP-UX-1-download-presets.md`.
 - [ ] AP-5a/5b/5c per-download index (person + machine record; updated on finish, on delete, after nightly sync) — Finn: pressing; spec `docs/pm/2026-10/AP-5-index-architecture-v2.md` §Per-download record; after AP-UX-1.
 - [ ] Repo archive later: AP-5 index across all kinds + search, AP-6 recurring runner, AP-7 GitHub stars / HF likes to queue, AP-8 release tracking.
 
@@ -187,6 +187,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 
 | Date | Note |
 |------|------|
+| 2026-10-12 | PM implemented **AP-UX-1** on `pm/ap-ux-1`: `download_presets.py` (8 presets, 4 segments), `/api/presets`, `/api/presets/resolve`, jobs store `preset`/`segment`/`destination_source`, Firefox capture + Requests through presets (fixes magnet → `nas/inbox` and Request approve → aria2 for GitHub links), form preset chips + Saves-to + Manually set path, queue segment filter; 241 → 277 tests; `smoke-apux1-presets.sh`. Finding: aria2 already put film `movies/` jobs in `torrents/movies/`. |
 | 2026-10-12 | Finn named two pressing items: per-download index (person + machine, delete + nightly updates) and download segments (HF+GitHub, websites, TV, other). Specs extended (AP-UX-1 segments, AP-5 v2 per-download record/deletes, I11–I14); master-document map and Learnings added here. PM starts AP-UX-1 code. |
 | 2026-10-12 | PM review: OPS-HF1 r1 fail = glance.yml cache-buster drift only (deploy correctly stopped); repo bumped to `v=20261012hf1`, overwrite of `?v=` diffs authorised. AP-4.1 r2 blocked: PM's Gemma picks are gated manual (and base 9b is 37 GB); rule relaxed, `GATE_REPO=google/gemma-2-9b-it`. #5, #6 merged to `main`; #7 retargeted. Issued `OPS-HF1-r2-AP-4.1-r3.md`. |
 | 2026-10-12 | **OPS-HF1 QC r1** (`docs/pm/2026-10/qc/OPS-HF1-r1.json`): **fail** — glance.yml drift (`v=20261012ops1` live vs repo); gateway deploy skipped; `hub-escape.js` 404; worker compile/parity pass. |

@@ -1,5 +1,17 @@
 # Changelog
 
+## 2026-10-12 — AP-UX-1 download presets and segments (PM)
+
+**Why:** Finn wants separate download segments with pre-defined paths. The Download tab asked for a drive and folder for every type, even where the server ignored them, and the same magnet landed in different places from the form (`torrents/`) and from Firefox (`nas/inbox`).
+
+**What changed:**
+
+- New `download_presets.py`: 8 presets in 4 segments (TV & film · Repo archive · Websites · Other), resolved server-side against the library with fallbacks; `capture-folders.json` still overrides.
+- `GET /api/presets`, `POST /api/presets/resolve`; `POST /api/jobs` takes `preset` / `manual_path` and stores `preset`, `segment`, `destination_source`; `GET /api/jobs?segment=`.
+- Firefox capture and Requests (link mode and approve) resolve through presets.
+- Hub: Download type chips, "Saves to" line, Drive/Folder only behind **Manually set path**, Type select removed, queue segment filter.
+- Tests 241 → 277; `scripts/smoke-apux1-presets.sh` (checks Sonarr/Radarr/Jellyfin paths are unchanged before vs after).
+
 ## 2026-10-12 — OPS-HF1 gateway serves `hub-escape.js` (PM)
 
 **Why:** the Glance queue failed with `escHtml is not defined`: AP-1's shared `/assets/hub-escape.js` was served by the Hub app but the `hub-gateway` Caddyfile had no route for it. The gateway files (`Caddyfile`, `glance.yml` in `~/homelab/glance/`) were never in the deploy manifest, so parity checks could not catch it.
