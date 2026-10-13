@@ -25,6 +25,7 @@ File: `~/homelab/scripts/hub-worker.env` (plus `~/homelab/.env` for CIFS creds).
 | `HF_GATE_MAX_WAIT_H` | Hours a gated job waits for the licence before it errors (default `168`) |
 | `HUB_REPO_DEFER_S` | Seconds a job waits before re-claim after "TNAS offline, will retry" (default `120`) |
 | `HUB_REPO_RECHECK_S` | Seconds the worker waits to re-check the archive mount before it defers a job (default `5`) |
+| `HF_MAX_SIZE_CEILING_MB` | AP-4.3 hard ceiling for the "Download anyway" re-queue (default `204800`, 200 GiB) |
 
 CIFS mount: `~/homelab/scripts/mount-tnas-docker.sh` reads `TNAS_HOST`, `TNAS_SHARE`, `TNAS_USER`, `TNAS_PASSWORD` from `~/homelab/.env`. **Current TNAS LAN host:** `192.168.50.187` (`TNAS_HOST` on ai-server). **DHCP reservation:** done 2026-10-12 (ASUS RT-AX57, `tnas` → `.187`).
 
@@ -55,10 +56,12 @@ Queue with `POST /api/jobs` `{"kind": "huggingface_repo", "url": "https://huggin
 |--------|---------|---------|
 | `repo_type` | `model` (a `/datasets/` URL sets `dataset`) | Spaces are rejected |
 | `revision` | `main` | resolved to the commit `sha` before download, so the size check and the snapshot match |
-| `max_size_mb` | `20480` | pre-check on the API's per-file sizes after patterns; over the cap = `done` "Skipped: …" + `skipped_too_large` index entry |
+| `max_size_mb` | `20480` | pre-check on the API's per-file sizes after patterns; over the cap, the *job* status is `skipped_too_large` (AP-4.3 — never `done`), with `progress.source_size_bytes` and a matching index entry |
 | `prefer_safetensors` | `true` | if any `*.safetensors` exists, `*.bin`, `*.pt`, `*.pth`, `*.ckpt`, `*.h5`, `*.msgpack` are ignored |
 | `allow_patterns` / `ignore_patterns` | none | fnmatch patterns like `huggingface_hub`; an explicit allow list wins over `prefer_safetensors`, and `README.md` is always kept |
 | `refresh` | `false` | download again even if archived |
+
+AP-4.3: the HF form offers a size-tier chip (Standard 20 GB / Large model 70 GB / Very large 200 GB) that sets `max_size_mb`. A job skipped for size shows an amber "Skipped (over size cap)" pill with a **Download anyway** button: `POST /api/jobs/{id}/download-anyway` re-queues the same URL with `max_size_mb` = the recorded size × 1.1 and `refresh: true`, refused above `HF_MAX_SIZE_CEILING_MB`. Before any download starts, a free-space check on the TNAS volume (needed size × 1.1 + 50 GB headroom) defers the job an hour with `error_display: "Not enough space on TNAS (needs … GB, … GB free)"` rather than starting a download that cannot finish.
 
 Errors read: "Repository not found or private", "Hugging Face Spaces are not archived (models and datasets only)". Gated models do not error (next section).
 

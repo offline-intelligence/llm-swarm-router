@@ -287,6 +287,7 @@
     #miniQueue .mq-pill.st-queued { color: #c4a35a; border-color: #5a4a2a; }
     #miniQueue .mq-pill.st-done { color: var(--ok); border-color: #2a4a2a; }
     #miniQueue .mq-pill.st-error { color: var(--fail); border-color: #5a2a2a; }
+    #miniQueue .mq-pill.st-skipped_too_large { color: #e8c468; border-color: #5a4a2a; }
     #miniQueue .mq-progress {
       margin-top: 0.3rem; height: 0.35rem; border-radius: 999px;
       background: hsl(240 10% 16%); overflow: hidden;
@@ -1141,6 +1142,7 @@
     .queue-status-pill.st-agent-review { color: #e8a468; border-color: #6a4a2a; }
     .queue-status-pill.st-error { color: var(--fail); border-color: #5a2a2a; }
     .queue-status-pill.st-done { color: var(--ok); border-color: #2a4a2a; }
+    .queue-status-pill.st-skipped_too_large { color: #e8c468; border-color: #5a4a2a; }
     .queue-row-meta {
       color: var(--muted); font-size: 0.68rem; margin-top: 0.15rem;
       overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
@@ -1411,6 +1413,14 @@
         <div class="label">Files in repo</div>
         <div id="hfFiles" class="file-list panel" style="padding:0.4rem 0.5rem">Loading…</div>
       </div>
+      <div id="hfSizeWrap">
+        <div class="label">Size limit</div>
+        <div class="chips" id="hfSizeChips">
+          <button type="button" class="chip on" data-hf-size="20480">Standard (up to 20 GB)</button>
+          <button type="button" class="chip" data-hf-size="71680">Large model (up to 70 GB)</button>
+          <button type="button" class="chip" data-hf-size="204800">Very large (up to 200 GB)</button>
+        </div>
+      </div>
     </div>
 
     <div id="presetBlock">
@@ -1675,6 +1685,7 @@ let pendingTorrentDestRel = null;
 let selectedSource = 'manual';
 let hfRepoId = '';
 let hfMode = 'whole';
+let hfSizeMb = 20480; // AP-4.3: Standard/Large/Very large chip
 let hfSelectedFiles = new Set();
 let hubMode = localStorage.getItem('hubDownloadMode') === 'search' ? 'search' : 'download';
 let searchSource = localStorage.getItem('hubSearchSource') || 'auto';
@@ -3115,6 +3126,17 @@ async function retryJob(id) {
   await loadNightSummary();
 }
 
+// AP-4.3: re-queue a size-skipped HF job with a cap that covers its real size.
+async function downloadAnywayJob(id) {
+  const r = await fetch(hubUrl(`/api/jobs/${id}/download-anyway`), { method: 'POST' });
+  const data = await r.json();
+  if (!r.ok) { setMsg(JSON.stringify(data.detail || data), false); return; }
+  setMsg('Queued the full download', true);
+  await loadJobs();
+  await loadLillyInbox();
+  await loadNightSummary();
+}
+
 async function cancelJob(id, { purge = false } = {}) {
   const msg = purge
     ? 'Cancel and delete partial download files from the Expansion HDD? You can queue a fresh torrent after.'
@@ -3901,12 +3923,20 @@ function setHfMode(mode) {
   if (whole) whole.classList.toggle('on', mode === 'whole');
   if (filesBtn) filesBtn.classList.toggle('on', mode === 'files');
   if (wrap) wrap.classList.toggle('hidden', mode !== 'files');
+  const sizeWrap = document.getElementById('hfSizeWrap');
+  if (sizeWrap) sizeWrap.classList.toggle('hidden', mode !== 'whole');
   if (presetId === 'hf_repo' || presetId === 'hf_files') {
     setPreset(mode === 'files' ? 'hf_files' : 'hf_repo', { user: true });
   }
 }
 document.getElementById('hfWhole').addEventListener('click', () => setHfMode('whole'));
 document.getElementById('hfFilesBtn').addEventListener('click', () => setHfMode('files'));
+document.querySelectorAll('#hfSizeChips [data-hf-size]').forEach((btn) => {
+  btn.addEventListener('click', () => {
+    hfSizeMb = parseInt(btn.dataset.hfSize, 10) || 20480;
+    document.querySelectorAll('#hfSizeChips [data-hf-size]').forEach((b) => b.classList.toggle('on', b === btn));
+  });
+});
 
 async function loadHfFiles(repoId) {
   const el = document.getElementById('hfFiles');
@@ -3982,6 +4012,7 @@ function renderJobRow(j) {
   const err = j.error ? `<div class="url">${escHtml(humanError(j.error))}</div>` : '';
   const cancelBtn = (j.status === 'queued' || j.status === 'running' || j.status === 'claimed' || j.status === 'paused') ? `<button type="button" class="secondary cancel" data-cancel="${escAttr(j.id)}" data-purge="${isAria2Job(j) ? '1' : '0'}" style="color:#d93025">Cancel</button>` : '';
   const retry = (j.status === 'error' || j.status === 'done') ? `<button type="button" class="secondary retry" data-retry="${escAttr(j.id)}">Retry</button>` : '';
+  const downloadAnyway = (j.status === 'skipped_too_large') ? `<button type="button" class="secondary" data-download-anyway="${escAttr(j.id)}">Download anyway${skipSizeSuffix(j)}</button>` : '';
   const approve = j.status === 'review' ? `<div class="approve-row" style="display:grid;grid-template-columns:1fr auto;gap:0.35rem;margin-top:0.35rem"><input type="text" class="review-url" data-job="${escAttr(j.id)}" placeholder="Paste URL to approve"/><button type="button" class="secondary approve" data-approve="${escAttr(j.id)}">Approve</button></div>` : '';
   const by = j.requested_by ? `<span class="tag">@${escHtml(j.requested_by)}</span>` : '';
   const line = j.kind === 'sync'
@@ -3989,7 +4020,7 @@ function renderJobRow(j) {
     : `${escHtml(j.folder_name || '')} · ${escHtml(j.destination_path || '')}`;
   const urlLine = j.url ? `<div class="url">${escHtml(redactSecrets(j.url))}</div>` : (j.notes ? `<div class="url">${escHtml(j.notes)}</div>` : '');
   const gateHtml = gateBlock(j);
-  return `<div class="job"><div class="top"><strong>${escHtml(j.title || j.kind)}</strong><span>${by}<span class="status-${escAttr(j.status)}">${escHtml(j.status)}</span>${approve}${cancelBtn}${retry}</span></div>
+  return `<div class="job"><div class="top"><strong>${escHtml(j.title || j.kind)}</strong><span>${by}<span class="status-${escAttr(j.status)}">${escHtml(j.status)}</span>${approve}${cancelBtn}${retry}${downloadAnyway}</span></div>
     ${urlLine}${err}${gateHtml}
     <div>${line} ${tags}</div></div>`;
 }
@@ -4012,7 +4043,8 @@ function renderLillyInboxRow(j, { compact } = {}) {
   const err = j.error ? `<div class="url">${escHtml(humanError(j.error))}</div>` : '';
   const body = j.url ? `<div class="url">${escHtml(redactSecrets(j.url))}</div>` : `<div class="url">${escHtml(j.notes || j.title || '')}</div>`;
   const retry = (j.status === 'error' || j.status === 'done') ? `<button type="button" class="secondary retry" data-retry="${j.id}">Retry</button>` : '';
-  let actions = retry;
+  const downloadAnyway = (j.status === 'skipped_too_large') ? `<button type="button" class="secondary" data-download-anyway="${j.id}">Download anyway${skipSizeSuffix(j)}</button>` : '';
+  let actions = retry + downloadAnyway;
   if (j.status === 'review') {
     const urlVal = j.url ? ` value="${j.url.replace(/"/g, '&quot;')}"` : '';
     if (compact) {
@@ -4064,6 +4096,7 @@ async function loadLillyInbox() {
     }
     el.innerHTML = jobs.slice(0, 12).map(j => renderLillyInboxRow(j)).join('');
     el.querySelectorAll('[data-retry]').forEach(btn => btn.addEventListener('click', () => retryJob(btn.dataset.retry)));
+  el.querySelectorAll('[data-download-anyway]').forEach(btn => btn.addEventListener('click', () => downloadAnywayJob(btn.dataset.downloadAnyway)));
     el.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => {
       const input = el.querySelector(`.review-url[data-job="${btn.dataset.approve}"]`);
       approveReview(btn.dataset.approve, input ? input.value.trim() : '');
@@ -4368,6 +4401,12 @@ function queuePillStatusClass(j) {
   return cls;
 }
 
+function skipSizeSuffix(j) {
+  const bytes = j && j.index_entry && j.index_entry.source_size_bytes;
+  if (!bytes) return '';
+  return ` (${(bytes / 1073741824).toFixed(1)} GB)`;
+}
+
 function statusLabel(st, j) {
   if (j && j.agent_review) return 'Needs review';
   if (st === 'running' || st === 'claimed') {
@@ -4384,6 +4423,7 @@ function statusLabel(st, j) {
   if (st === 'review') return 'Review';
   if (st === 'error') return 'Failed';
   if (st === 'done') return 'Done';
+  if (st === 'skipped_too_large') return 'Skipped (over size cap)';
   return st || '';
 }
 
@@ -4644,6 +4684,8 @@ function renderQueueDetail(j) {
   const pct = progressPct(j);
   const retry = (j.status === 'error' || j.status === 'done')
     ? `<button type="button" class="secondary" data-q-retry="${escHtml(j.id)}">Retry</button>` : '';
+  const downloadAnyway = (j.status === 'skipped_too_large')
+    ? `<button type="button" class="secondary" data-q-download-anyway="${escHtml(j.id)}">Download anyway${skipSizeSuffix(j)}</button>` : '';
   const pauseBtn = (isAria2Job(j) && (j.status === 'running' || j.status === 'claimed'))
     ? `<button type="button" class="secondary" data-q-pause="${escHtml(j.id)}">Pause</button>` : '';
   const resumeBtn = (isAria2Job(j) && j.status === 'paused')
@@ -4686,7 +4728,7 @@ function renderQueueDetail(j) {
     ${archiveDetail || (pct != null ? `<div class="url">Progress ${pct}%${escHtml(aria2ThroughputHint(j))}</div>` : (aria2ThroughputHint(j) ? `<div class="url">${escHtml(aria2ThroughputHint(j).replace(/^ · /, ''))}</div>` : ''))}
     <div class="url">${escHtml(j.id)} · ${escHtml(kindLabel(j))} · ${escHtml(j.folder_name || j.destination_path || '')}</div>
     <div class="url">${escHtml(j.requested_by || j.source || '')} · ${proton}${tags ? ' · ' + escHtml(tags) : ''}</div>
-    <div class="row-actions">${pauseBtn}${resumeBtn}${cancelQ}${retry}<button type="button" class="secondary" data-q-close>Close</button></div>`;
+    <div class="row-actions">${pauseBtn}${resumeBtn}${cancelQ}${retry}${downloadAnyway}<button type="button" class="secondary" data-q-close>Close</button></div>`;
   const closeBtn = el.querySelector('[data-q-close]');
   const pauseBtnEl = el.querySelector('[data-q-pause]');
   if (pauseBtnEl) {
@@ -4723,6 +4765,14 @@ function renderQueueDetail(j) {
     retryBtn.addEventListener('click', async (ev) => {
       ev.stopPropagation();
       await retryJob(retryBtn.dataset.qRetry);
+      await loadQueuePanel();
+    });
+  }
+  const downloadAnywayBtn = el.querySelector('[data-q-download-anyway]');
+  if (downloadAnywayBtn) {
+    downloadAnywayBtn.addEventListener('click', async (ev) => {
+      ev.stopPropagation();
+      await downloadAnywayJob(downloadAnywayBtn.dataset.qDownloadAnyway);
       await loadQueuePanel();
     });
   }
@@ -5135,6 +5185,7 @@ async function loadJobs() {
       } else {
         jobsEl.innerHTML = jobs.map(renderJobRow).join('');
         jobsEl.querySelectorAll('[data-retry]').forEach(btn => btn.addEventListener('click', () => retryJob(btn.dataset.retry)));
+        jobsEl.querySelectorAll('[data-download-anyway]').forEach(btn => btn.addEventListener('click', () => downloadAnywayJob(btn.dataset.downloadAnyway)));
         jobsEl.querySelectorAll('[data-cancel]').forEach(btn => btn.addEventListener('click', () => cancelJob(btn.dataset.cancel, { purge: btn.dataset.purge === '1' })));
         jobsEl.querySelectorAll('[data-approve]').forEach(btn => btn.addEventListener('click', () => {
           const input = jobsEl.querySelector(`.review-url[data-job="${btn.dataset.approve}"]`);
@@ -5280,6 +5331,10 @@ async function queueDownload(opts) {
     hf_files: Array.from(hfSelectedFiles),
     hf_repo_id: hfRepoId,
   };
+  // AP-4.3: only the whole-repo HF archive preset uses the size-tier chip.
+  if (queuePreset === 'hf_repo' && hfSizeMb && hfSizeMb !== 20480) {
+    body.options = { max_size_mb: hfSizeMb };
+  }
   if (isArchive) {
     body.archive_depth = parseInt(document.getElementById('archiveDepth').value, 10) || 0;
     const drive = library.drives && library.drives[driveId];
@@ -5324,6 +5379,8 @@ async function queueDownload(opts) {
     pendingTorrentDestRel = null;
     selectedSource = 'manual';
     document.getElementById('hfPanel').classList.add('hidden');
+    hfSizeMb = 20480;
+    document.querySelectorAll('#hfSizeChips [data-hf-size]').forEach((b) => b.classList.toggle('on', b.dataset.hfSize === '20480'));
     if (!keepSearch) { presetUserPicked = false; presetId = null; renderPresetChips(); }
     await loadJobs();
     await loadLillyInbox();

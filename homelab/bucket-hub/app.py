@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import math
 import os
 import re
 import threading
@@ -97,6 +98,7 @@ HUB_SLOT_VIDEO = max(0, int(os.environ.get("HUB_SLOT_VIDEO", "1")))
 HUB_SLOT_ARCHIVE = max(0, int(os.environ.get("HUB_SLOT_ARCHIVE", "0")))
 HUB_SLOT_REPO = max(0, int(os.environ.get("HUB_SLOT_REPO", "1")))
 HUB_SLOT_REPO_META = max(0, int(os.environ.get("HUB_SLOT_REPO_META", "1")))
+HF_MAX_SIZE_CEILING_MB = max(1, int(os.environ.get("HF_MAX_SIZE_CEILING_MB", "204800")))  # AP-4.3: 200 GiB hard ceiling for "Download anyway"
 HUB_REPO_ARCHIVE_ROOT = os.environ.get(
     "HUB_REPO_ARCHIVE_ROOT", "/mnt/tnas/repo-archive"
 )
@@ -2556,7 +2558,7 @@ def patch_job(
     job = _read_job(job_id)
     prev_status = job.get("status")
     if body.status is not None:
-        allowed = {"queued", "claimed", "running", "paused", "done", "error"}
+        allowed = {"queued", "claimed", "running", "paused", "done", "error", "skipped_too_large"}
         if body.status not in allowed:
             raise HTTPException(400, f"status must be one of {sorted(allowed)}")
         job["status"] = body.status
@@ -2568,7 +2570,7 @@ def patch_job(
             job["started_at"] = _now()
         if body.status == "paused":
             job.setdefault("paused_at", _now())
-        if body.status in ("done", "error"):
+        if body.status in ("done", "error", "skipped_too_large"):
             job["finished_at"] = _now()
         if body.status in ("running", "done") and body.error_display is None:
             job.pop("error_display", None)
@@ -2607,7 +2609,7 @@ def patch_job(
             job.pop("gate", None)
         else:
             job["gate"] = body.gate
-    if job.get("status") in ("done", "error") and prev_status not in ("done", "error"):
+    if job.get("status") in ("done", "error", "skipped_too_large") and prev_status not in ("done", "error", "skipped_too_large"):
         _journal_finished_job(job)
     _write_job(job)
     try:
@@ -2749,7 +2751,7 @@ def cancel_job(job_id: str, body: CancelBody | None = None) -> dict[str, Any]:
     """Cancel a queued, running, or paused job. purge=true removes aria2 + partial files."""
     opts = body or CancelBody()
     job = _read_job(job_id)
-    if job.get("status") in ("done", "error", "dismissed", "purging"):
+    if job.get("status") in ("done", "error", "dismissed", "purging", "skipped_too_large"):
         raise HTTPException(400, f"Job already {job['status']}")
     prev_status = job.get("status")
     job["error"] = "Cancelled by user"
@@ -2900,7 +2902,7 @@ def _transient_hub_worker_error(raw: str | None) -> bool:
 def retry_job(job_id: str) -> dict[str, Any]:
     """Re-queue a failed or cancelled job."""
     job = _read_job(job_id)
-    if job.get("status") not in ("error", "dismissed", "done"):
+    if job.get("status") not in ("error", "dismissed", "done", "skipped_too_large"):
         raise HTTPException(
             400,
             f"Can only retry error/dismissed/done jobs, got {job.get('status')}",
@@ -2933,6 +2935,45 @@ def retry_job(job_id: str) -> dict[str, Any]:
     _assign_queue_rank_if_queued(job)
     _write_job(job)
     return {"ok": True, "job": _job_public(job), "reattach_aria2": keep_aria2}
+
+
+@app.post("/api/jobs/{job_id}/download-anyway")
+def download_anyway_job(job_id: str) -> dict[str, Any]:
+    """AP-4.3: re-queue a ``skipped_too_large`` HF job with a cap that covers its real size.
+
+    Only valid on the job the size-cap skip just produced; the new job gets the same
+    url/title/tags/notes plus ``options.max_size_mb`` (actual size + 10%) and
+    ``options.refresh``. The old job is left as-is (dismiss it from the UI as usual).
+    """
+    job = _read_job(job_id)
+    if job.get("status") != "skipped_too_large":
+        raise HTTPException(
+            400,
+            f"Only a skipped_too_large job can use Download anyway, got {job.get('status')}",
+        )
+    index_entry = job.get("index_entry") or {}
+    source_size_bytes = index_entry.get("source_size_bytes")
+    if not isinstance(source_size_bytes, (int, float)) or source_size_bytes <= 0:
+        raise HTTPException(409, "No recorded size on this job; re-queue it manually with options.max_size_mb")
+    needed_mb = math.ceil((source_size_bytes / 1048576) * 1.1)
+    if needed_mb > HF_MAX_SIZE_CEILING_MB:
+        raise HTTPException(
+            400,
+            f"{needed_mb} MB is over the {HF_MAX_SIZE_CEILING_MB} MB ceiling; "
+            "raise HF_MAX_SIZE_CEILING_MB on the Pi to allow it",
+        )
+    new_job: dict[str, Any] = {
+        "url": job.get("url"),
+        "title": job.get("title"),
+        "kind": job.get("kind"),
+        "source": job.get("source"),
+        "worker": job.get("worker"),
+        "tags": list(job.get("tags") or []),
+        "notes": job.get("notes") or "",
+        "options": {**(job.get("options") or {}), "max_size_mb": needed_mb, "refresh": True},
+    }
+    created = _enqueue_job(new_job)
+    return {"ok": True, "job": _job_public(created)}
 
 
 @app.post("/api/jobs/{job_id}/gate-check")
@@ -3953,7 +3994,7 @@ def approve_review_job(
 def dismiss_review_job(job_id: str) -> dict[str, Any]:
     """Remove a job from the active queue (review, failed, or waiting)."""
     job = _read_job(job_id)
-    allowed = {"review", "error", "queued", "done"}
+    allowed = {"review", "error", "queued", "done", "skipped_too_large"}
     if job.get("status") not in allowed:
         raise HTTPException(
             400,

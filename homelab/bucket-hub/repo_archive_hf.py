@@ -358,6 +358,18 @@ def _index_path(root: Path) -> Path:
     return root / "download-index.jsonl"
 
 
+def _free_space_bytes(root: Path) -> int | None:
+    """Free bytes on the volume holding ``root`` (AP-4.3 pre-download guard).
+
+    Never raises: an unreadable/offline mount returns ``None`` and the caller
+    skips the check rather than blocking on a stat that cannot answer.
+    """
+    try:
+        return shutil.disk_usage(str(root)).free
+    except OSError:
+        return None
+
+
 def _find_archived(entries: dict[str, dict[str, Any]], source_id: str) -> dict[str, Any] | None:
     for row in entries.values():
         if row.get("source_id") == source_id and row.get("status") == "archived":
@@ -484,6 +496,8 @@ def run_huggingface_repo_job(
     source_size = selected_size_bytes(meta, allow, ignore)
     cap_bytes = max_mb * 1024 * 1024
     if source_size > cap_bytes:
+        # AP-4.3: the *job* status must read as a skip, not a plain finish — this used to
+        # be "done" (status="done"), which looked identical to a successful archive.
         note = f"Skipped: {source_size / 1048576:.0f} MB is over the {max_mb} MB limit"
         entry = build_hf_entry(
             job,
@@ -498,7 +512,30 @@ def run_huggingface_repo_job(
             files=filter_names(names, allow, ignore),
         )
         append_entry(_index_path(root), entry)
-        update_job(jid, status="done", error=None, progress={"phase": "indexing", "note": note}, index_entry=entry)
+        update_job(
+            jid,
+            status="skipped_too_large",
+            error=None,
+            progress={"phase": "indexing", "note": note, "source_size_bytes": source_size},
+            index_entry=entry,
+        )
+        return
+
+    # AP-4.3: free-space guard, more load-bearing now that Download anyway can ask for
+    # up to HF_MAX_SIZE_CEILING_MB. Headroom covers the 110% post-check plus other jobs.
+    needed_bytes = int(source_size * 1.1) + (50 * 1024 * 1024 * 1024)
+    free_bytes = _free_space_bytes(root)
+    if free_bytes is not None and free_bytes < needed_bytes:
+        retry_at = now + timedelta(hours=1)
+        needed_gb = needed_bytes / (1024**3)
+        free_gb = free_bytes / (1024**3)
+        update_job(
+            jid,
+            status="queued",
+            error_display=f"Not enough space on TNAS (needs {needed_gb:.0f} GB, {free_gb:.0f} GB free)",
+            not_before=retry_at.isoformat(),
+            progress={"phase": "checking", "note": "Deferred: not enough free space on TNAS"},
+        )
         return
 
     partial = partial_dir(dated, jid)

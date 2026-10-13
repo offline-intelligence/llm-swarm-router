@@ -45,6 +45,8 @@ def hf_env(archive_root, hf_meta, monkeypatch):
     hf.configure(fetch_metadata=fetch)
     monkeypatch.delenv("HF_TOKEN", raising=False)
     monkeypatch.delenv("HUGGING_FACE_HUB_TOKEN", raising=False)
+    # AP-4.3 free-space guard: default to ample space; the dedicated test overrides this.
+    monkeypatch.setattr(hf, "_free_space_bytes", lambda _root: 10 * 1024 ** 4)
     updates: list[dict] = []
     return runner, updates, calls
 
@@ -125,15 +127,45 @@ def test_size_precheck_uses_filtered_siblings(hf_env, archive_root):
 
 
 def test_size_cap_skip(hf_env, archive_root):
+    """AP-4.3: the job itself must read as a skip, never a plain done (the old live bug)."""
     runner, updates, _ = hf_env
     _run(_job(max_size_mb=5, prefer_safetensors=False), archive_root, updates)
     last = updates[-1]
-    assert last["status"] == "done"
+    assert last["status"] == "skipped_too_large", last
     assert last["progress"]["note"].startswith("Skipped:") and "5 MB limit" in last["progress"]["note"]
+    assert last["progress"]["source_size_bytes"] > 5 * 1024 * 1024
     assert last["index_entry"]["status"] == "skipped_too_large"
+    assert last["index_entry"]["source_size_bytes"] == last["progress"]["source_size_bytes"]
     assert not runner.calls
     rows = list(load_entries(archive_root / "download-index.jsonl").values())
     assert rows[0]["status"] == "skipped_too_large" and rows[0]["source_id"] == "hf:model/hf-internal-testing/tiny-random-gpt2"
+
+
+def test_size_cap_skip_is_not_a_done_status(hf_env, archive_root):
+    """Regression for the live bug (2026-10-12): a ~60 GB paste against the 20 GB default
+    showed status "done" in the Hub, indistinguishable from a real finish."""
+    runner, updates, _ = hf_env
+    _run(_job(max_size_mb=5, prefer_safetensors=False), archive_root, updates)
+    assert updates[-1]["status"] != "done"
+
+
+def test_free_space_guard_defers(hf_env, archive_root, monkeypatch):
+    """Not enough free space on the archive volume defers instead of erroring."""
+    runner, updates, _ = hf_env
+    tiny_free = 1024  # bytes: far below any real model + the 50 GB headroom
+    monkeypatch.setattr(hf, "_free_space_bytes", lambda _root: tiny_free)
+    _run(_job(prefer_safetensors=False), archive_root, updates)
+    last = updates[-1]
+    assert last["status"] == "queued"
+    assert "not enough space" in (last.get("error_display") or "").lower()
+    assert last.get("not_before")
+    assert not runner.calls
+
+
+def test_free_space_bytes_reads_real_disk_usage(tmp_path):
+    """_free_space_bytes itself (not the fixture stub) wraps shutil.disk_usage and never raises."""
+    assert hf._free_space_bytes(tmp_path) == hf.shutil.disk_usage(str(tmp_path)).free
+    assert hf._free_space_bytes(tmp_path / "does-not-exist") is None
 
 
 # --- errors ---------------------------------------------------------------------

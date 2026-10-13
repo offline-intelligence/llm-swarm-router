@@ -1,7 +1,7 @@
 # PROJECT-STATE — living context (Homelab integration)
 
 **Maintainers:** Claude PM proposes `## CONTEXT UPDATE`; **Cursor implementer** merges into this file when you paste (see `.cursor/rules/homelab-pm-context.mdc`).  
-**Last updated:** 2026-10-12 (AP-UX-1 r2 + AP-4.2 r1 QC pass; `handoffs/PM-PASTE-2026-10-12-browser-qc.md`)
+**Last updated:** 2026-10-13 (HF archive cap + progress UX backlog; `handoffs/PM-PASTE-2026-10-13-hf-archive-ux.md`)
 
 Claude Project: read this file **every session**. Emit patches in `## CONTEXT UPDATE` at end of replies.
 
@@ -266,6 +266,7 @@ Claude Project: read this file **every session**. Emit patches in `## CONTEXT UP
 | 2026-10-11 | PM issued Cursor prompts: audit AP-1/AP-2 with test plan and test reports; GitHub + HF repo archive spec (segmented lane, stars-to-queue, searchable index). |
 | 2026-10-12 | Audit handoff pack: AUDIT-BRIEF-2026 + docs 08–14; live probes; dismiss UX on Pi. |
 | 2026-10-11 | Claude PM workflow defined; PROJECT-STATE created; user uses Tailscale Hub. |
+| 2026-10-13 | Finn overnight HF pull (`llmfan46/gemma-4-31B…`, job `a95d6ad635bb`, 70 GB cap via API). Hub shows **Working** only — no byte fraction, speed, or ETA for repo archive (aria2 has these). PM paste: `docs/pm/2026-10/handoffs/PM-PASTE-2026-10-13-hf-archive-ux.md`; ROADMAP row 39 expanded. |
 
 ---
 

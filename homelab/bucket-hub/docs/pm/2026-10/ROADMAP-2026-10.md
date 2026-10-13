@@ -96,7 +96,7 @@ Each of these gets its own spec and packet ids. None is part of AP-5a.2.
 | # | Task | Who | Notes |
 |---|------|-----|-------|
 | 38 | Retry library import button on a finished torrent; restart Sonarr/Radarr after a Gluetun restart | PM | from OPS-ARR2 |
-| 39 | Dedupe repeated queue clicks for the same URL; size warning for large ungated third-party HF repos | PM | Cursor AP-UX-1 notes, 2026-10-12 |
+| 39 | Dedupe repeated queue clicks; HF archive **70 GB default cap** (env + form preset); **skip-over-limit ≠ Done**; **live progress** (GB/GB, MiB/s, ETA) for `huggingface_repo` / `github_repo` like aria2 | PM | Finn 2026-10-13; paste `handoffs/PM-PASTE-2026-10-13-hf-archive-ux.md` |
 | 40 | Pi ↔ worker heartbeat timeouts under load; aria2 error 13 (partial file without `.aria2`) policy | PM | PROJECT-STATE P2 |
 | 41 | Finn: revoke and replace the HF token pasted in chat; re-export MeTube YouTube cookies when they expire | Finn | |
 | 42 | PM ↔ Cursor audit trail: Cursor posts each QC JSON's summary as a comment on the packet's PR, so GitHub holds the trail and Finn pastes less | Cursor | Finn 2026-10-11. QC JSON files in the repo already cover most of it; starts with the next prompt |

@@ -52,6 +52,8 @@ def gate_env(archive_root, gated_meta, monkeypatch):
     monkeypatch.delenv("HF_GATE_RECHECK_S", raising=False)
     monkeypatch.delenv("HF_GATE_SCHEDULE_S", raising=False)
     monkeypatch.delenv("HF_GATE_MAX_WAIT_H", raising=False)
+    # AP-4.3 free-space guard: ample space by default so gate tests reach their own assertions.
+    monkeypatch.setattr(hf, "_free_space_bytes", lambda _root: 10 * 1024 ** 4)
     return runner, [], probes, state
 
 

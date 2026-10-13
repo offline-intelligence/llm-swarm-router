@@ -63,6 +63,9 @@ PRESETS: tuple[dict[str, Any], ...] = (
         "accepts": ("huggingface_repo", "hf"),
         "default_kind": "huggingface_repo",
         "archive_root": "huggingface-daily",
+        # AP-4.3: the form's size-tier chip; keep in sync with hfSizeChips in form.html
+        # and HF_MAX_SIZE_CEILING_MB (app.py) / DEFAULT_MAX_MB (repo_archive_hf.py).
+        "size_limits_mb": (20480, 71680, 204800),
     },
     {
         "id": "hf_files",
