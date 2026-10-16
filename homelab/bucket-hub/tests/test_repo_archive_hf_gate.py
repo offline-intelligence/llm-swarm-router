@@ -50,6 +50,7 @@ def gate_env(archive_root, gated_meta, monkeypatch):
     monkeypatch.setenv("HF_TOKEN", TOKEN)
     monkeypatch.delenv("HUGGING_FACE_HUB_TOKEN", raising=False)
     monkeypatch.delenv("HF_GATE_RECHECK_S", raising=False)
+    monkeypatch.delenv("HF_GATE_SCHEDULE_S", raising=False)
     monkeypatch.delenv("HF_GATE_MAX_WAIT_H", raising=False)
     return runner, [], probes, state
 
@@ -87,7 +88,7 @@ def test_g2_gated_without_token_waits_needs_token(gate_env, archive_root, monkey
     last = updates[-1]
     assert last["status"] == "queued" and last["gate"]["state"] == "needs_token"
     assert last["error_display"] == hf.NEEDS_TOKEN_MSG
-    assert last["not_before"] == (NOW + timedelta(seconds=600)).isoformat()
+    assert last["not_before"] == (NOW + timedelta(seconds=60)).isoformat()  # AP-4.2 first gap
     assert probes == [] and not runner.calls
 
 
@@ -296,3 +297,77 @@ def test_g8_update_job_sends_gate_null(monkeypatch):
     monkeypatch.setattr(w, "hub_call", lambda path, method="GET", body=None, **k: sent.update(body=body))
     w.update_job("g1", status="done", gate=None, error=None)
     assert sent["body"]["gate"] is None and sent["body"]["status"] == "done"
+
+
+# --- AP-4.2 progressive re-check schedule -------------------------------------------
+
+
+def test_s1_default_schedule_1_5_30_then_hourly(gate_env, archive_root):
+    _, updates, _, _ = gate_env
+    gaps = []
+    gate, now = None, NOW
+    for _ in range(6):
+        _run(_job(gate=gate), archive_root, updates, now=now)
+        last = updates[-1]
+        nxt = datetime.fromisoformat(last["not_before"])
+        assert last["gate"]["next_check"] == last["not_before"]
+        gaps.append(int((nxt - now).total_seconds()))
+        gate, now = last["gate"], nxt
+    assert gaps == [60, 300, 1800, 3600, 3600, 3600]
+    assert gate["checks"] == 6 and gate["since"] == NOW.isoformat()
+
+
+def test_s2_schedule_from_env(monkeypatch):
+    monkeypatch.setenv("HF_GATE_SCHEDULE_S", "120, 600,bad,5")
+    monkeypatch.setenv("HF_GATE_RECHECK_S", "900")
+    assert hf.gate_schedule() == (120, 600, 30)
+    assert [hf.gate_recheck_seconds(n) for n in (1, 2, 3, 9)] == [120, 600, 30, 30]
+
+
+def test_s2_legacy_fixed_gap(monkeypatch):
+    monkeypatch.delenv("HF_GATE_SCHEDULE_S", raising=False)
+    monkeypatch.setenv("HF_GATE_RECHECK_S", "600")
+    assert [hf.gate_recheck_seconds(n) for n in (1, 2, 5)] == [600, 600, 600]
+    monkeypatch.delenv("HF_GATE_RECHECK_S")
+    assert hf.gate_schedule() == hf.DEFAULT_GATE_SCHEDULE_S
+
+
+def test_s3_check_now_keeps_the_schedule_position(gate_env, archive_root):
+    """A manual Check now that still fails moves on to the next gap, it does not restart."""
+    _, updates, _, _ = gate_env
+    gate = {"state": "awaiting_licence", "gated": "auto", "url": URL, "since": NOW.isoformat(), "checks": 2}
+    _run(_job(gate=gate), archive_root, updates)
+    assert updates[-1]["gate"]["checks"] == 3
+    assert updates[-1]["not_before"] == (NOW + timedelta(seconds=1800)).isoformat()
+
+
+def test_s4_granted_state_while_downloading(gate_env, archive_root):
+    runner, updates, _, state = gate_env
+    since = NOW - timedelta(minutes=7)
+    gate = {"state": "awaiting_licence", "gated": "manual", "url": URL, "since": since.isoformat(), "checks": 3}
+    state["status"] = 302
+    _run(_job(gate=gate), archive_root, updates)
+    granted = next(u for u in updates if isinstance(u.get("gate"), dict))
+    g = granted["gate"]
+    assert g["state"] == "granted" and g["granted_at"] == NOW.isoformat()
+    assert g["checks"] == 4 and g["next_check"] is None and g["since"] == since.isoformat()
+    assert granted["error_display"] is None and granted["status"] == "running"
+    assert updates[-1]["status"] == "done" and updates[-1]["gate"] is None
+    assert updates[-1]["index_entry"]["gate_wait_s"] == 7 * 60
+
+
+def test_s4_no_granted_update_for_first_time_access(gate_env, archive_root):
+    _, updates, _, state = gate_env
+    state["status"] = 302
+    _run(_job(), archive_root, updates)
+    assert not any(isinstance(u.get("gate"), dict) for u in updates)
+
+
+
+def test_s5_form_copy_and_waiting_filter():
+    html = (Path(__file__).resolve().parents[1] / "form.html").read_text(encoding="utf-8")
+    assert "function gateWaiting(j)" in html and "filter(gateWaiting)" in html
+    assert "g.state === 'awaiting_licence' || g.state === 'needs_token'" in html
+    assert "'Approval needed'" in html and "'Request access'" in html
+    assert "Waiting for Hugging Face access (" in html
+    assert "Next automatic check in" in html

@@ -178,6 +178,8 @@ Website archive improvements: [`docs/WEBSITE-ARCHIVE-TODO.md`](docs/WEBSITE-ARCH
 - [ ] Finn: click Accept licence during AP-4.1 r2 (`GATE_REPO` = `google/gemma-2-9b-it`, 18.5 GB, gated manual)
 - [ ] MERGE-1 (Cursor, Finn authorised): merge #5, retarget + merge #6, retarget #7 (merge after QC pass)
 - [ ] AP-UX-1 download presets + segments; drive/folder only behind "Manually set path" — code done on `pm/ap-ux-1`; deploy + QC `docs/pm/2026-10/handoffs/AP-UX-1.md`
+- [ ] AP-4.2 HF access re-check schedule (1/5/30 min then hourly) — code done on `pm/ap-4.2`; deploy + QC `docs/pm/2026-10/handoffs/AP-4.2.md` Part C
+- [ ] OPS-ARR1 Sonarr/Radarr API not answering from the worker host (AP-UX-1 R0)
 - [ ] AP-5a/5b index: ai-server SQLite catalogue + Pi fallback (`docs/pm/2026-10/AP-5-index-architecture-v2.md`)
 - [ ] P2: stale aria2 gid leaves a torrent job `running` after a worker restart
 - [ ] Later: AP-5c rich builders, AP-6 recurring runner, AP-7 stars/likes to queue, AP-8 release tracking

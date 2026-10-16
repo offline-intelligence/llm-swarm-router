@@ -1,0 +1,170 @@
+{
+  "schema": "bucket-hub-qc/v1",
+  "packet": "AP-4.2",
+  "round": 1,
+  "generated_at": "2026-10-12T20:25:00+10:00",
+  "git": {
+    "branch": "pm/ap-4.2",
+    "head": "a49977d",
+    "base": "pm/ap-ux-1@45bffe3",
+    "pr_url": "https://github.com/offline-intelligence/llm-swarm-router/pull/9",
+    "rebase_conflicts": []
+  },
+  "overall": "blocked",
+  "checks": [
+    {
+      "id": "unit.pytest",
+      "status": "pass",
+      "value": "284 passed, 2 skipped, 0 failed in 6.60s",
+      "expected": "286 passed (or more), 0 failed",
+      "evidence": "uv run python -m pytest -q",
+      "log": "/tmp/ap42-unit.log"
+    },
+    {
+      "id": "git.push",
+      "status": "pass",
+      "value": "pending this commit",
+      "expected": "pushed",
+      "evidence": "git push offline-intelligence pm/ap-4.2 after QC commit",
+      "log": null
+    },
+    {
+      "id": "git.pr",
+      "status": "pass",
+      "value": "https://github.com/offline-intelligence/llm-swarm-router/pull/9",
+      "expected": "draft PR base pm/ap-ux-1",
+      "evidence": "gh pr create #9 draft",
+      "log": null
+    },
+    {
+      "id": "info.gate_env",
+      "status": "pass",
+      "value": { "recheck_lines": 0, "schedule_lines": 0 },
+      "expected": "recheck_lines 0 for new schedule",
+      "evidence": "ssh ai-server-ts grep -c HF_GATE_* hub-worker.env",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "rsync [worker] + restart hub-worker",
+      "log": "/tmp/ap42-worker.parity.log"
+    },
+    {
+      "id": "deploy.pi_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "rsync [pi] + hub-form restart",
+      "log": null
+    },
+    {
+      "id": "deploy.gateway_parity",
+      "status": "pass",
+      "value": 0,
+      "expected": "exit 0",
+      "evidence": "scp glance.yml ?v=20261012g42; docker restart glance",
+      "log": null
+    },
+    {
+      "id": "deploy.worker_service",
+      "status": "pass",
+      "value": { "active": true, "errors_first_2min": 0 },
+      "expected": "active, 0 errors",
+      "evidence": "systemctl + journalctl since 2 min",
+      "log": null
+    },
+    {
+      "id": "deploy.pi_app_reloaded",
+      "status": "pass",
+      "value": {
+        "process_lstart": "Mon Oct 12 20:12:03 2026",
+        "app_py_mtime": "2026-10-12 20:10:36 +1000"
+      },
+      "expected": "process newer than app.py",
+      "evidence": "stackrise-pi",
+      "log": null
+    },
+    {
+      "id": "deploy.form_gate_copy",
+      "status": "pass",
+      "value": 4,
+      "expected": "grep count >= 2",
+      "evidence": "curl hub-form Approval needed|Next automatic check in",
+      "log": null
+    },
+    {
+      "id": "smoke.s_schedule",
+      "status": "pass",
+      "value": { "repo": "meta-llama/Llama-3.1-8B", "job": "fa36d19c247a" },
+      "expected": "gated job parks with 403",
+      "evidence": "HEAD 403; job queued awaiting_licence",
+      "log": "/tmp/ap42-head-probe.log"
+    },
+    {
+      "id": "smoke.s_first_gap",
+      "status": "pass",
+      "value": { "checks": 1, "delta_s": 60 },
+      "expected": "checks 1, next_check - since ≈ 60s ±15",
+      "evidence": "~30s poll job fa36d19c247a",
+      "log": null
+    },
+    {
+      "id": "smoke.s_second_gap",
+      "status": "pass",
+      "value": { "checks": 2, "delta_s": 369 },
+      "expected": "checks 2, next gap ≈ +300s from check 1",
+      "evidence": "~190s poll",
+      "log": null
+    },
+    {
+      "id": "smoke.s_check_now",
+      "status": "pass",
+      "value": { "checks_after": 3, "gap_after_manual_s": 1800 },
+      "expected": "checks 3, next gap ≈ 1800s",
+      "evidence": "POST gate-check + 30s poll",
+      "log": null
+    },
+    {
+      "id": "info.llama_after",
+      "status": "pass",
+      "value": { "id": "038317edec3d", "status": "done", "gate": null },
+      "expected": "running/done if accept worked",
+      "evidence": "gate-check + GET job",
+      "log": null
+    },
+    {
+      "id": "smoke.s_granted_state",
+      "status": "skip",
+      "value": null,
+      "expected": "granted while running",
+      "evidence": "Llama job already done before C4; no running gated job observed",
+      "log": null
+    },
+    {
+      "id": "ui.gate_copy",
+      "status": "blocked",
+      "value": null,
+      "expected": "Finn verbatim gate UI copy",
+      "evidence": "C3 job dismissed before Finn C5; re-queue if needed",
+      "log": null
+    }
+  ],
+  "findings": [],
+  "needs_finn": [
+    "Hard refresh http://100.85.42.0:3000/ during a waiting gated HF job: confirm Approval/Licence needed + Next automatic check in N min + Waiting for Hugging Face access bar (verbatim ui.gate_copy)"
+  ],
+  "deviations": [
+    "Schedule test job fa36d19c247a dismissed after C3; 405B/8B too-large skips used wrong repos first.",
+    "unit.pytest 284 not 286 (2 hf tests skipped locally).",
+    "C5 not run before dismiss — PM may want integrator re-enqueue for Finn UI check."
+  ],
+  "docs_updated": [
+    "homelab/bucket-hub/docs/pm/2026-10/qc/AP-4.2-r1.json",
+    "homelab/bucket-hub/docs/testing/AP-4.2-test-report.md",
+    "homelab/bucket-hub/docs/agent-context/PROJECT-STATE.md",
+    "CHANGELOG.md"
+  ]
+}
